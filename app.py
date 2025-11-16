@@ -2,78 +2,68 @@ import streamlit as st
 
 st.set_page_config(page_title="Login", layout="centered")
 
-# ------------------ CSS MODERNO ------------------
 st.markdown("""
     <style>
-    /* Ocultar menú y pie */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-
-    /* Fondo */
     body {
         background-color: #0E1117;
     }
 
-    /* Tarjeta */
-    .login-card {
-        background-color: #1E1E1E;
-        padding: 45px 35px;
-        border-radius: 20px;
-        width: 420px;
-        margin: auto;
-        margin-top: 90px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.35);
-        animation: fadeIn 1s ease-in-out;
+    .card {
+        background: #FFFFFF10;
+        backdrop-filter: blur(8px);
+        padding: 40px;
+        width: 390px;
+        margin: 120px auto;
+        border-radius: 22px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        animation: zoomIn .6s ease;
     }
 
-    @keyframes fadeIn {
-        from {opacity: 0; transform: translateY(-10px);}
-        to {opacity: 1; transform: translateY(0);}
+    @keyframes zoomIn {
+        from {opacity: 0; transform: scale(0.95);}
+        to {opacity: 1; transform: scale(1);}
     }
 
-    /* Título */
-    .login-title {
-        text-align: center;
-        font-size: 30px;
-        font-weight: bold;
+    .title {
         color: white;
-        margin-bottom: 25px;
+        text-align: center;
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 30px;
     }
 
-    /* Inputs */
     .stTextInput>div>div>input {
-        border-radius: 12px;
-        height: 45px;
-        font-size: 16px;
-    }
-
-    /* Botón */
-    .stButton>button {
-        width: 100%;
-        background-color: #4CAF50;
-        border-radius: 12px;
+        border-radius: 14px;
+        padding: 8px;
         height: 45px;
         font-size: 17px;
-        border: none;
     }
+
+    .stButton>button {
+        width: 100%;
+        height: 48px;
+        background: linear-gradient(90deg, #7F5AF0, #4361EE);
+        color: white;
+        border-radius: 14px;
+        font-size: 17px;
+        border: none;
+        cursor: pointer;
+    }
+
     .stButton>button:hover {
-        background-color: #45A049;
+        opacity: 0.9;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ------------------ TARJETA ------------------
-st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-st.markdown("<div class='login-title'>Inicio de sesión</div>", unsafe_allow_html=True)
+st.markdown("<div class='card'>", unsafe_allow_html=True)
+st.markdown("<div class='title'>Bienvenido</div>", unsafe_allow_html=True)
 
-usuario = st.text_input("Usuario")
-password = st.text_input("Contraseña", type="password")
-
-login = st.button("Iniciar sesión")
+user = st.text_input("Usuario")
+pwd = st.text_input("Contraseña", type="password")
+login = st.button("Acceder")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
 if login:
-    st.success("Procesando…")
-
+    st.info("Verificando credenciales…")
