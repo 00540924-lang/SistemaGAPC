@@ -12,7 +12,7 @@ def verificar_usuario(Usuario, Contraseña):
 
     try:
         cursor = con.cursor()
-        query = "SELECT Usuario, Contra FROM Usuarios WHERE Usuario = %s AND Contra = %s"
+        query = "SELECT Usuario, Contraseña FROM Usuarios WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (Usuario, Contraseña))
         result = cursor.fetchone()
         return result[0] if result else None
@@ -28,7 +28,7 @@ def login():
         st.success("✅ Conexión a la base de datos establecida correctamente.")
 
     Usuario = st.text_input("Usuario", key="Usuario_input")
-    Contra = st.text_input("Contra", type="password", key="contra_input")
+    Contraseña = st.text_input("Contraseña", type="password", key="contraseña_input")
 
     if st.button("Iniciar sesión"):
         tipo = verificar_usuario(Usuario, Contraseña)
