@@ -108,8 +108,6 @@ def login():
     # --- SUBTÍTULO ---
     st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
 
-    # --- TARJETA VIDRIO ---
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
 
     st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
 
