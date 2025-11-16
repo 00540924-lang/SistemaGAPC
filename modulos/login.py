@@ -27,8 +27,9 @@ def login():
     if st.session_state.get("conexion_exitosa"):
         st.success("✅ Conexión a la base de datos establecida correctamente.")
 
-    Usuario = st.text_input("Usuario", key="Usuario_input")
-    Contraseña = st.text_input("Contraseña", type="password", key="contraseña_input")
+    Usuario = st.text_input("Usuario", key="login_usuario_input")
+    Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
+
 
     if st.button("Iniciar sesión"):
         tipo = verificar_usuario(Usuario, Contra)
