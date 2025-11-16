@@ -9,12 +9,13 @@ st.markdown("""
         height: 100vh;
     }
 
+    /* Contenedor principal estilo vidrio */
     .glass {
         background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(12px);
         padding: 40px;
         width: 430px;
-        margin: 120px auto;
+        margin: 40px auto;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.15);
         animation: slideDown .8s ease;
@@ -23,6 +24,16 @@ st.markdown("""
     @keyframes slideDown {
         from {opacity: 0; transform: translateY(-15px);}
         to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* Título superior GAPC */
+    .titulo-gagpc {
+        font-size: 26px;
+        color: #ffffff;
+        text-align: center;
+        margin-top: 40px;
+        margin-bottom: 10px;
+        font-weight: 600;
     }
 
     .title {
@@ -44,6 +55,7 @@ st.markdown("""
         border-radius: 10px;
         font-size: 17px;
         border: none;
+        color: white;
     }
 
     .stButton>button:hover {
@@ -52,9 +64,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Puedes cambiar esta URL por tu logo del repositorio
+# --- Título agregado arriba ---
+st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>", unsafe_allow_html=True)
+
+# Logo (puedes cambiar URL)
 st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=80)
 
+# Panel Administrativo
 st.markdown("<div class='glass'>", unsafe_allow_html=True)
 st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
 
@@ -65,4 +81,3 @@ if st.button("Ingresar"):
     st.success("Bienvenido!")
 
 st.markdown("</div>", unsafe_allow_html=True)
-
