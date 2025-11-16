@@ -3,8 +3,8 @@ import streamlit as st
 st.set_page_config(page_title="Login", layout="centered")
 
 # ------------------ CSS ESTILO APP MÓVIL ------------------
-st.markdown("""
-    <style>
+css = """
+<style>
 
     /* Ocultar menú y header */
     #MainMenu {visibility: hidden;}
@@ -33,4 +33,29 @@ st.markdown("""
     @keyframes slideUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Título */
+    .mobile-title {
+        font-size: 28px;
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 30px;
+        color: #FFFFFF;
+    }
+
+    /* Inputs estilo mobile */
+    .stTextInput>div>div>input {
+        border-radius: 14px;
+        height: 50px;
+        font-size: 17px;
+        padding-left: 15px;
+        color: white;
+        background-color: #1E1E1E;
+        border: 1px solid #333333;
+    }
+
+    /* Botón redondeado tipo app */
+    .stButton>button {
+
 
