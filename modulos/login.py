@@ -78,21 +78,23 @@ def login():
 
     # -------- TARJETA VISUAL ----------
     st.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-            padding: 15px;
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 18px;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-        ">
-            <b>Bienvenido</b><br>
-            Ingrese sus credenciales para continuar
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """
+    <div style="
+        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+        padding: 15px;
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 18px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        width: 400px;
+        margin: auto;
+    ">
+        <b>Bienvenido</b><br>
+        Ingrese sus credenciales para continuar
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
     st.write("")  # Espacio
 
