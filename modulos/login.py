@@ -11,11 +11,16 @@ def verificar_usuario(Usuario, Contraseña):
 
     try:
         cursor = con.cursor()
-        query = "SELECT Usuario, Contra FROM Administradores WHERE Usuario = %s AND Contraseña= %s"
+
+        # Consulta corregida: columna Contraseña con backticks y sin "Contra"
+        query = """
+            SELECT Usuario 
+            FROM Administradores 
+            WHERE Usuario = %s AND `Contraseña` = %s
+        """
         cursor.execute(query, (Usuario, Contraseña))
         result = cursor.fetchone()
 
-        # Si existe → retorno nombre de usuario
         return result[0] if result else None
 
     finally:
@@ -25,7 +30,7 @@ def verificar_usuario(Usuario, Contraseña):
 def login():
     st.title("Inicio de sesión")
 
-    # 🟢 Mostrar mensaje persistente si ya hubo conexión exitosa
+    # Mostrar mensaje si conexión ya fue exitosa
     if st.session_state.get("conexion_exitosa"):
         st.success("✅ Conexión a la base de datos establecida correctamente.")
 
@@ -33,12 +38,12 @@ def login():
     Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
 
     if st.button("Iniciar sesión"):
-        tipo = verificar_usuario(Usuario, Contraseña)  # ← LÍNEA CORREGIDA
-        if tipo:
-            st.session_state["usuario"] = Usuario
-            st.session_state["tipo_usuario"] = tipo
-            st.success(f"Bienvenido ({Usuario}) 👋")
+        usuario_validado = verificar_usuario(Usuario, Contraseña)
+
+        if usuario_validado:
+            st.session_state["usuario"] = usuario_validado
             st.session_state["sesion_iniciada"] = True
+            st.success(f"Bienvenido {usuario_validado} 👋")
             st.rerun()
         else:
             st.error("❌ Credenciales incorrectas.")
