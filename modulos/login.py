@@ -81,7 +81,7 @@ def login():
         """
         <div style="
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-            padding: 5px;
+            padding: 15px;
             border-radius: 12px;
             color: #ffffff;
             font-size: 16px;
