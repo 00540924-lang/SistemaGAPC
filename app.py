@@ -5,65 +5,63 @@ st.set_page_config(page_title="Login", layout="centered")
 st.markdown("""
     <style>
     body {
-        background-color: #0E1117;
+        background: linear-gradient(135deg, #141E30, #243B55);
+        height: 100vh;
     }
 
-    .card {
-        background: #FFFFFF10;
-        backdrop-filter: blur(8px);
+    .glass {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
         padding: 40px;
-        width: 390px;
+        width: 430px;
         margin: 120px auto;
-        border-radius: 22px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-        animation: zoomIn .6s ease;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        animation: slideDown .8s ease;
     }
 
-    @keyframes zoomIn {
-        from {opacity: 0; transform: scale(0.95);}
-        to {opacity: 1; transform: scale(1);}
+    @keyframes slideDown {
+        from {opacity: 0; transform: translateY(-15px);}
+        to {opacity: 1; transform: translateY(0);}
     }
 
     .title {
-        color: white;
+        color: #FFFFFF;
         text-align: center;
-        font-size: 32px;
-        font-weight: 600;
-        margin-bottom: 30px;
+        font-size: 30px;
+        margin-bottom: 20px;
     }
 
     .stTextInput>div>div>input {
-        border-radius: 14px;
-        padding: 8px;
+        border-radius: 10px;
         height: 45px;
-        font-size: 17px;
     }
 
     .stButton>button {
         width: 100%;
-        height: 48px;
-        background: linear-gradient(90deg, #7F5AF0, #4361EE);
-        color: white;
-        border-radius: 14px;
+        height: 45px;
+        background-color: #00B4D8;
+        border-radius: 10px;
         font-size: 17px;
         border: none;
-        cursor: pointer;
     }
 
     .stButton>button:hover {
-        opacity: 0.9;
+        background-color: #0096C7;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<div class='card'>", unsafe_allow_html=True)
-st.markdown("<div class='title'>Bienvenido</div>", unsafe_allow_html=True)
+# Puedes cambiar esta URL por tu logo del repositorio
+st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=80)
 
-user = st.text_input("Usuario")
-pwd = st.text_input("Contraseña", type="password")
-login = st.button("Acceder")
+st.markdown("<div class='glass'>", unsafe_allow_html=True)
+st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
+
+u = st.text_input("Usuario")
+p = st.text_input("Contraseña", type="password")
+
+if st.button("Ingresar"):
+    st.success("Bienvenido!")
 
 st.markdown("</div>", unsafe_allow_html=True)
-
-if login:
-    st.info("Verificando credenciales…")
