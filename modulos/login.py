@@ -29,15 +29,15 @@ def verificar_usuario(usuario, contraseña):
 # -------------------------------------------------
 def login():
 
-    # ---------- LOGO CENTRADO ----------
-    st.markdown(
-        """
-        <div style="display: flex; justify-content: center; margin-top: -40px;">
-            <img src="modulos/assets/logo_gapc.png" width="350">
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+   # -------- LOGO CENTRADO Y MÁS GRANDE ----------
+st.markdown(
+    """
+    <div style='display: flex; justify-content: center;'>
+        <img src='modulos/assets/logo_gapc.png' style='width: 650px;'>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
     # ---------- TÍTULO ----------
     st.markdown(
