@@ -15,7 +15,7 @@ st.markdown("""
         backdrop-filter: blur(12px);
         padding: 40px;
         width: 430px;
-        margin: 40px auto;
+        margin: 20px auto;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.15);
         animation: slideDown .8s ease;
@@ -26,13 +26,13 @@ st.markdown("""
         to {opacity: 1; transform: translateY(0);}
     }
 
-    /* Título superior GAPC */
+    /* Título GAPC debajo del logo */
     .titulo-gagpc {
         font-size: 26px;
         color: #ffffff;
         text-align: center;
-        margin-top: 40px;
-        margin-bottom: 10px;
+        margin-top: 10px;
+        margin-bottom: 25px;
         font-weight: 600;
     }
 
@@ -64,13 +64,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Título agregado arriba ---
-st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>", unsafe_allow_html=True)
+# --- Logo ---
+st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
 
-# Logo (puedes cambiar URL)
-st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=80)
+# --- Título debajo del logo ---
+st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
+            unsafe_allow_html=True)
 
-# Panel Administrativo
+# --- Panel administrativo ---
 st.markdown("<div class='glass'>", unsafe_allow_html=True)
 st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
 
@@ -81,3 +82,4 @@ if st.button("Ingresar"):
     st.success("Bienvenido!")
 
 st.markdown("</div>", unsafe_allow_html=True)
+
