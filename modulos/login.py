@@ -1,4 +1,4 @@
-import streamlit as st
+aimport streamlit as st
 from modulos.config.conexion import obtener_conexion
 
 def verificar_usuario(Usuario, Contraseña):
@@ -12,7 +12,7 @@ def verificar_usuario(Usuario, Contraseña):
 
     try:
         cursor = con.cursor()
-        query = "SELECT Usuario, Contra FROM Administradores WHERE Usuario = %s AND Contra = %s"
+        query = "SELECT Usuario, Contra FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (Usuario, Contraseña))
         result = cursor.fetchone()
         return result[0] if result else None
