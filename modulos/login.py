@@ -109,7 +109,7 @@ def login():
     st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
 
 
-    st.markdown("<div class='title'>Iniciar Sesisión</div>", unsafe_allow_html=True)
+    st.markdown("<div class='title'>Iniciar Sesión</div>", unsafe_allow_html=True)
 
     # --- Inputs reales de tu login ---
     Usuario = st.text_input("Usuario", key="login_usuario_input")
