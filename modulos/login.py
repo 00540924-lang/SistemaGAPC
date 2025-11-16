@@ -1,42 +1,118 @@
 import streamlit as st
-from modulos.config.conexion import obtener_conexion
 
-def verificar_usuario(Usuario, Contraseña):
-    con = obtener_conexion()
-    if not con:
-        st.error("⚠️ No se pudo conectar a la base de datos.")
-        return None
-    else:
-        # ✅ Guardar en el estado que la conexión fue exitosa
-        st.session_state["conexion_exitosa"] = True
+st.set_page_config(page_title="Login", layout="centered")
 
-    try:
-        cursor = con.cursor()
-        query = "SELECT Usuario, Contraseña FROM Administrador WHERE Usuario = %s AND Contraseña = %s"
-        cursor.execute(query, (Usuario, Contraseña))
-        result = cursor.fetchone()
-        return result[0] if result else None
-    finally:
-        con.close()
+# ---------- ESTILOS ----------
+st.markdown("""
+    <style>
+    body {
+        background: linear-gradient(135deg, #141E30, #243B55);
+        height: 100vh;
+    }
+    .glass {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        padding: 40px;
+        width: 430px;
+        margin: 20px auto;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        animation: slideDown .8s ease;
+    }
+    @keyframes slideDown {
+        from {opacity: 0; transform: translateY(-15px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+    .titulo-gagpc {
+        font-size: 26px;
+        color: #ffffff;
+        text-align: center;
+        margin-top: 10px;
+        font-weight: 600;
+    }
+    .bienvenidos {
+        font-size: 18px;
+        color: #dfefff;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .title {
+        color: #FFFFFF;
+        text-align: center;
+        font-size: 30px;
+        margin-bottom: 20px;
+    }
+    .stTextInput>div>div>input {
+        border-radius: 10px;
+        height: 45px;
+    }
+    .stButton>button {
+        width: 100%;
+        height: 45px;
+        background-color: #00B4D8;
+        border-radius: 10px;
+        font-size: 17px;
+        border: none;
+        color: white;
+    }
+    .stButton>button:hover {
+        background-color: #0096C7;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
+# ---------- LOGO ----------
+st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
 
-def login():
-    st.title("Inicio de sesión")
+# ---------- TITULOS ----------
+st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>", unsafe_allow_html=True)
+st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
 
-    # 🟢 Mostrar mensaje persistente si ya hubo conexión exitosa
-    if st.session_state.get("conexion_exitosa"):
-        st.success("✅ Conexión a la base de datos establecida correctamente.")
+# -------------------------------------------------------------------
+# SISTEMA DE LOGIN
+# -------------------------------------------------------------------
 
-    Usuario = st.text_input("Usuario", key="Usuario_input")
-    Contraseña = st.text_input("Contraseña", type="password", key="contraseña_input")
+# Usuario y contraseña válidos
+USER = "Dark"
+PASS = "Valorant"
 
-    if st.button("Iniciar sesión"):
-        tipo = verificar_usuario(Usuario, Contraseña)
-        if tipo:
-            st.session_state["usuario"] = Usuario
-            st.session_state["tipo_usuario"] = tipo
-            st.success(f"Bienvenido ({Usuario}) 👋")
-            st.session_state["sesion_iniciada"] = True
+# Session state para recordar si ya inició sesión
+if "logueado" not in st.session_state:
+    st.session_state.logueado = False
+
+# Si NO está logueado → mostrar login
+if not st.session_state.logueado:
+
+    st.markdown("<div class='glass'>", unsafe_allow_html=True)
+    st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
+
+    u = st.text_input("Usuario")
+    p = st.text_input("Contraseña", type="password")
+
+    if st.button("Ingresar"):
+        if u == USER and p == PASS:
+            st.session_state.logueado = True
             st.rerun()
         else:
-            st.error("❌ Credenciales incorrectas.")
+            st.error("❌ Credenciales incorrectas")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Si ya inició sesión → mostrar menú
+else:
+    st.success("✔ Sesión iniciada correctamente")
+    st.markdown("### Menú Principal")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("📁 Gestión de Grupos"):
+            st.info("Abriste Gestión de Grupos")
+
+    with col2:
+        if st.button("💳 Registro de Aportes"):
+            st.info("Abriste Registro de Aportes")
+
+    if st.button("🚪 Cerrar sesión"):
+        st.session_state.logueado = False
+        st.rerun()
+
