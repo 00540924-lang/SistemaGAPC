@@ -1,131 +1,87 @@
+
 import streamlit as st
-from modulos.config.conexion import obtener_conexion
+import mysql.connector
+from streamlit_extras.switch_page_button import switch_page
 
-# ==========================
-#  FUNCIÓN PARA VALIDAR USUARIO
-# ==========================
-def verificar_usuario(Usuario, Contraseña):
-    con = obtener_conexion()
-    if not con:
-        st.error("⚠️ No se pudo conectar a la base de datos.")
-        return None
-    else:
-        st.session_state["conexion_exitosa"] = True
-
-    try:
-        cursor = con.cursor()
-
-        query = """
-            SELECT Usuario 
-            FROM Administradores 
-            WHERE Usuario = %s AND `Contraseña` = %s
-        """
-        cursor.execute(query, (Usuario, Contraseña))
-        result = cursor.fetchone()
-
-        return result[0] if result else None
-
-    finally:
-        con.close()
-
-
-# ==========================
-#  INTERFAZ DE LOGIN DISEÑADA
-# ==========================
 def login():
+    st.set_page_config(page_title="Sistema GAPC", layout="centered")
 
-    st.set_page_config(page_title="Login", layout="centered")
-
-    # ------- ESTILOS CSS -------
+    # --- CSS personalizado ---
     st.markdown("""
         <style>
-
-        /* Fondo degradado */
-        body {
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            height: 100vh;
+        body { 
+            background-color: #f5f5f5;
         }
 
-        /* Caja principal de login */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.10);
-            backdrop-filter: blur(12px);
+        .login-card {
+            background: white;
             padding: 40px;
-            width: 420px;
-            margin: 40px auto;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.20);
+            border-radius: 16px;
+            max-width: 420px;
+            margin: auto;
+            box-shadow: 0px 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .title {
             text-align: center;
-            animation: fadeIn 0.9s ease-in-out;
+            font-size: 32px;
+            font-weight: bold;
+            color: #2C3E50;
         }
 
-        /* Animación */
-        @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(-10px);}
-            to {opacity: 1; transform: translateY(0);}
-        }
-
-        /* Título */
-        .titulo {
-            font-size: 26px;
-            color: #FFFFFF;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        /* Subtítulo */
-        .sub {
-            font-size: 17px;
-            color: #cfe9ff;
+        .subtitle {
+            text-align: center;
+            color: #7F8C8D;
+            font-size: 14px;
             margin-bottom: 25px;
         }
 
-        /* Input */
-        .stTextInput>div>div>input {
-            border-radius: 10px;
-            height: 45px;
+        .stButton>button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 0px;
+            width: 100%;
+            border-radius: 8px;
+            border: none;
+            font-size: 18px;
         }
 
-        /* Botón */
-        .stButton>button {
-            width: 100%;
-            height: 45px;
-            background-color: #00B4D8;
-            border-radius: 10px;
-            font-size: 18px;
-            border: none;
+        .stButton>button:hover {
+            background-color: #2980b9;
             color: white;
         }
-        .stButton>button:hover {
-            background-color: #0096C7;
-            transform: scale(1.02);
-        }
-
         </style>
     """, unsafe_allow_html=True)
 
-    # ------- INTERFAZ VISUAL -------
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
 
-    st.markdown("<div class='titulo'>Inicio de Sesión</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sub'>Acceda al Panel Administrativo</div>", unsafe_allow_html=True)
+    st.markdown("<p class='title'>🔐 Sistema GAPC</p>", unsafe_allow_html=True)
+    st.markdown("<p class='subtitle'>Inicia sesión para continuar</p>", unsafe_allow_html=True)
 
-    # Mostrar mensaje si la conexión fue exitosa
-    if st.session_state.get("conexion_exitosa"):
-        st.success("Conexión a la base de datos exitosa.")
-
-    Usuario = st.text_input("Usuario", key="login_usuario_input")
-    Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
+    usuario = st.text_input("Usuario")
+    contraseña = st.text_input("Contraseña", type="password")
 
     if st.button("Ingresar"):
-        usuario_validado = verificar_usuario(Usuario, Contraseña)
+        try:
+            conn = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="",
+                database="gapc"
+            )
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM usuarios WHERE Usuario=%s AND Contraseña=%s", 
+                           (usuario, contraseña))
+            resultado = cursor.fetchone()
 
-        if usuario_validado:
-            st.session_state["usuario"] = usuario_validado
-            st.session_state["sesion_iniciada"] = True
-            st.success(f"Bienvenido {usuario_validado} 👋")
-            st.rerun()
-        else:
-            st.error("❌ Usuario o contraseña incorrectos.")
+            if resultado:
+                st.success("Inicio de sesión exitoso ✔")
+                st.session_state["usuario"] = usuario
+                switch_page("dashboard")
+            else:
+                st.error("Usuario o contraseña incorrectos")
+
+        except Exception as e:
+            st.error("Error al conectar con la base de datos")
 
     st.markdown("</div>", unsafe_allow_html=True)
