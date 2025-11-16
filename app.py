@@ -77,4 +77,17 @@ st.markdown("""
 st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
 
 # --- Título debajo del logo ---
-st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo
+st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
+            unsafe_allow_html=True)
+
+# --- NUEVO Texto Bienvenidos debajo del título ---
+st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
+
+u = st.text_input("Usuario")
+p = st.text_input("Contraseña", type="password")
+
+if st.button("Ingresar"):
+    st.success("Bienvenido!")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
