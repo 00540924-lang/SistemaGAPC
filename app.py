@@ -71,10 +71,6 @@ st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png",
 st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
             unsafe_allow_html=True)
 
-# --- Panel administrativo ---
-st.markdown("<div class='glass'>", unsafe_allow_html=True)
-st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
-
 u = st.text_input("Usuario")
 p = st.text_input("Contraseña", type="password")
 
