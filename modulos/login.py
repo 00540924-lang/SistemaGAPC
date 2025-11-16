@@ -85,7 +85,7 @@ def login():
             border-radius: 12px;
             color: #ffffff;
             font-size: 20px;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.15);
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.5);
         ">
             <b>Bienvenido</b><br>
             Ingrese sus credenciales para continuar
