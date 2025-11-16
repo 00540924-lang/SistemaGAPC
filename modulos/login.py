@@ -34,7 +34,7 @@ def login():
     with col1:
         st.write("")
     with col2:
-        st.image("modulos/assets/logo_gapc.png", width=1200)
+        st.image("modulos/assets/logo_gapc.png", width=5000)
     with col3:
         st.write("")
 
