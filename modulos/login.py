@@ -31,7 +31,7 @@ def verificar_usuario(usuario, contraseña):
 def login():
 
     # -------- LOGO ----------
-    st.image("modulos/assets/logo_gapc.png", width=170)
+    st.image("modulos/assets/logo_gapc.png", width=500)
 
     # -------- TÍTULO ----------
     st.markdown(
