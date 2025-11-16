@@ -5,7 +5,6 @@ from modulos.login import login
 # Comprobamos si la sesión ya está iniciada
 if "sesion_iniciada" in st.session_state and st.session_state["sesion_iniciada"]:
 # Si la sesión está iniciada, mostrar el contenido de ventas
-
 else:
 # Si la sesión no está iniciada, mostrar el login
 login()
