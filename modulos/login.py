@@ -1,44 +1,80 @@
 import streamlit as st
-from modulos.config.conexion import obtener_conexion
 
-def verificar_usuario(Usuario, Contraseña):
-    con = obtener_conexion()
-    if not con:
-        st.error("⚠️ No se pudo conectar a la base de datos.")
-        return None
-    else:
-        st.session_state["conexion_exitosa"] = True
+st.set_page_config(page_title="GAPC - Login", layout="centered")
 
-    try:
-        cursor = con.cursor()
-        query = "SELECT Usuario, Contra FROM Administradores WHERE Usuario = %s AND Contraseña= %s"
-        cursor.execute(query, (Usuario, Contraseña))
-        result = cursor.fetchone()
+# ---- ESTILOS CSS ----
+st.markdown("""
+<style>
 
-        # Si existe → retorno nombre de usuario
-        return result[0] if result else None
+body {
+    background: linear-gradient(135deg, #B7A2C6 0%, #F4C9A9 100%);
+}
 
-    finally:
-        con.close()
+/* Caja del login */
+.login-box {
+    background: #FFF7F2;
+    padding: 40px;
+    width: 400px;
+    margin: auto;
+    margin-top: 90px;
+    border-radius: 20px;
+    box-shadow: 0px 10px 35px rgba(0,0,0,0.15);
+    text-align: center;
+}
 
+/* Título */
+.login-title {
+    font-size: 30px;
+    font-weight: 900;
+    color: #2D2B2F;
+    margin-top: 10px;
+}
 
-def login():
-    st.title("Inicio de sesión")
+/* Inputs */
+input {
+    border-radius: 10px !important;
+}
 
-    # 🟢 Mostrar mensaje persistente si ya hubo conexión exitosa
-    if st.session_state.get("conexion_exitosa"):
-        st.success("✅ Conexión a la base de datos establecida correctamente.")
+/* Botón */
+.stButton>button {
+    background-color: #9A86AE;
+    color: white;
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 18px;
+    border: none;
+    transition: 0.2s ease;
+}
 
-    Usuario = st.text_input("Usuario", key="login_usuario_input")
-    Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
+.stButton>button:hover {
+    background-color: #7D6A94;
+}
 
-    if st.button("Iniciar sesión"):
-        tipo = verificar_usuario(Usuario, Contraseña)  # ← LÍNEA CORREGIDA
-        if tipo:
-            st.session_state["usuario"] = Usuario
-            st.session_state["tipo_usuario"] = tipo
-            st.success(f"Bienvenido ({Usuario}) 👋")
-            st.session_state["sesion_iniciada"] = True
-            st.rerun()
-        else:
-            st.error("❌ Credenciales incorrectas.")
+/* Slogan */
+.slogan {
+    color: #F5B995;
+    font-weight: 700;
+    font-size: 16px;
+    margin-top: -10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---- INTERFAZ VISUAL ----
+
+st.markdown("<div class='login-box'>", unsafe_allow_html=True)
+
+st.image("logo.png", width=200)  # coloca aquí tu logo
+
+st.markdown("<div class='login-title'>GAPC</div>", unsafe_allow_html=True)
+st.markdown("<div class='slogan'>Ahorra, Crece, Juntos</div>", unsafe_allow_html=True)
+
+email = st.text_input("Correo electrónico")
+password = st.text_input("Contraseña", type="password")
+
+st.button("Iniciar sesión")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
