@@ -14,7 +14,6 @@ def verificar_usuario(usuario, contraseña):
     try:
         cursor = con.cursor()
 
-        # OJO: usa los nombres reales de las columnas (Usuario, Contraseña)
         query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
@@ -31,19 +30,18 @@ def verificar_usuario(usuario, contraseña):
 def login():
 
     # -------- LOGO CENTRADO ----------
-    st.markdown(
-        """
-        <div style='display: flex; justify-content: center; margin-top: 10px; margin-bottom: -20px;'>
-            <img src='modulos/assets/logo_gapc.png' width='170'>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        st.write("")
+    with col2:
+        st.image("modulos/assets/logo_gapc.png", width=170)
+    with col3:
+        st.write("")
 
     # -------- TÍTULO ----------
     st.markdown(
         """
-        <h2 style='text-align: center; margin-top: 10px;'>
+        <h2 style='text-align: center; margin-top: -10px;'>
             Sistema de Gestión – GAPC
         </h2>
         """,
@@ -59,7 +57,8 @@ def login():
             border-radius: 12px;
             color: white;
             font-size: 16px;
-            margin-bottom: 20px;">
+            margin-bottom: 20px;
+            text-align: left;">
             <b>Bienvenido</b><br>
             Ingrese sus credenciales para continuar.
         </div>
