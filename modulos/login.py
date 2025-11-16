@@ -49,22 +49,22 @@ def login():
     )
 
     # -------- TARJETA VISUAL ----------
-    st.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #3085C3, #FEEAA1);
-            padding: 25px;
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 20px;
-            text-align: left;">
-            <b>Bienvenido</b><br>
-            Ingrese sus credenciales para continuar.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+   st.markdown(
+    """
+    <div style="
+        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+        padding: 25px;
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 16px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+    ">
+        <b>Bienvenido</b><br>
+        Ingrese sus credenciales para continuar.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
     st.write("")  # Espacio visual
 
