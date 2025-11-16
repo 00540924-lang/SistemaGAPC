@@ -12,7 +12,7 @@ def verificar_usuario(Usuario, Contraseña):
 
     try:
         cursor = con.cursor()
-        query = "SELECT Usuario, Contraseña FROM Usuarios WHERE Usuario = %s AND Contraseña = %s"
+        query = "SELECT Usuario, Contraseña FROM Administrador WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (Usuario, Contraseña))
         result = cursor.fetchone()
         return result[0] if result else None
