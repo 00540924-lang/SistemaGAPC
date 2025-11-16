@@ -2,6 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Login", layout="centered")
 
+# ----------- ESTILOS -----------
 st.markdown("""
     <style>
     body {
@@ -9,7 +10,6 @@ st.markdown("""
         height: 100vh;
     }
 
-    /* Contenedor principal estilo vidrio */
     .glass {
         background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(12px);
@@ -26,7 +26,6 @@ st.markdown("""
         to {opacity: 1; transform: translateY(0);}
     }
 
-    /* Título GAPC debajo del logo */
     .titulo-gagpc {
         font-size: 26px;
         color: #ffffff;
@@ -36,7 +35,6 @@ st.markdown("""
         font-weight: 600;
     }
 
-    /* Subtítulo Bienvenidos */
     .bienvenidos {
         font-size: 18px;
         color: #dfefff;
@@ -52,48 +50,83 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    .stTextInput>div>div>input {
-        border-radius: 10px;
-        height: 45px;
-    }
-
-    .stButton>button {
-        width: 100%;
-        height: 45px;
+    .menu-btn {
         background-color: #00B4D8;
-        border-radius: 10px;
-        font-size: 17px;
-        border: none;
         color: white;
+        padding: 15px;
+        width: 200px;
+        border-radius: 12px;
+        font-size: 18px;
+        margin: 10px;
+        border: none;
     }
 
-    .stButton>button:hover {
-        background-color: #0096C7;
-    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Logo ---
-st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
 
-# --- Título debajo del logo ---
-st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
-            unsafe_allow_html=True)
-
-# --- NUEVO Texto Bienvenidos debajo del título ---
-st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
-
-# --- Panel administrativo ---
-st.markdown("<div class='glass'>", unsafe_allow_html=True)
-st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
-
-u = st.text_input("Usuario")
-p = st.text_input("Contraseña", type="password")
-
-if st.button("Ingresar"):
-    st.success("Bienvenido!")
-
-st.markdown("</div>", unsafe_allow_html=True)
+# ----------- LOGIN / MENÚ LÓGICA -----------
+if "logueado" not in st.session_state:
+    st.session_state.logueado = False
 
 
+# ================= LOGIN =================
+if not st.session_state.logueado:
+
+    st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
+
+    st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
+                unsafe_allow_html=True)
+
+    st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='glass'>", unsafe_allow_html=True)
+    st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
+
+    usuario = st.text_input("Usuario")
+    password = st.text_input("Contraseña", type="password")
+
+    if st.button("Ingresar"):
+        if usuario == "admin" and password == "1234":
+            st.session_state.logueado = True
+            st.success("Ingreso exitoso")
+        else:
+            st.error("Usuario o contraseña incorrectos")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ================= MENÚ =================
+else:
+    st.markdown("<h1 style='text-align:center; color:white;'>Menú Principal</h1>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if st.button("🏦 Grupos", key="grupos"):
+            st.session_state.pagina = "grupos"
+
+    with col2:
+        if st.button("💰 Ahorros", key="ahorros"):
+            st.session_state.pagina = "ahorros"
+
+    with col3:
+        if st.button("💳 Préstamos", key="prestamos"):
+            st.session_state.pagina = "prestamos"
+
+
+    # --------- CONTENIDO SEGÚN BOTÓN ----------
+    if "pagina" in st.session_state:
+
+        if st.session_state.pagina == "grupos":
+            st.subheader("👥 Gestión de Grupos")
+            st.write("Aquí irá la administración de los grupos.")
+
+        elif st.session_state.pagina == "ahorros":
+            st.subheader("💰 Gestión de Ahorros")
+            st.write("Aquí irá el módulo de ahorros.")
+
+        elif st.session_state.pagina == "prestamos":
+            st.subheader("💳 Gestión de Préstamos")
+            st.write("Aquí irá el módulo de préstamos.")
 
