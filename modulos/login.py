@@ -1,9 +1,38 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 
+# -------------------------------------------------
+# CSS PARA CAMBIAR EL FONDO (FONDO CLARO PERSONALIZADO)
+# -------------------------------------------------
+st.markdown("""
+<style>
+/* Fondo principal */
+[data-testid="stAppViewContainer"] {
+    background: #F7F3FA !important;  /* Morado pastel muy claro */
+}
+
+/* Fondo del sidebar */
+[data-testid="stSidebar"] {
+    background: #EFE8F4 !important;
+}
+
+/* Ajustar color de los inputs */
+input {
+    background-color: white !important;
+    color: black !important;
+}
+
+/* Texto general */
+body {
+    color: #2A2A2A !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 # -------------------------------------------------
-# FUNCIÓN PARA VERIFICAR USUARIO EN LA BASE DE DATOS
+# FUNCIÓN PARA VERIFICAR USUARIO
 # -------------------------------------------------
 def verificar_usuario(usuario, contraseña):
     con = obtener_conexion()
@@ -22,8 +51,9 @@ def verificar_usuario(usuario, contraseña):
         con.close()
 
 
+
 # -------------------------------------------------
-#            PANTALLA DE LOGIN
+# PANTALLA DE LOGIN
 # -------------------------------------------------
 def login():
 
@@ -39,7 +69,7 @@ def login():
     # -------- TÍTULO ----------
     st.markdown(
         """
-        <h2 style='text-align: center; margin-top: -10px;'>
+        <h2 style='text-align: center; margin-top: -10px; color:#4C3A60;'>
             Sistema de Gestión – GAPC
         </h2>
         """,
@@ -79,15 +109,16 @@ def login():
         if validado:
             st.session_state["usuario"] = usuario
             st.session_state["sesion_iniciada"] = True
-
             st.success(f"Bienvenido, {usuario} 👋")
             st.rerun()
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
 
+
 # -------------------------------------------------
-# EJECUCIÓN LOCAL PARA PRUEBA
+# EJECUCIÓN LOCAL
 # -------------------------------------------------
 if __name__ == "__main__":
     login()
+
