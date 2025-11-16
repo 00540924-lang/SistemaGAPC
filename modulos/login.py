@@ -1,6 +1,7 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 
+
 # -------------------------------------------------
 # FUNCIÓN PARA VERIFICAR USUARIO EN LA BASE DE DATOS
 # -------------------------------------------------
@@ -13,7 +14,7 @@ def verificar_usuario(usuario, contraseña):
     try:
         cursor = con.cursor()
 
-        # COLUMNAS REALES (Usuario, Contraseña)
+        # OJO: usa los nombres reales de las columnas (Usuario, Contraseña)
         query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
@@ -25,33 +26,24 @@ def verificar_usuario(usuario, contraseña):
 
 
 # -------------------------------------------------
-#            INTERFAZ DE LOGIN
+#            PANTALLA DE LOGIN
 # -------------------------------------------------
 def login():
 
-    # 💠 **LOGO GRANDE Y CENTRADO**
-    st.markdown(
-        """
-        <div style='display: flex; justify-content: center; margin-top: -40px;'>
-            <img src='modulos/assets/logo_gapc.png' style='width: 650px;'>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # -------- LOGO ----------
+    st.image("modulos/assets/logo_gapc.png", width=170)
 
-    # 💠 **TÍTULO ESTILIZADO**
+    # -------- TÍTULO ----------
     st.markdown(
         """
-        <h2 style='text-align: center; margin-top: -20px; color: #003459;'>
+        <h2 style='text-align: center; margin-top: -10px;'>
             Sistema de Gestión – GAPC
         </h2>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
-    st.write("")  # Espacio
-
-    # 💠 **TARJETA DECORADA**
+    # -------- TARJETA VISUAL ----------
     st.markdown(
         """
         <div style="
@@ -59,9 +51,7 @@ def login():
             padding: 25px;
             border-radius: 12px;
             color: white;
-            font-size: 17px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
-            text-align: center;">
+            font-size: 16px;">
             <b>Bienvenido</b><br>
             Ingrese sus credenciales para continuar.
         </div>
@@ -69,16 +59,16 @@ def login():
         unsafe_allow_html=True,
     )
 
-    st.write("")  # Espacio
+    st.write("")  # Espacio visual
 
-    # 💠 **CAMPOS**
+    # -------- CAMPOS ----------
     usuario = st.text_input("Usuario", key="login_usuario_input")
     contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
 
     st.write("")
 
-    # 💠 **BOTÓN**
-    if st.button("Iniciar sesión", use_container_width=True):
+    # -------- BOTÓN ----------
+    if st.button("Iniciar sesión"):
         validado = verificar_usuario(usuario, contraseña)
 
         if validado:
@@ -87,12 +77,13 @@ def login():
 
             st.success(f"Bienvenido, {usuario} 👋")
             st.rerun()
+
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
 
 # -------------------------------------------------
-# EJECUCIÓN LOCAL
+# EJECUCIÓN LOCAL PARA PRUEBA
 # -------------------------------------------------
 if __name__ == "__main__":
     login()
