@@ -1,93 +1,46 @@
 import streamlit as st
 
-st.set_page_config(page_title="Login", layout="centered")
+st.markdown("<h2 style='text-align:center;'>Menú Principal</h2>", unsafe_allow_html=True)
 
-st.markdown("""
-    <style>
-    body {
-        background: linear-gradient(135deg, #141E30, #243B55);
-        height: 100vh;
-    }
+# Estilo de botones grandes
+button_style = """
+<style>
+.big-button {
+    width: 100%;
+    padding: 20px;
+    font-size: 22px;
+    border-radius: 12px;
+    text-align: center;
+    background-color: #4CAF50;
+    color: white;
+}
+.big-button:hover {
+    background-color: #45a049;
+}
+</style>
+"""
+st.markdown(button_style, unsafe_allow_html=True)
 
-    /* Contenedor principal estilo vidrio */
-    .glass {
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(12px);
-        padding: 40px;
-        width: 430px;
-        margin: 20px auto;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        animation: slideDown .8s ease;
-    }
+col1, col2 = st.columns(2)
 
-    @keyframes slideDown {
-        from {opacity: 0; transform: translateY(-15px);}
-        to {opacity: 1; transform: translateY(0);}
-    }
+with col1:
+    if st.button("📁 Gestión de Datos", key="b1"):
+        st.session_state["pag"] = "datos"
 
-    /* Título GAPC debajo del logo */
-    .titulo-gagpc {
-        font-size: 26px;
-        color: #ffffff;
-        text-align: center;
-        margin-top: 10px;
-        margin-bottom: 5px;
-        font-weight: 600;
-    }
+with col2:
+    if st.button("📊 Análisis", key="b2"):
+        st.session_state["pag"] = "analisis"
 
-    /* Subtítulo Bienvenidos */
-    .bienvenidos {
-        font-size: 18px;
-        color: #dfefff;
-        text-align: center;
-        margin-bottom: 25px;
-        font-weight: 400;
-    }
+with col1:
+    if st.button("👤 Usuarios", key="b3"):
+        st.session_state["pag"] = "usuarios"
 
-    .title {
-        color: #FFFFFF;
-        text-align: center;
-        font-size: 30px;
-        margin-bottom: 20px;
-    }
+with col2:
+    if st.button("⚙️ Configuración", key="b4"):
+        st.session_state["pag"] = "config"
 
-    .stTextInput>div>div>input {
-        border-radius: 10px;
-        height: 45px;
-    }
+# Mostrar contenido según selección
+if "pag" in st.session_state:
+    st.write(f"Has seleccionado: **{st.session_state['pag']}**")
 
-    .stButton>button {
-        width: 100%;
-        height: 45px;
-        background-color: #00B4D8;
-        border-radius: 10px;
-        font-size: 17px;
-        border: none;
-        color: white;
-    }
-
-    .stButton>button:hover {
-        background-color: #0096C7;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- Logo ---
-st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
-
-# --- Título debajo del logo ---
-st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
-            unsafe_allow_html=True)
-
-# --- NUEVO Texto Bienvenidos debajo del título ---
-st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
-
-u = st.text_input("Usuario")
-p = st.text_input("Contraseña", type="password")
-
-if st.button("Ingresar"):
-    st.success("Bienvenido!")
-
-st.markdown("</div>", unsafe_allow_html=True)
 
