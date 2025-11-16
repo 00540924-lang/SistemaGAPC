@@ -13,11 +13,9 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
-
         query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
-
         return result[0] if result else None
 
     finally:
@@ -49,24 +47,24 @@ def login():
     )
 
     # -------- TARJETA VISUAL ----------
-   st.markdown(
-    """
-    <div style="
-        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-        padding: 25px;
-        border-radius: 12px;
-        color: #ffffff;
-        font-size: 16px;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-    ">
-        <b>Bienvenido</b><br>
-        Ingrese sus credenciales para continuar.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    st.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+            padding: 25px;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        ">
+            <b>Bienvenido</b><br>
+            Ingrese sus credenciales para continuar.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.write("")  # Espacio visual
+    st.write("")  # Espacio
 
     # -------- CAMPOS ----------
     usuario = st.text_input("Usuario", key="login_usuario_input")
@@ -84,7 +82,6 @@ def login():
 
             st.success(f"Bienvenido, {usuario} 👋")
             st.rerun()
-
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
