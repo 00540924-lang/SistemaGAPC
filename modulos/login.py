@@ -25,6 +25,7 @@ def verificar_usuario(Usuario, Contraseña):
 def login():
     st.title("Inicio de sesión")
 
+    # 🟢 Mostrar mensaje persistente si ya hubo conexión exitosa
     if st.session_state.get("conexion_exitosa"):
         st.success("✅ Conexión a la base de datos establecida correctamente.")
 
@@ -32,17 +33,12 @@ def login():
     Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
 
     if st.button("Iniciar sesión"):
-
-        # 🔥 ESTA ES LA CORRECCIÓN IMPORTANTE
-        tipo = verificar_usuario(Usuario, Contraseña)
-
+        tipo = verificar_usuario(Usuario, Contraseña)  # ← LÍNEA CORREGIDA
         if tipo:
             st.session_state["usuario"] = Usuario
             st.session_state["tipo_usuario"] = tipo
-            st.session_state["sesion_iniciada"] = True
-
             st.success(f"Bienvenido ({Usuario}) 👋")
+            st.session_state["sesion_iniciada"] = True
             st.rerun()
         else:
             st.error("❌ Credenciales incorrectas.")
-
