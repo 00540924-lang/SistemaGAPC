@@ -86,7 +86,6 @@ def login():
         color: #ffffff;
         font-size: 18px;
         box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-        width: 600px;
         margin: auto;
     ">
         <b>Bienvenido</b><br>
