@@ -13,11 +13,9 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
-
         query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
-
         return result[0] if result else None
 
     finally:
@@ -29,25 +27,12 @@ def verificar_usuario(usuario, contraseña):
 # -------------------------------------------------
 def login():
 
-    # -------- FONDO CON DEGRADADO SUAVE (NO DIAGONAL) ----------
-    st.markdown(
-        """
-        <style>
-        .main {
-            background: linear-gradient(to right, #B59CCF, #F5C8A6) !important;
-            background-attachment: fixed;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
     # -------- LOGO CENTRADO ----------
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         st.write("")
     with col2:
-        st.image("modulos/assets/logo_gapc.png", width=260)
+        st.image("modulos/assets/logo_gapc.png", width=800)
     with col3:
         st.write("")
 
@@ -65,13 +50,13 @@ def login():
     st.markdown(
         """
         <div style="
-            background: linear-gradient(135deg, #3085C3, #FEEAA1);
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             padding: 25px;
             border-radius: 12px;
-            color: white;
+            color: #ffffff;
             font-size: 16px;
-            margin-bottom: 20px;
-            text-align: left;">
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        ">
             <b>Bienvenido</b><br>
             Ingrese sus credenciales para continuar.
         </div>
@@ -79,7 +64,7 @@ def login():
         unsafe_allow_html=True,
     )
 
-    st.write("")  # Espacio visual
+    st.write("")  # Espacio
 
     # -------- CAMPOS ----------
     usuario = st.text_input("Usuario", key="login_usuario_input")
@@ -97,7 +82,6 @@ def login():
 
             st.success(f"Bienvenido, {usuario} 👋")
             st.rerun()
-
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
@@ -105,6 +89,6 @@ def login():
 # -------------------------------------------------
 # EJECUCIÓN LOCAL PARA PRUEBA
 # -------------------------------------------------
-if __name__ == "__main__":
+if name == "main":
     login()
 
