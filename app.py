@@ -2,66 +2,35 @@ import streamlit as st
 
 st.set_page_config(page_title="Login", layout="centered")
 
+# ------------------ CSS ESTILO APP MÓVIL ------------------
 st.markdown("""
     <style>
+
+    /* Ocultar menú y header */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Fondo tipo app móvil */
     body {
-        background: linear-gradient(135deg, #141E30, #243B55);
-        height: 100vh;
-    }
-
-    .glass {
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(12px);
-        padding: 40px;
-        width: 430px;
-        margin: 120px auto;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        animation: slideDown .8s ease;
-    }
-
-    @keyframes slideDown {
-        from {opacity: 0; transform: translateY(-15px);}
-        to {opacity: 1; transform: translateY(0);}
-    }
-
-    .title {
+        background: linear-gradient(160deg, #0D0D0D 0%, #1A1A1A 40%, #2A2A2A 100%);
         color: #FFFFFF;
-        text-align: center;
-        font-size: 30px;
-        margin-bottom: 20px;
+        font-family: 'Arial', sans-serif;
     }
 
-    .stTextInput>div>div>input {
-        border-radius: 10px;
-        height: 45px;
+    /* Contenedor tipo app */
+    .mobile-card {
+        background: #111111;
+        width: 90%;
+        max-width: 380px;
+        margin: 80px auto;
+        padding: 35px 25px;
+        border-radius: 28px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+        animation: slideUp .7s ease;
     }
 
-    .stButton>button {
-        width: 100%;
-        height: 45px;
-        background-color: #00B4D8;
-        border-radius: 10px;
-        font-size: 17px;
-        border: none;
-    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
 
-    .stButton>button:hover {
-        background-color: #0096C7;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Puedes cambiar esta URL por tu logo del repositorio
-st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=80)
-
-st.markdown("<div class='glass'>", unsafe_allow_html=True)
-st.markdown("<div class='title'>Panel Administrativo</div>", unsafe_allow_html=True)
-
-u = st.text_input("Usuario")
-p = st.text_input("Contraseña", type="password")
-
-if st.button("Ingresar"):
-    st.success("Bienvenido!")
-
-st.markdown("</div>", unsafe_allow_html=True)
