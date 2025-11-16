@@ -1,130 +1,89 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 
-def verificar_usuario(Usuario, Contraseña):
+
+# -------------------------------------------------
+# FUNCIÓN PARA VERIFICAR USUARIO EN LA BASE DE DATOS
+# -------------------------------------------------
+def verificar_usuario(usuario, contraseña):
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
         return None
-    else:
-        st.session_state["conexion_exitosa"] = True
 
     try:
         cursor = con.cursor()
-        query = """
-            SELECT Usuario, Contraseña 
-            FROM Administradores 
-            WHERE Usuario = %s AND Contraseña = %s
-        """
-        cursor.execute(query, (Usuario, Contraseña))
+
+        # OJO: usa los nombres reales de las columnas (Usuario, Contraseña)
+        query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
+        cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
+
         return result[0] if result else None
 
     finally:
         con.close()
 
 
+# -------------------------------------------------
+#            PANTALLA DE LOGIN
+# -------------------------------------------------
 def login():
-    st.set_page_config(page_title="GAPC Login", layout="centered")
 
-    # --- ESTILOS BONITOS ---
-    st.markdown("""
-        <style>
-        body {
-            background: linear-gradient(135deg, #141E30, #243B55);
-            height: 100vh;
-        }
+    # -------- LOGO ----------
+    st.image("modulos/assets/logo_gapc.png", width=170)
 
-        .glass {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-            padding: 40px;
-            width: 430px;
-            margin: 20px auto;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            animation: slideDown .8s ease;
-        }
+    # -------- TÍTULO ----------
+    st.markdown(
+        """
+        <h2 style='text-align: center; margin-top: -10px;'>
+            Sistema de Gestión – GAPC
+        </h2>
+        """,
+        unsafe_allow_html=True,
+    )
 
-        @keyframes slideDown {
-            from {opacity: 0; transform: translateY(-15px);}
-            to {opacity: 1; transform: translateY(0);}
-        }
-
-        .titulo-gagpc {
-            font-size: 26px;
-            color: #ffffff;
-            text-align: center;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .bienvenidos {
-            font-size: 18px;
-            color: #dfefff;
-            text-align: center;
-            margin-bottom: 25px;
-            font-weight: 400;
-        }
-
-        .title {
-            color: #FFFFFF;
-            text-align: center;
-            font-size: 28px;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .stTextInput>div>div>input {
-            border-radius: 10px;
-            height: 45px;
-        }
-
-        .stButton>button {
-            width: 100%;
-            height: 45px;
-            background-color: #00B4D8;
-            border-radius: 10px;
-            font-size: 17px;
-            border: none;
+    # -------- TARJETA VISUAL ----------
+    st.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #3085C3, #FEEAA1);
+            padding: 25px;
+            border-radius: 12px;
             color: white;
-            cursor: pointer;
-        }
+            font-size: 16px;">
+            <b>Bienvenido</b><br>
+            Ingrese sus credenciales para continuar.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-        .stButton>button:hover {
-            background-color: #0096C7;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    st.write("")  # Espacio visual
 
-    # --- LOGO ---
-    st.image("https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo_TV_2015.png", width=90)
+    # -------- CAMPOS ----------
+    usuario = st.text_input("Usuario", key="login_usuario_input")
+    contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
 
-    # --- TÍTULO ---
-    st.markdown("<div class='titulo-gagpc'>Grupos de Ahorro y Préstamo Comunitario (GAPC)</div>",
-                unsafe_allow_html=True)
+    st.write("")
 
-    # --- SUBTÍTULO ---
-    st.markdown("<div class='bienvenidos'>¡Bienvenidos!</div>", unsafe_allow_html=True)
-
-
-    st.markdown("<div class='title'>Iniciar Sesión</div>", unsafe_allow_html=True)
-
-    # --- Inputs reales de tu login ---
-    Usuario = st.text_input("Usuario", key="login_usuario_input")
-    Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
-
-    # --- Botón ---
+    # -------- BOTÓN ----------
     if st.button("Iniciar sesión"):
-        tipo = verificar_usuario(Usuario, Contraseña)
-        if tipo:
-            st.session_state["usuario"] = Usuario
-            st.session_state["tipo_usuario"] = tipo
-            st.session_state["sesion_iniciada"] = True
-            st.success(f"Bienvenido ({Usuario}) 👋")
-            st.rerun()
-        else:
-            st.error("❌ Credenciales incorrectas.")
+        validado = verificar_usuario(usuario, contraseña)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        if validado:
+            st.session_state["usuario"] = usuario
+            st.session_state["sesion_iniciada"] = True
+
+            st.success(f"Bienvenido, {usuario} 👋")
+            st.rerun()
+
+        else:
+            st.error("❌ Usuario o contraseña incorrectos.")
+
+
+# -------------------------------------------------
+# EJECUCIÓN LOCAL PARA PRUEBA
+# -------------------------------------------------
+if __name__ == "__main__":
+    login()
