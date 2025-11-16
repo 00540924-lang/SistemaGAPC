@@ -1,6 +1,16 @@
 import streamlit as st
+import base64
 
 st.set_page_config(page_title="GAPC - Login", layout="centered")
+
+# --- LOGO BASE64 ---
+logo_base64 = """
+iVBORw0KGgoAAAANSUhEUgAAA... (recortado para este mensaje)
+"""
+
+logo_html = f"""
+<img src="data:image/png;base64,{logo_base64}" width="200">
+"""
 
 # ---- ESTILOS CSS ----
 st.markdown("""
@@ -62,11 +72,10 @@ input {
 </style>
 """, unsafe_allow_html=True)
 
-# ---- INTERFAZ VISUAL ----
-
+# ---- INTERFAZ ----
 st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 
-st.image("logo.png", width=200)  # coloca aquí tu logo
+st.markdown(logo_html, unsafe_allow_html=True)
 
 st.markdown("<div class='login-title'>GAPC</div>", unsafe_allow_html=True)
 st.markdown("<div class='slogan'>Ahorra, Crece, Juntos</div>", unsafe_allow_html=True)
@@ -77,4 +86,3 @@ password = st.text_input("Contraseña", type="password")
 st.button("Iniciar sesión")
 
 st.markdown("</div>", unsafe_allow_html=True)
-
