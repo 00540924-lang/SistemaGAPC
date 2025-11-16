@@ -1,66 +1,45 @@
-import time
 import streamlit as st
+from modulos.config.conexion import obtener_conexion
+
+def verificar_usuario(Usuario, Contraseña):
+    con = obtener_conexion()
+    if not con:
+        st.error("⚠️ No se pudo conectar a la base de datos.")
+        return None
+    else:
+        st.session_state["conexion_exitosa"] = True
+
+    try:
+        cursor = con.cursor()
+        query = """
+            SELECT Usuario, Contraseña 
+            FROM Administradores 
+            WHERE Usuario = %s AND Contraseña = %s
+        """
+        cursor.execute(query, (Usuario, Contraseña))
+        result = cursor.fetchone()
+
+        return result[0] if result else None
+
+    finally:
+        con.close()
 
 def login():
-    st.set_page_config(page_title="Login", layout="centered")
+    st.title("Inicio de sesión")
 
-    # ===== PANTALLA DE CARGA (PRELOADER) =====
-    preloader = st.empty()
+    if st.session_state.get("conexion_exitosa"):
+        st.success("✅ Conexión a la base de datos establecida correctamente.")
 
-    preloader.markdown("""
-        <style>
-        .loader-container {
-            margin-top: 160px;
-            text-align: center;
-            color: white;
-            font-family: Arial, sans-serif;
-        }
+    Usuario = st.text_input("Usuario", key="login_usuario_input")
+    Contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
 
-        .loader {
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #00d2ff;
-            border-radius: 50%;
-            width: 65px;
-            height: 65px;
-            animation: spin 1s linear infinite;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loader-text {
-            margin-top: 18px;
-            font-size: 22px;
-            letter-spacing: 1px;
-            animation: fadeIn 2s ease infinite alternate;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0.4; }
-            to { opacity: 1; }
-        }
-        </style>
-
-        <div class="loader-container">
-            <div class="loader"></div>
-            <div class="loader-text">Cargando...</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Mostrar el preloader por 1.5 segundos
-    time.sleep(1.5)
-
-    # Limpiar el preloader
-    preloader.empty()
-    # A partir de aquí empieza tu interfaz después del loader
-    st.markdown("<h1 style='text-align:center;color:white;'>Bienvenido</h1>", unsafe_allow_html=True)
-
-    Usuario = st.text_input("Usuario")
-    Contraseña = st.text_input("Contraseña", type="password")
-
-    if st.button("Iniciar Sesión"):
-        ...
+    if st.button("Iniciar sesión"):
+        tipo = verificar_usuario(Usuario, Contraseña)
+        if tipo:
+            st.session_state["usuario"] = Usuario
+            st.session_state["tipo_usuario"] = tipo
+            st.session_state["sesion_iniciada"] = True
+            st.success(f"Bienvenido ({Usuario}) 👋")
+            st.rerun()
+        else:
+            st.error("❌ Credenciales incorrectas.")
