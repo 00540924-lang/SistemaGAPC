@@ -80,12 +80,12 @@ def login():
     st.markdown(
         """
         <div style="
-            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+            background: linear-gradient(80deg, #B7A2C8, #F7C9A4);
             padding: 15px;
             border-radius: 12px;
             color: #ffffff;
             font-size: 20px;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.5);
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
         ">
             <b>Bienvenido</b><br>
             Ingrese sus credenciales para continuar
