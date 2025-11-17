@@ -55,6 +55,7 @@ div.stButton > button {
             border-radius: 12px;
             padding: 12px 24px;
             font-size: 18px;
+            font-weight: 2000;
             border: none;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
