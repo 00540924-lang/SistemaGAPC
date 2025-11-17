@@ -1,3 +1,5 @@
+# Guarda este código como `login.py` en tu carpeta `modulos` o donde lo tengas organizado.
+
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 
@@ -29,40 +31,61 @@ body {
 </style>
 """, unsafe_allow_html=True)
 
-
+# --- Inicialización de st.session_state para la autenticación ---
+# Esto debe hacerse una vez al inicio del script en el módulo que se ejecuta primero (ej. app.py)
+# o asegurar que se inicialice antes de ser accedido.
+# Si login.py es importado, esta inicialización se hará una vez.
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+    st.session_state['username'] = None
+    st.session_state['role'] = None # Aseguramos que el rol esté siempre inicializado
 
 # -------------------------------------------------
-# FUNCIÓN PARA VERIFICAR USUARIO
+# FUNCIÓN PARA VERIFICAR USUARIO Y OBTENER ROL
 # -------------------------------------------------
 def verificar_usuario(usuario, contraseña):
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
-        return None
+        return None, None # Retorna None para usuario y rol si hay error
 
     try:
         cursor = con.cursor()
+        # Modificado: Asume que si está en 'Administradores', el rol es 'admin'.
+        # Si tienes una columna 'Rol' en tu tabla o múltiples tablas de roles,
+        # deberías ajustar esta consulta para obtener el rol dinámicamente.
         query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
-        return result[0] if result else None
+        if result:
+            return result[0], "admin" # Retorna el usuario y el rol 'admin'
+        else:
+            return None, None # No se encontró el usuario o credenciales incorrectas
 
     finally:
-        con.close()
-
-
+        if con: # Asegúrate de cerrar la conexión si se abrió
+            con.close()
 
 # -------------------------------------------------
-# PANTALLA DE LOGIN
+# FUNCIÓN PARA CERRAR SESIÓN
 # -------------------------------------------------
-def login():
+def logout_user():
+    st.session_state['authenticated'] = False
+    st.session_state['username'] = None
+    st.session_state['role'] = None
+    st.success("Has cerrado sesión.")
+    st.experimental_rerun() # Recargar para volver al login
 
+# -------------------------------------------------
+# PANTALLA DE LOGIN (FORMULARIO) 
+# -------------------------------------------------
+def login_form():
     # -------- LOGO CENTRADO ----------
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         st.write("")
     with col2:
-        st.image("modulos/assets/logo_gapc.png", width=800)
+        st.image("modulos/assets/logo_gapc.png", width=800) # Asegúrate de que esta ruta sea correcta
     with col3:
         st.write("")
 
@@ -76,49 +99,50 @@ def login():
         unsafe_allow_html=True,
     )
 
-    # -------- TARJETA VISUAL ----------
+    # -------- TARJETA VISUAL (Completando el div que dejaste) ----------
     st.markdown(
     """
-    <div style="
-        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-        padding: 15px;
-        border-radius: 12px;
-        color: #ffffff;
-        font-size: 18px;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-        margin: auto;
-    ">
-        <b>Bienvenido</b><br>
-        Ingrese sus credenciales para continuar
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    <div style='
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        margin: 50px auto 20px auto; /* Centrar y añadir margen */
+    '>
+    """, unsafe_allow_html=True)
 
-    st.write("")  # Espacio
+    # -------- FORMULARIO DE LOGIN DENTRO DE LA TARJETA ----------
+    with st.form("login_form"): # Usamos un st.form para manejar el estado del formulario
+        st.markdown("<h3 style='text-align: center; color:#4C3A60;'>Acceder</h3>", unsafe_allow_html=True)
+        usuario_input = st.text_input("Usuario")
+        contraseña_input = st.text_input("Contraseña", type="password")
+        submit_button = st.form_submit_button("Entrar")
 
-    # -------- CAMPOS ----------
-    usuario = st.text_input("Usuario", key="login_usuario_input")
-    contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
+        if submit_button:
+            found_user, found_role = verificar_usuario(usuario_input, contraseña_input)
+            if found_user:
+                st.session_state['authenticated'] = True
+                st.session_state['username'] = found_user
+                st.session_state['role'] = found_role # Guardamos el rol
+                st.success(f"¡Bienvenido, {found_user}!")
+                st.experimental_rerun() # Recargar la app para mostrar el contenido
+            else:
+                st.error("❌ Usuario o contraseña incorrectos.")
 
-    st.write("")
-
-    # -------- BOTÓN ----------
-    if st.button("Iniciar sesión"):
-        validado = verificar_usuario(usuario, contraseña)
-
-        if validado:
-            st.session_state["usuario"] = usuario
-            st.session_state["sesion_iniciada"] = True
-            st.success(f"Bienvenido, {usuario} 👋")
-            st.rerun()
-        else:
-            st.error("❌ Usuario o contraseña incorrectos.")
-
+    st.markdown("</div>", unsafe_allow_html=True) # Cerrar la tarjeta visual
 
 
 # -------------------------------------------------
-# EJECUCIÓN LOCAL
+# FUNCIÓN PRINCIPAL DE AUTENTICACIÓN PARA LLAMAR DESDE app.py
 # -------------------------------------------------
-if __name__ == "__main__":
-    login()
+def handle_authentication():
+    if not st.session_state['authenticated']:
+        login_form() # Muestra el formulario de login
+        return False # No autenticado
+    else:
+        # Si está autenticado, muestra el mensaje de bienvenida y el botón de cerrar sesión en la sidebar
+        st.sidebar.write(f"Bienvenido, {st.session_state['username']} ({st.session_state['role']})")
+        if st.sidebar.button("Cerrar Sesión"): # Botón de logout en la sidebar
+            logout_user()
+        return True # Autenticado
