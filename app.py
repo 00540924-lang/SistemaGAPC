@@ -24,12 +24,15 @@ if "modulo" not in st.session_state:
 if st.session_state["sesion_iniciada"]:
     # Mostrar menú y capturar el módulo seleccionado
     opcion = mostrar_menu()
+if st.session_state["modulo"] == "registrar_miembros":
+    from modulos.registrar_miembros import registrar_miembros
+    registrar_miembros()
 
     # Cargar la página correspondiente
     if opcion:
         cargar_pagina(opcion)
-
 else:
     login()
+
 
 
