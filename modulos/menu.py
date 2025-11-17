@@ -1,9 +1,11 @@
 import streamlit as st
 
 def mostrar_menu():
+
     query_params = st.experimental_get_query_params()
-if "modulo" in query_params:
-    st.session_state["modulo"] = query_params["modulo"][0]
+
+    if "modulo" in query_params:
+        st.session_state["modulo"] = query_params["modulo"][0]
 
     # Inicializar variable de sesión
     if "modulo" not in st.session_state:
@@ -33,7 +35,7 @@ if "modulo" in query_params:
         </div>
         """, unsafe_allow_html=True)
 
-    # CSS para tarjetas y botón
+    # CSS
     st.markdown("""
         <style>
         .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:15px; }
@@ -52,14 +54,13 @@ if "modulo" in query_params:
         .card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 12px 30px rgba(0,0,0,0.20); }
         .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
 
-        /* Estilo del botón de cerrar sesión */
-div.stButton > button {
+        div.stButton > button {
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             color: #4C3A60;
             border-radius: 12px;
             padding: 12px 24px;
             font-size: 18px;
-            font-weight: 2000;
+            font-weight: 900;
             border: none;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -77,9 +78,10 @@ div.stButton > button {
     st.markdown("""
         <div class='cards-row'>
             <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
-           <div class='card g4' onclick="window.location.href='?modulo=registrar_miembros'">
-    🧍‍♂️<div class='card-sub'>Registrar Miembros</div>
-</div>
+
+            <div class='card g4' onclick="window.location.href='?modulo=registrar_miembros'">
+                🧍‍♂️<div class='card-sub'>Registrar Miembros</div>
+            </div>
 
             <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
             <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
@@ -92,22 +94,24 @@ div.stButton > button {
     if st.session_state["modulo"]:
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
-        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
+        st.write("Aquí aparecerá la interfaz del módulo.")
 
-    # Botón de cerrar sesión centrado
+    # Botón de cerrar sesión
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
             st.rerun()
 
+
 # -------- MOSTRAR CONTENIDO DEL MÓDULO --------
 from modulos.registrar_miembros import registrar_miembros
 
-if st.session_state["modulo"] == "registrar_miembros":
+if "modulo" in st.session_state and st.session_state["modulo"] == "registrar_miembros":
     registrar_miembros()
 
-# Llamar la función
+# Llamada
 mostrar_menu()
+
 
 
