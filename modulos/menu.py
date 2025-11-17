@@ -6,7 +6,7 @@ def mostrar_menu():
         st.session_state["modulo"] = None
 
  # Título
-   st.markdown(
+st.markdown(
     """
     <h1 style='text-align:center; color:#4C3A60;'>
         <img src="modulos/assets/logo_gapc.png" style="height:40px; vertical-align:middle; margin-right:8px;">
