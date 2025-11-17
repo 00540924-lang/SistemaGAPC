@@ -1,5 +1,5 @@
 import streamlit as st
-from modulos.login import login
+from modulos.login import mostrar_menu as menu_login
 from modulos.menu import mostrar_menu
 
 # ---- LEER PARÁMETROS DE URL ----
@@ -14,10 +14,10 @@ st.session_state.setdefault("sesion_iniciada", False)
 
 # ---- SI NO HA INICIADO SESIÓN, MOSTRAR LOGIN ----
 if not st.session_state["sesion_iniciada"]:
-    login()
-    st.stop()  # ⛔ Detiene la ejecución
+    menu_login()
+    st.stop()
 
-# ---- YA INICIÓ SESIÓN, MOSTRAR MENÚ ----
+# ---- YA INICIÓ SESIÓN, MOSTRAR MENÚ PRINCIPAL ----
 mostrar_menu()
 
 # ---- CARGAR EL MÓDULO SEGÚN state ----
