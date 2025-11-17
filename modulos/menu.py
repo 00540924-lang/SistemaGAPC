@@ -1,64 +1,47 @@
 import streamlit as st
 
 def mostrar_menu():
+    query_params = st.experimental_get_query_params()
+#if "modulo" in query_params:
+    #st.session_state["modulo"] = query_params["modulo"][0]
 
-    st.markdown(
-        """
+    # Inicializar variable de sesión
+    if "modulo" not in st.session_state:
+        st.session_state["modulo"] = None
+
+    # Título
+    st.markdown("""
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
             Menú Principal – GAPC
         </h1>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
-    # -------- TARJETA VISUAL -----------
-    st.markdown(
-        """
+    # Tarjeta visual
+    st.markdown("""
         <div style="
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             padding: 3px;
             border-radius: 12px;
-            color: #ffffff;
+            color: #4C3A60;
             font-size: 18px;
             text-align: center;
             width: 80%;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
             margin: auto;
         ">
-            <b>Seleccione un módulo para continuar</b>
+            <b>Seleccione un módulo para continuar</b><br>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
-    # -------- CSS --------
-    st.markdown(
-        """
+    # CSS para tarjetas y botón
+    st.markdown("""
         <style>
-        .cards-row {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
+        .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:15px; }
         .card {
-            width: 160px;
-            height: 150px;
-            border-radius: 16px;
-            padding: 18px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-weight: 700;
-            font-size: 40px;
-            cursor: pointer;
-            transition: 0.2s ease;
-        }
-        .card:hover {
-            transform: translateY(-8px) scale(1.04);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.20);
+            width:150px; height:150px; border-radius:16px; padding:18px;
+            color:white; display:flex; flex-direction:column; justify-content:center; align-items:center;
+            font-weight:700; font-size:50px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.12);
+            transition: transform 0.18s ease, box-shadow 0.18s ease; cursor:pointer;
         }
         .g1 { background: linear-gradient(135deg, #3085C3, #5BB3E6); }
         .g2 { background: linear-gradient(135deg, #6A4BAF, #C08BE6); }
@@ -66,62 +49,51 @@ def mostrar_menu():
         .g4 { background: linear-gradient(135deg, #1ABC9C, #7BE3C6); }
         .g5 { background: linear-gradient(135deg, #FF6B6B, #FFABAB); }
         .g6 { background: linear-gradient(135deg, #9A86AE, #D6CDE2); }
+        .card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 12px 30px rgba(0,0,0,0.20); }
+        .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
 
-        .card-sub {
-            font-size: 15px;
-            font-weight: 600;
-            opacity: 0.95;
-            text-align: center;
-        }
-
-        .logout-btn {
-            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
-            color: white;
-            padding: 10px 25px;
-            width: 220px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 17px;
-            border-radius: 10px;
+        /* Estilo del botón de cerrar sesión */
+div.stButton > button {
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+            color: #4C3A60;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: 2000;
             border: none;
-            margin-top: 25px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            margin-top: 70px;
         }
-        .logout-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0px 4px 14px rgba(0,0,0,0.2);
+        div.stButton > button:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
         }
         </style>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
+    # Tarjetas visuales
+    st.markdown("""
+        <div class='cards-row'>
+            <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
+            <div class='card g2'>👥<div class='card-sub'>Gestión de Proyectos</div></div>
+            <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
+            <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
+            <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
+            <div class='card g6'>⚙️<div class='card-sub'>Configuración</div></div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # -------- TARJETAS --------
-    card_map = {
-        "proyectos": ("📁", "Gestión de Proyectos", "g1"),
-        "personal": ("👥", "Control de Personal", "g2"),
-        "inspecciones": ("🧾", "Inspecciones", "g3"),
-        "documentos": ("📄", "Gestión Documental", "g4"),
-        "reportes": ("📊", "Reportes", "g5"),
-        "configuracion": ("⚙️", "Configuración", "g6"),
-    }
+    # Contenido del módulo
+    if st.session_state["modulo"]:
+        st.markdown("---")
+        st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
+        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
 
-    cols = st.columns(3, gap="large")
-
-    idx = 0
-    for pagina, data in card_map.items():
-        icono, titulo, clase = data
-        with cols[idx % 3]:
-            if st.button(f"{icono}\n{titulo}", key=f"btn_{pagina}"):
-                st.session_state["pagina_actual"] = pagina
-                st.rerun()
-
-        idx += 1
-
-    st.write("")
-    st.write("")
-
-    # -------- CERRAR SESIÓN ----------
-    if st.button("🔒 Cerrar sesión", key="logout"):
-        st.session_state.clear()
-        st.rerun()
+    # Botón de cerrar sesión centrado
+    col1, col2, col3 = st.columns([1,3,1])
+    with col2:
+        if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
+            st.session_state.clear()
+            st.rerun()
