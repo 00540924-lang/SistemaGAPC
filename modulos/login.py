@@ -1,6 +1,20 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 
+import unicodedata
+
+def limpiar_rol(rol):
+    # Normaliza tildes (institución → institucion)
+    rol = unicodedata.normalize('NFKD', rol).encode('ASCII', 'ignore').decode()
+
+    # Minúsculas
+    rol = rol.lower()
+
+    # Remueve espacios raros, invisibles o caracteres no imprimibles
+    rol = "".join(c for c in rol if not unicodedata.category(c).startswith('C')).strip()
+
+    return rol
+
 # -------------------------------------------------
 # CSS PARA CAMBIAR EL FONDO (FONDO CLARO PERSONALIZADO)
 # -------------------------------------------------
