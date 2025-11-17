@@ -135,39 +135,41 @@ import streamlit as st
 if "cerrar_sesion" not in st.session_state:
     st.session_state["cerrar_sesion"] = False
 
+# -------- BOTÓN CERRAR SESIÓN CON GRADIENTE --------
+
 # Espacio antes del botón
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
 # CSS para el botón con gradiente
 st.markdown("""
-<style>
-.custom-button {
-    background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-    color: #4C3A60;
-    border-radius: 12px;
-    padding: 12px 24px;
-    font-size: 16px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-}
+    <style>
+    /* Botón con gradiente */
+    div.stButton > button {
+        background: linear-gradient(135deg, #B7A2C8, #F7C9A4); /* Gradiente */
+        color: #4C3A60;            /* Color del texto */
+        border-radius: 12px;       /* Bordes redondeados */
+        padding: 12px 24px;        /* Tamaño */
+        font-size: 16px;           /* Tamaño texto */
+        font-weight: 700;          /* Negrita */
+        border: none;              /* Sin borde */
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
 
-.custom-button:hover {
-    transform: translateY(-4px) scale(1.03);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
-}
-</style>
-""", unsafe_allow_html=True)
+    /* Hover del botón */
+    div.stButton > button:hover {
+        transform: translateY(-4px) scale(1.03);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# Botón centrado usando HTML y Streamlit
+# Botón centrado
 col1, col2, col3 = st.columns([1,3,1])
 with col2:
-    if st.markdown('<button class="custom-button">🔒 Cerrar sesión</button>', unsafe_allow_html=True):
-        st.session_state["cerrar_sesion"] = True
-
-# Detectar clic usando st.button hack
-if st.session_state["cerrar_sesion"]:
-    st.session_state.clear()
-    st.rerun()
+    if st.button("🔒 Cerrar sesión"):
+        st.session_state.clear()
+        st.rerun()
