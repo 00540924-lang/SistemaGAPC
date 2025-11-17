@@ -5,6 +5,13 @@ from modulos.menu import mostrar_menu # Asumiendo que esta función ya existe y 
 # Configuración de la página (opcional)
 st.set_page_config(layout="wide")
 
+# --- Inicialización de st.session_state para la autenticación ---
+# Estas variables deben estar siempre disponibles al inicio de la app.
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+    st.session_state['username'] = None
+    st.session_state['role'] = None # Aseguramos que el rol esté siempre inicializado
+
 # ---- LEER PARÁMETROS DE URL para navegación de módulos ----
 query_params = st.experimental_get_query_params()
 if "modulo" in query_params:
