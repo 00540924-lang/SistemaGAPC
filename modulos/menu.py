@@ -9,7 +9,7 @@ def mostrar_menu():
 st.markdown(
     """
     <h1 style='text-align:center; color:#4C3A60;'>
-        <img src="modulos/assets/logo_gapc.png" style="height:40px; vertical-align:middle; margin-right:8px;">
+        <img src="TU_URL_O_RUTA" style="height:40px; vertical-align:middle; margin-right:8px;">
         Menú Principal – GAPC
     </h1>
     """,
