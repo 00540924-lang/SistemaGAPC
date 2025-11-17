@@ -48,7 +48,6 @@ def mostrar_menu():
     unsafe_allow_html=True,
 )
 
-    
     # CSS de las tarjetas y botones (PRO look)
     st.markdown(
         """
