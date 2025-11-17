@@ -50,27 +50,22 @@ def mostrar_menu():
 
         /* Estilo del botón de cerrar sesión */
 div.stButton > button {
-    background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-    color: #4C3A60;
-
-    /* MISMO ESTILO DE LETRA */
-    font-size: 18px;         /* igual que la tarjeta */
-    font-weight: 700;        /* grosor visualmente idéntico */
-    font-family: sans-serif; /* igual que Streamlit */
-
-    border-radius: 12px;
-    padding: 12px 24px;
-    border: none;
-    cursor: pointer;
-
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-}
-div.stButton > button:hover {
-    transform: translateY(-4px) scale(1.03);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
-}
-
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+            color: #4C3A60;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: 2000;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            margin-top: 20px;
+        }
+        div.stButton > button:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+        }
         </style>
         """, unsafe_allow_html=True)
 
