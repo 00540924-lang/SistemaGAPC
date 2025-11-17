@@ -86,7 +86,7 @@ def mostrar_menu():
 
         /* BOTÓN DE CERRAR SESIÓN */
         .logout-btn {
-            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             padding: 12px 24px;
             color: white !important;
             font-weight: bold;
