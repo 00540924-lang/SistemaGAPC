@@ -3,38 +3,29 @@ from modulos.login import login
 from modulos.menu import mostrar_menu
 from modulos.paginas import cargar_pagina
 
-
-# --- PARÁMETROS DE URL ---
+# ---- LEER PARÁMETROS DE URL ----
 query_params = st.experimental_get_query_params()
 if "modulo" in query_params:
     st.session_state["modulo"] = query_params["modulo"][0]
 else:
-    st.session_state.setdefault("modulo", "menu")
+    st.session_state.setdefault("modulo", None)
 
-
-# --- VARIABLES DE SESIÓN ---
+# ---- VARIABLES DE SESIÓN ----
 st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("modulo", "menu")
 
-
-# -------------------- APLICACIÓN --------------------
-if st.session_state["sesion_iniciada"]:
-
-    # 🔹 Mostrar menú — devuelve la opción seleccionada
-    opcion = mostrar_menu()
-
-    # 🔹 Si seleccionó un módulo desde el menú
-    if opcion:
-        st.session_state["modulo"] = opcion
-
-    # 🔹 Si el módulo es "registrar_miembros"
-    if st.session_state["modulo"] == "registrar_miembros":
-        from modulos.registrar_miembros import registrar_miembros
-        registrar_miembros()
-
-    # 🔹 Cargar otras páginas generales
-    cargar_pagina(st.session_state["modulo"])
-
-else:
-    # ⏳ Mostrar login si no hay sesión
+# ---- SI NO HA INICIADO SESIÓN, MOSTRAR LOGIN ----
+if not st.session_state["sesion_iniciada"]:
     login()
+    st.stop()   # ⛔ Detiene la ejecución aquí
+                # evita que se “regrese” al login
+
+# ---- YA INICIÓ SESIÓN, MOSTRAR MENÚ ----
+opcion = mostrar_menu()
+
+# ---- CARGAR EL MÓDULO SELECCIONADO ----
+if opcion == "registrar_miembros":
+    from modulos.registrar_miembros import registrar_miembros
+    registrar_miembros()
+
+elif opcion:
+    cargar_pagina(opcion)
