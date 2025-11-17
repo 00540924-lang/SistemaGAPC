@@ -4,24 +4,7 @@ def mostrar_menu():
     # inicializar variable de sesión si no existe
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
-# -------- LOGO + TÍTULO ALINEADOS ----------
-    st.markdown(
-    """
-    <div style="
-        display: flex;
-        align-items: center;
-        gap: 25px;
-        margin-top: 10px;
-        margin-bottom: 20px;
-    ">
-        <img src="modulos/assets/logo_gapc.png" width="140">
-        <h1 style="color:#4C3A60; margin:0; font-size: 45px;">
-            Menú Principal – GAPC
-        </h1>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)   
+
  # Título
     st.markdown(
         """
