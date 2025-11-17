@@ -2,21 +2,40 @@ import streamlit as st
 
 def mostrar_menu():
     query_params = st.experimental_get_query_params()
-#if "modulo" in query_params:
-    #st.session_state["modulo"] = query_params["modulo"][0]
 
-    # Inicializar variable de sesión
+    # ------------------------------
+    # CONTROL DE ACCESO POR ROL
+    # ------------------------------
+    rol = st.session_state.get("rol", None)
+
+    # Si por error se llega aquí sin rol, forzamos logout
+    if not rol:
+        st.error("No tiene autorización para ver este menú.")
+        st.stop()
+
+    # Diccionario de permisos por rol
+    permisos = {
+        "institucional": ["proyectos", "configuracion"],
+        "promotor": ["proyectos", "inspecciones", "reportes"],
+        "miembro": ["documentos"]
+    }
+
+    # Inicializar módulo
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-    # Título
+    # --------------------------------------------------
+    # TÍTULO
+    # --------------------------------------------------
     st.markdown("""
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
             Menú Principal – GAPC
         </h1>
         """, unsafe_allow_html=True)
 
-    # Tarjeta visual
+    # --------------------------------------------------
+    # TARJETA VISUAL
+    # --------------------------------------------------
     st.markdown("""
         <div style="
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
@@ -33,7 +52,9 @@ def mostrar_menu():
         </div>
         """, unsafe_allow_html=True)
 
-    # CSS para tarjetas y botón
+    # --------------------------------------------------
+    # CSS ESTILO GENERAL
+    # --------------------------------------------------
     st.markdown("""
         <style>
         .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:15px; }
@@ -52,8 +73,7 @@ def mostrar_menu():
         .card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 12px 30px rgba(0,0,0,0.20); }
         .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
 
-        /* Estilo del botón de cerrar sesión */
-div.stButton > button {
+        div.stButton > button {
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             color: #4C3A60;
             border-radius: 12px;
@@ -73,25 +93,72 @@ div.stButton > button {
         </style>
         """, unsafe_allow_html=True)
 
-    # Tarjetas visuales
-    st.markdown("""
-        <div class='cards-row'>
-            <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
-            <div class='card g2'>👥<div class='card-sub'>Gestión de Proyectos</div></div>
-            <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
-            <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
-            <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
-            <div class='card g6'>⚙️<div class='card-sub'>Configuración</div></div>
-        </div>
+    # --------------------------------------------------
+    # TARJETAS VISUALES SEGÚN ROL
+    # --------------------------------------------------
+    st.markdown("<div class='cards-row'>", unsafe_allow_html=True)
+
+    # PROYECTOS
+    if "proyectos" in permisos.get(rol, []):
+        st.markdown("""
+            <div class='card g1'>📁
+                <div class='card-sub'>Gestión de Proyectos</div>
+            </div>
         """, unsafe_allow_html=True)
 
-    # Contenido del módulo
+    # PERSONAL (si lo activas luego)
+    if "personal" in permisos.get(rol, []):
+        st.markdown("""
+            <div class='card g2'>👥
+                <div class='card-sub'>Gestión de Personal</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # INSPECCIONES
+    if "inspecciones" in permisos.get(rol, []):
+        st.markdown("""
+            <div class='card g3'>🧾
+                <div class='card-sub'>Inspecciones y Evaluaciones</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # DOCUMENTOS
+    if "documentos" in permisos.get(rol, []):
+        st.markdown("""
+            <div class='card g4'>📄
+                <div class='card-sub'>Gestión Documental</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # REPORTES
+    if "reportes" in permisos.get(rol, []):
+        st.markdown("""
+            <div class='card g5'>📊
+                <div class='card-sub'>Reportes</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # CONFIGURACIÓN
+    if "configuracion" in permisos.get(rol, []):
+        st.markdown("""
+            <div class='card g6'>⚙️
+                <div class='card-sub'>Configuración</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # --------------------------------------------------
+    # CONTENIDO DEL MÓDULO
+    # --------------------------------------------------
     if st.session_state["modulo"]:
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
 
-    # Botón de cerrar sesión centrado
+    # --------------------------------------------------
+    # BOTÓN CERRAR SESIÓN
+    # --------------------------------------------------
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
