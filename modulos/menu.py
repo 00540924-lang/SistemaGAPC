@@ -13,7 +13,7 @@ def mostrar_menu():
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="logo-mover">', unsafe_allow_html=True)
-    st.image("modulos/assets/logo_gapc.png", width=300)
+    st.image("modulos/assets/logo_gapc.png", width=200)
     st.markdown('</div>', unsafe_allow_html=True)
     # Título
     st.markdown(
