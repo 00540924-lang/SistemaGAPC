@@ -32,7 +32,7 @@ body {
 
 
 # -------------------------------------------------
-# FUNCIÓN PARA VERIFICAR USUARIO
+# FUNCIÓN PARA VERIFICAR USUARIO + ROL
 # -------------------------------------------------
 def verificar_usuario(usuario, contraseña):
     con = obtener_conexion()
@@ -42,10 +42,15 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
-        query = "SELECT Usuario FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
+        query = "SELECT Usuario, Rol FROM Administradores WHERE Usuario = %s AND Contraseña = %s"
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
-        return result[0] if result else None
+
+        # result = ("Dark", "institucional")
+        return {
+            "usuario": result[0],
+            "rol": result[1]
+        } if result else None
 
     finally:
         con.close()
@@ -93,7 +98,7 @@ def login():
     </div>
     """,
     unsafe_allow_html=True,
-)
+    )
 
     st.write("")  # Espacio
 
@@ -105,12 +110,14 @@ def login():
 
     # -------- BOTÓN ----------
     if st.button("Iniciar sesión"):
-        validado = verificar_usuario(usuario, contraseña)
+        datos = verificar_usuario(usuario, contraseña)
 
-        if validado:
-            st.session_state["usuario"] = usuario
+        if datos:
+            st.session_state["usuario"] = datos["usuario"]
+            st.session_state["rol"] = datos["rol"]   # ← GUARDAMOS EL NIVEL DE ACCESO
             st.session_state["sesion_iniciada"] = True
-            st.success(f"Bienvenido, {usuario} 👋")
+
+            st.success(f"Bienvenido {datos['usuario']} 👋 (Rol: {datos['rol']})")
             st.rerun()
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
