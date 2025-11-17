@@ -16,16 +16,17 @@ st.session_state.setdefault("sesion_iniciada", False)
 # ---- SI NO HA INICIADO SESIÓN, MOSTRAR LOGIN ----
 if not st.session_state["sesion_iniciada"]:
     login()
-    st.stop()   # ⛔ Detiene la ejecución aquí
-                # evita que se “regrese” al login
+    st.stop()  # ⛔ Detiene la ejecución
 
 # ---- YA INICIÓ SESIÓN, MOSTRAR MENÚ ----
-opcion = mostrar_menu()
+mostrar_menu()
 
-# ---- CARGAR EL MÓDULO SELECCIONADO ----
-if opcion == "registrar_miembros":
+# ---- CARGAR EL MÓDULO SEGÚN state ----
+modulo = st.session_state.get("modulo")
+
+if modulo == "registrar_miembros":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
 
-elif opcion:
-    cargar_pagina(opcion)
+elif modulo:
+    cargar_pagina(modulo)
