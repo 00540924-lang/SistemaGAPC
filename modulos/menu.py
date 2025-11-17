@@ -6,7 +6,7 @@ def mostrar_menu():
         st.session_state["modulo"] = None
 
   # -------- LOGO IZQUIERDA ----------
-col1, col2 = st.columns([1, 4])
+col1, col2 = st.columns([1, 3])
 
 with col1:
     st.image("modulos/assets/logo_gapc.png", width=300)  # Ajusta el tamaño si quieres
