@@ -58,7 +58,7 @@ def mostrar_menu():
             justify-content: center;
             align-items: center;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 50px;
             text-align: center;
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
             transition: transform 0.18s ease, box-shadow 0.18s ease;
