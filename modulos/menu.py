@@ -1,6 +1,10 @@
 import streamlit as st
 
 def mostrar_menu():
+    query_params = st.experimental_get_query_params()
+if "modulo" in query_params:
+    st.session_state["modulo"] = query_params["modulo"][0]
+
     # Inicializar variable de sesión
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
