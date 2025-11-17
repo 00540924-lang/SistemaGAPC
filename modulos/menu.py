@@ -1,52 +1,72 @@
 import streamlit as st
 
-# -------------------------------------------------
-# VISTA DESPUÉS DE INICIAR SESIÓN
-# -------------------------------------------------
-def menu_principal():
+def mostrar_menu():
 
     st.markdown(
         """
-        <h2 style='text-align: center; color:#4C3A60;'>
-            Menú Principal – Sistema GAPC
+        <h2 style="text-align: center; margin-bottom: 10px;">
+            Panel principal – GAPC
         </h2>
         """,
         unsafe_allow_html=True
     )
 
-    st.write("### 👋 Bienvenido, {}".format(st.session_state["usuario"]))
+    # ---- Estilos CSS de botones modernos ----
+    st.markdown(
+        """
+        <style>
 
-    st.write("")
+        .card-btn {
+            background: linear-gradient(135deg, #3085C3, #FEEAA1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
+            transition: 0.3s;
+            cursor: pointer;
+        }
 
-    # ---- TARJETAS DE MÓDULOS ----
+        .card-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 6px 15px rgba(0,0,0,0.25);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ---- GRID de botones ----
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("📊 Dashboard", use_container_width=True):
-            st.session_state["modulo"] = "dashboard"
-
-        if st.button("👥 Usuarios", use_container_width=True):
-            st.session_state["modulo"] = "usuarios"
+        if st.button("📊 Dashboard", key="dash"):
+            st.session_state["modulo_actual"] = "dashboard"
 
     with col2:
-        if st.button("💰 Préstamos", use_container_width=True):
-            st.session_state["modulo"] = "prestamos"
-
-        if st.button("📂 Ahorros", use_container_width=True):
-            st.session_state["modulo"] = "ahorros"
+        if st.button("👤 Usuarios", key="users"):
+            st.session_state["modulo_actual"] = "usuarios"
 
     with col3:
-        if st.button("📑 Reportes", use_container_width=True):
-            st.session_state["modulo"] = "reportes"
+        if st.button("📁 Proyectos", key="proyectos"):
+            st.session_state["modulo_actual"] = "proyectos"
 
-        if st.button("⚙️ Configuración", use_container_width=True):
-            st.session_state["modulo"] = "configuracion"
+    st.write("")
 
-    st.write("---")
+    col4, col5, col6 = st.columns(3)
 
-    # ---- CERRAR SESIÓN ----
-    if st.button("🚪 Cerrar sesión", type="secondary"):
-        st.session_state["sesion_iniciada"] = False
-        st.session_state["usuario"] = ""
-        st.session_state["modulo"] = None
-        st.rerun()
+    with col4:
+        if st.button("📦 Inventario", key="invent"):
+            st.session_state["modulo_actual"] = "inventario"
+
+    with col5:
+        if st.button("📄 Reportes", key="reportes"):
+            st.session_state["modulo_actual"] = "reportes"
+
+    with col6:
+        if st.button("⚙️ Configuración", key="config"):
+            st.session_state["modulo_actual"] = "configuracion")
+
+
