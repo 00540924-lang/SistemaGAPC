@@ -67,6 +67,6 @@ def mostrar_menu():
 
     with col6:
         if st.button("⚙️ Configuración", key="config"):
-            st.session_state["modulo_actual"] = "configuracion")
+            st.session_state["modulo_actual"] = "configuracion"
 
 
