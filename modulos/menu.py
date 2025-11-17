@@ -9,7 +9,7 @@ def mostrar_menu():
 col1, col2 = st.columns([1, 5])
 
 with col1:
-    st.image("TU_URL_O_RUTA", width=60)
+    st.image("modulos/assets/logo_gapc.png", width=60)
 
 with col2:
     st.markdown(
