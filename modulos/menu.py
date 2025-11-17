@@ -34,7 +34,7 @@ with col2:
             color: #ffffff;
             font-size: 18px;
             text-align: center;
-            width: 80%;
+            width: 100%;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
             margin: auto;
         ">
