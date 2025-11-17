@@ -1,11 +1,11 @@
 import streamlit as st
 
 def mostrar_menu():
-    # inicializar variable de sesión si no existe
+    # Inicializar variable de sesión si no existe
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-    # Título
+    # -------- TÍTULO ----------
     st.markdown(
         """
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
@@ -72,36 +72,36 @@ def mostrar_menu():
         .g5 { background: linear-gradient(135deg, #FF6B6B, #FFABAB); }
         .g6 { background: linear-gradient(135deg, #9A86AE, #D6CDE2); }
 
-        .card:hover {
+        /* Tarjeta Cerrar Sesión */
+        .logout-card {
+            background: linear-gradient(135deg, #D9534F, #FF8A80);
+            width: 150px;
+            height: 150px;
+            border-radius: 18px;
+            padding: 18px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 48px;
+            text-align: center;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .logout-card:hover {
             transform: translateY(-8px) scale(1.03);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.20);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
         }
 
         .card-sub {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 0.2px;
-        }
-
-        /* BOTÓN DE CERRAR SESIÓN */
-        .logout-btn {
-            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
-            padding: 12px 24px;
-            color: white !important;
-            font-weight: bold;
-            font-size: 18px;
-            border-radius: 12px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 40px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            transition: 0.2s;
-        }
-        .logout-btn:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            margin-top: 5px;
         }
         </style>
         """,
@@ -123,18 +123,27 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
+    # -------- TARJETA CERRAR SESIÓN (CENTRADA) --------
+    st.markdown(
+        """
+        <div class='cards-row'>
+            <div class='logout-card' onclick="window.location.reload()">🔒
+                <div class='card-sub'>Cerrar sesión</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Cuando se detecta el click, Streamlit no entiende eventos JS,
+    # así que usamos un botón oculto sincronizado:
+    logout_clicked = st.button(" ", key="logout-hidden-button")
+    if logout_clicked:
+        st.session_state.clear()
+        st.rerun()
+
     # -------- CONTENIDO DEL MÓDULO --------
     if st.session_state["modulo"]:
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
-
-    # -------- BOTÓN CERRAR SESIÓN --------
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-
-    # botón bonito centrado
-    col1, col2, col3 = st.columns([1,3,1])
-    with col2:
-        if st.button("🔒 Cerrar sesión"):
-            st.session_state.clear()
-            st.rerun()
