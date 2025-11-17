@@ -27,7 +27,7 @@ def mostrar_menu():
             justify-content: center;
             gap: 20px;
             flex-wrap: wrap;
-            margin-top: 80px;
+            margin-top: 15px;
         }
 
         .card {
