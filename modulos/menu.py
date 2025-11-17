@@ -5,7 +5,7 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 # -------- LOGO + TÍTULO ALINEADOS ----------
-st.markdown(
+    st.markdown(
     """
     <div style="
         display: flex;
