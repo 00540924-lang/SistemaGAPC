@@ -129,30 +129,32 @@ def mostrar_menu():
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
 
-# -------- BOTÓN CERRAR SESIÓN --------
+# -------- BOTÓN CERRAR SESIÓN CON GRADIENTE --------
 
 # Espacio antes del botón
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-# CSS para personalizar el botón
+# CSS para el botón con gradiente
 st.markdown("""
     <style>
-    /* Estilo del botón */
+    /* Botón con gradiente */
     div.stButton > button {
-        background-color: #C44E74;     /* Color del botón */
-        color: white;                  /* Texto */
-        border-radius: 8px;            /* Bordes redondeados */
-        padding: 10px 20px;            /* Tamaño */
-        font-size: 16px;               /* Texto más grande */
-        border: none;                  /* Sin borde */
-        font-weight: 600;              /* Un poco más grueso */
+        background: linear-gradient(135deg, #B7A2C8, #F7C9A4); /* Gradiente */
+        color: #4C3A60;            /* Color del texto */
+        border-radius: 12px;       /* Bordes redondeados */
+        padding: 12px 24px;        /* Tamaño */
+        font-size: 16px;           /* Tamaño texto */
+        font-weight: 700;          /* Negrita */
+        border: none;              /* Sin borde */
         cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
     }
 
-    /* Animación al pasar el mouse */
+    /* Hover del botón */
     div.stButton > button:hover {
-        background-color: #A23E60;     /* Color al pasar el mouse */
-        transform: scale(1.03);        /* Pequeño zoom */
+        transform: translateY(-4px) scale(1.03);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.2);
     }
     </style>
     """,
@@ -160,7 +162,7 @@ st.markdown("""
 )
 
 # Botón centrado
-col1, col2, col3 = st.columns([1, 3, 1])
+col1, col2, col3 = st.columns([1,3,1])
 with col2:
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
