@@ -69,7 +69,7 @@ def login():
     # -------- TÍTULO ----------
     st.markdown(
         """
-        <h2 style='text-align: center; margin-top: -10px; color:#4C3A60;'>
+        <h2 style='text-align: center; margin-top: -1px; color:#4C3A60;'>
             Sistema de Gestión – GAPC
         </h2>
         """,
