@@ -77,12 +77,12 @@ div.stButton > button {
    st.markdown("""
 <div class='cards-row'>
 
-    <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
-
-    <div class='card g2' onclick="window.location.href='?modulo=registrar_miembros'" style="cursor:pointer;">
+  <a href='?modulo=registrar_miembros' style="text-decoration:none;">
+    <div class='card g2'>
         👥
         <div class='card-sub'>Registro de miembros</div>
     </div>
+</a>
 
     <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
     <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
