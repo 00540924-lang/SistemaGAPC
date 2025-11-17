@@ -5,7 +5,7 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 #logo
-    st.markdown("""
+st.markdown("""
     <style>
         .logo-mover {
             margin-left: 60px;   /* AQUI CONTROLAS CUANTO SE MUEVE A LA DERECHA */
@@ -16,7 +16,6 @@ def mostrar_menu():
 st.markdown('<div class="logo-mover">', unsafe_allow_html=True)
 st.image("modulos/assets/logo_gapc.png", width=300)
 st.markdown('</div>', unsafe_allow_html=True)
-
 
     # Título
     st.markdown(
