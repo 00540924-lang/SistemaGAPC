@@ -38,8 +38,7 @@ with col2:
             box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
             margin: auto;
         ">
-            <b>Bienvenido</b><br>
-            Seleccione un módulo para continuar
+            <b>Seleccione un módulo para continuar</b><br>
         </div>
         """,
         unsafe_allow_html=True,
