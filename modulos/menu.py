@@ -29,12 +29,12 @@ with col2:
         """
         <div style="
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-            padding: 10px;
+            padding: 8px;
             border-radius: 12px;
             color: #ffffff;
             font-size: 18px;
             text-align: center;
-            width: 60%;
+            width: 80%;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
             margin: auto;
         ">
