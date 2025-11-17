@@ -18,7 +18,7 @@ def mostrar_menu():
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             padding: 3px;
             border-radius: 12px;
-            color: #ffffff;
+            color: #4C3A60;
             font-size: 18px;
             text-align: center;
             width: 80%;
