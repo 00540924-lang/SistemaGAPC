@@ -78,10 +78,30 @@ def mostrar_menu():
         }
 
         .card-sub {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 5px;
+            margin-top: 0.2px;
+        }
+
+        /* BOTÓN DE CERRAR SESIÓN */
+        .logout-btn {
+            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
+            padding: 12px 24px;
+            color: white !important;
+            font-weight: bold;
+            font-size: 18px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 40px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: 0.2s;
+        }
+        .logout-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
         }
         </style>
         """,
@@ -103,15 +123,18 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
-    # -------- BOTÓN CERRAR SESIÓN ----------
-    st.write("")
-    st.write("")
-    if st.button("🔒 Cerrar sesión", type="primary"):
-        st.session_state.clear()     # borrar variables de sesión
-        st.rerun()                   # recargar app
-
     # -------- CONTENIDO DEL MÓDULO --------
     if st.session_state["modulo"]:
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
+
+    # -------- BOTÓN CERRAR SESIÓN --------
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+    # botón bonito centrado
+    col1, col2, col3 = st.columns([1,3,1])
+    with col2:
+        if st.button("🔒 Cerrar sesión"):
+            st.session_state.clear()
+            st.rerun()
