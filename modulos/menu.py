@@ -81,7 +81,7 @@ def mostrar_menu():
             font-size: 14px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 20px;
+            margin-top: 50px;
         }
         </style>
         """,
