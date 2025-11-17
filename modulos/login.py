@@ -32,13 +32,11 @@ body {
 """, unsafe_allow_html=True)
 
 # --- Inicialización de st.session_state para la autenticación ---
-# Esto debe hacerse una vez al inicio del script en el módulo que se ejecuta primero (ej. app.py)
-# o asegurar que se inicialice antes de ser accedido.
-# Si login.py es importado, esta inicialización se hará una vez.
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
-    st.session_state['username'] = None
-    st.session_state['role'] = None # Aseguramos que el rol esté siempre inicializado
+# Se ha movido al archivo principal (app.py) para asegurar que se inicialice primero.
+# if 'authenticated' not in st.session_state:
+#     st.session_state['authenticated'] = False
+#     st.session_state['username'] = None
+#     st.session_state['role'] = None
 
 # -------------------------------------------------
 # FUNCIÓN PARA VERIFICAR USUARIO Y OBTENER ROL
@@ -77,7 +75,7 @@ def logout_user():
     st.experimental_rerun() # Recargar para volver al login
 
 # -------------------------------------------------
-# PANTALLA DE LOGIN (FORMULARIO) 
+# PANTALLA DE LOGIN (FORMULARIO)
 # -------------------------------------------------
 def login_form():
     # -------- LOGO CENTRADO ----------
