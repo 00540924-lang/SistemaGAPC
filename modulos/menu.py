@@ -90,7 +90,7 @@ div.stButton > button {
     # Botón de cerrar sesión centrado
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
-        if st.button("🔒 Cerrar sesión"):
+        if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
             st.rerun()
 
