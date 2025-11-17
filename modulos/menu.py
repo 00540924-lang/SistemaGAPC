@@ -5,7 +5,7 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-    # Título
+    # -------- TÍTULO ----------
     st.markdown(
         """
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
@@ -15,7 +15,7 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
-    # -------- TARJETA VISUAL ----------
+    # -------- TARJETA VISUAL PRINCIPAL ----------
     st.markdown(
         """
         <div style="
@@ -30,6 +30,29 @@ def mostrar_menu():
             margin: auto;
         ">
             <b>Seleccione un módulo para continuar</b><br>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # -------- TARJETA VISUAL CERRAR SESIÓN ----------
+    st.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
+            padding: 3px;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 18px;
+            text-align: center;
+            width: 50%;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+            margin: 20px auto;
+            cursor:pointer;
+        "
+        onclick="window.location.reload()"
+        >
+            <b>🔒 Cerrar sesión</b>
         </div>
         """,
         unsafe_allow_html=True,
@@ -78,37 +101,17 @@ def mostrar_menu():
         }
 
         .card-sub {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 0.2px;
-        }
-
-        /* BOTÓN DE CERRAR SESIÓN */
-        .logout-btn {
-            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
-            padding: 12px 24px;
-            color: white !important;
-            font-weight: bold;
-            font-size: 18px;
-            border-radius: 12px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 40px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            transition: 0.2s;
-        }
-        .logout-btn:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            margin-top: 5px;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    # -------- TARJETAS VISUALES --------
+    # -------- TARJETAS MODULOS --------
     st.markdown(
         """
         <div class='cards-row'>
@@ -122,19 +125,3 @@ def mostrar_menu():
         """,
         unsafe_allow_html=True,
     )
-
-    # -------- CONTENIDO DEL MÓDULO --------
-    if st.session_state["modulo"]:
-        st.markdown("---")
-        st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
-        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
-
-    # -------- BOTÓN CERRAR SESIÓN --------
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-
-    # botón bonito centrado
-    col1, col2, col3 = st.columns([1,3,1])
-    with col2:
-        if st.button("🔒 Cerrar sesión"):
-            st.session_state.clear()
-            st.rerun()
