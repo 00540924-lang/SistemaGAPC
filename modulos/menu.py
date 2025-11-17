@@ -74,7 +74,7 @@ div.stButton > button {
         """, unsafe_allow_html=True)
 
     # Tarjetas visuales
-    st.markdown("""
+     st.markdown("""
     <div class='cards-row'>
         <a href='?modulo=registrar_miembros'>
             <div class='card g2'>
