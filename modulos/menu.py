@@ -14,7 +14,15 @@ def mostrar_menu():
         """,
         unsafe_allow_html=True,
     )
-
+  # -------- LOGO CENTRADO ----------
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        st.write("")
+    with col2:
+        st.image("modulos/assets/logo_gapc.png", width=800)
+    with col3:
+        st.write("")
+        
   # -------- TARJETA VISUAL ----------
     st.markdown(
     """
