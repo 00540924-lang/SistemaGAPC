@@ -8,7 +8,7 @@ def mostrar_menu():
     # Título
     st.markdown(
         """
-        <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
+        <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
             Menú Principal – GAPC
         </h1>
         """,
@@ -48,7 +48,7 @@ def mostrar_menu():
         }
 
         .card {
-            width: 280px;
+            width: 150px;
             height: 150px;
             border-radius: 16px;
             padding: 18px;
@@ -58,7 +58,7 @@ def mostrar_menu():
             justify-content: center;
             align-items: center;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 50px;
             text-align: center;
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
             transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -78,10 +78,30 @@ def mostrar_menu():
         }
 
         .card-sub {
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 6px;
+            margin-top: 0.2px;
+        }
+
+        /* BOTÓN DE CERRAR SESIÓN */
+        .logout-btn {
+            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
+            padding: 12px 24px;
+            color: white !important;
+            font-weight: bold;
+            font-size: 18px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 40px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: 0.2s;
+        }
+        .logout-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
         }
         </style>
         """,
@@ -108,3 +128,13 @@ def mostrar_menu():
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
+
+    # -------- BOTÓN CERRAR SESIÓN --------
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+    # botón bonito centrado
+    col1, col2, col3 = st.columns([1,3,1])
+    with col2:
+        if st.button("🔒 Cerrar sesión"):
+            st.session_state.clear()
+            st.rerun()
