@@ -60,7 +60,7 @@ div.stButton > button {
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-            margin-top: 50px;
+            margin-top: 80px;
         }
         div.stButton > button:hover {
             transform: translateY(-4px) scale(1.03);
