@@ -88,7 +88,7 @@ def mostrar_menu():
         .logout-btn {
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             padding: 12px 24px;
-            color: white !important;
+            color: #B7A2C8, #F7C9A4 !important;
             font-weight: bold;
             font-size: 18px;
             border-radius: 12px;
