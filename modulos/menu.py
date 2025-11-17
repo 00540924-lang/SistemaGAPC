@@ -8,7 +8,7 @@ def mostrar_menu():
     # -------- LOGO IZQUIERDA CON MARGEN ----------
     st.markdown("""
         <style>
-            .logo-mover { margin-left: 60px; }
+            .logo-mover { margin-left: 40px; }
         </style>
     """, unsafe_allow_html=True)
 
