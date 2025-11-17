@@ -1,13 +1,14 @@
 import streamlit as st
 
 def mostrar_menu():
-    query_params = st.experimental_get_query_params()
-if "modulo" in query_params:
-    st.session_state["modulo"] = query_params["modulo"][0]
-
     # Inicializar variable de sesión
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
+
+    # Obtener parámetros de la URL
+    query_params = st.experimental_get_query_params()
+    if "modulo" in query_params:
+        st.session_state["modulo"] = query_params["modulo"][0]
 
     # Título
     st.markdown("""
@@ -53,13 +54,13 @@ if "modulo" in query_params:
         .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
 
         /* Estilo del botón de cerrar sesión */
-div.stButton > button {
+        div.stButton > button {
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             color: #4C3A60;
             border-radius: 12px;
             padding: 12px 24px;
             font-size: 18px;
-            font-weight: 2000;
+            font-weight: 700;
             border: none;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -74,7 +75,7 @@ div.stButton > button {
         """, unsafe_allow_html=True)
 
     # Tarjetas visuales
-     st.markdown("""
+    st.markdown("""
     <div class='cards-row'>
         <a href='?modulo=registrar_miembros'>
             <div class='card g2'>
@@ -115,5 +116,9 @@ div.stButton > button {
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
-            st.rerun()
+            st.experimental_rerun()  # Use rerun para reiniciar la app
+
+# Ejecutar la función
+if __name__ == "__main__":
+    mostrar_menu()
 
