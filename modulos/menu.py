@@ -73,7 +73,7 @@ div.stButton > button {
     st.markdown("""
         <div class='cards-row'>
             <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
-            <div class='card g2'>👥<div class='card-sub'>Control de Personal</div></div>
+            <div class='card g2'>👥<div class='card-sub'>Registro de miembros</div></div>
             <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
             <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
             <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
