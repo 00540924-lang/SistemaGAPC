@@ -6,14 +6,16 @@ def mostrar_menu():
         st.session_state["modulo"] = None
 
  # Título
-    st.markdown(
-        """
-        <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
-            Menú Principal – GAPC
-        </h1>
-        """,
-        unsafe_allow_html=True,
-    )
+   st.markdown(
+    """
+    <h1 style='text-align:center; color:#4C3A60;'>
+        <img src="TU_URL_O_RUTA" style="height:40px; vertical-align:middle; margin-right:8px;">
+        Menú Principal – GAPC
+    </h1>
+    """,
+    unsafe_allow_html=True,
+)
+
     # -------- TARJETA VISUAL ----------
     st.markdown(
         """
