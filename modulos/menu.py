@@ -86,38 +86,6 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
-    # Botones (usamos layout de columnas para que queden alineados)
-    # Cada st.button está visualmente alineado con la tarjeta HTML que mostramos luego.
-    cols = st.columns([1,1,1])
-    with cols[0]:
-        if st.button("📁 Gestión de Proyectos", key="proyectos"):
-            st.session_state["modulo"] = "proyectos"
-            st.rerun()
-    with cols[1]:
-        if st.button("👥 Control de Personal", key="personal"):
-            st.session_state["modulo"] = "personal"
-            st.rerun()
-    with cols[2]:
-        if st.button("🧾 Inspecciones", key="inspecciones"):
-            st.session_state["modulo"] = "inspecciones"
-            st.rerun()
-
-    st.write("")  # separador
-
-    cols2 = st.columns([1,1,1])
-    with cols2[0]:
-        if st.button("📄 Gestión Documental", key="documentos"):
-            st.session_state["modulo"] = "documentos"
-            st.rerun()
-    with cols2[1]:
-        if st.button("📊 Reportes", key="reportes"):
-            st.session_state["modulo"] = "reportes"
-            st.rerun()
-    with cols2[2]:
-        if st.button("⚙️ Configuración", key="configuracion"):
-            st.session_state["modulo"] = "configuracion"
-            st.rerun()
-
     # Visual: tarjetas decorativas (no clicables, sirven como "mockup" visual)
     st.markdown(
         """
