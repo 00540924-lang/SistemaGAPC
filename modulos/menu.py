@@ -5,7 +5,7 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 #logo
- st.markdown("""
+    st.markdown("""
     <style>
         .logo-mover {
             margin-left: 60px;   /* AQUI CONTROLAS CUANTO SE MUEVE A LA DERECHA */
