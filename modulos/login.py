@@ -66,37 +66,68 @@ def mostrar_menu():
             <b>Seleccione un módulo para continuar</b><br>
         </div>
         """, unsafe_allow_html=True)
+# ---------------------------------------
+# TARJETAS GENERADAS POR EL ROL
+# ---------------------------------------
+st.markdown("""
+<style>
+.cards-row { 
+    display:flex; 
+    justify-content:center; 
+    gap:20px; 
+    flex-wrap:wrap; 
+    margin-top:15px; 
+}
+.card {
+    width:150px; 
+    height:150px; 
+    border-radius:16px; 
+    padding:18px;
+    background: linear-gradient(135deg, #7B4397, #DC2430);
+    color:white; 
+    display:flex; 
+    flex-direction:column; 
+    justify-content:center; 
+    align-items:center;
+    font-weight:700; 
+    font-size:50px; 
+    text-align:center; 
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    transition: transform 0.18s ease, box-shadow 0.18s ease; 
+    cursor:pointer;
+}
+.card:hover { 
+    transform:translateY(-8px) scale(1.03); 
+    box-shadow:0 12px 30px rgba(0,0,0,0.20); 
+}
+.card-icon {
+    font-size:55px;
+    margin-bottom:8px;
+}
+.card-sub { 
+    font-size:15px; 
+    font-weight:600; 
+    opacity:0.95; 
+}
+</style>
+""", unsafe_allow_html=True)
 
-    # ---------------------------------------
-    # TARJETAS GENERADAS POR EL ROL
-    # ---------------------------------------
-    st.markdown("""
-        <style>
-        .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:15px; }
-        .card {
-            width:150px; height:150px; border-radius:16px; padding:18px;
-            color:white; display:flex; flex-direction:column; justify-content:center; align-items:center;
-            font-weight:700; font-size:50px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.12);
-            transition: transform 0.18s ease, box-shadow 0.18s ease; cursor:pointer;
-        }
-        .card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 12px 30px rgba(0,0,0,0.20); }
-        .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
-        </style>
-        """, unsafe_allow_html=True)
+html_cards = """
+<div class='cards-row'>
+"""
 
-    html_cards = "<div class='cards-row'>"
+for icono, texto, modulo in modulos:
+    html_cards += f"""
+        <div class='card' onclick="window.location.href='?modulo={modulo}'">
+            <div class='card-icon'>{icono}</div>
+            <div class='card-sub'>{texto}</div>
+        </div>
+    """
 
-    for icono, texto, modulo in modulos:
-        html_cards += f"""
-            <div class='card' onclick="window.location.href='?modulo={modulo}'">
-                {icono}
-                <div class='card-sub'>{texto}</div>
-            </div>
-        """
+html_cards += "</div>"
 
-    html_cards += "</div>"
+st.markdown(html_cards, unsafe_allow_html=True)
 
-    st.markdown(html_cards, unsafe_allow_html=True)
 
     # ---------------------------------------
     # BOTÓN DE CERRAR SESIÓN
