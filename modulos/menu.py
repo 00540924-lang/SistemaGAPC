@@ -6,7 +6,6 @@ def mostrar_menu():
         st.session_state["modulo"] = None
 
  # Título
-# Título
 st.markdown(
     """
     <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
@@ -15,7 +14,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
     # -------- TARJETA VISUAL ----------
     st.markdown(
