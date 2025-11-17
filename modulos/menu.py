@@ -5,7 +5,7 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-   # -------- LOGO IZQUIERDA ----------
+  # -------- LOGO IZQUIERDA ----------
 col1, col2 = st.columns([1, 4])
 
 with col1:
@@ -13,7 +13,7 @@ with col1:
 
 with col2:
     st.write("")
-¿
+
     # Título
     st.markdown(
         """
