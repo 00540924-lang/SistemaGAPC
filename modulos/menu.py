@@ -6,15 +6,16 @@ def mostrar_menu():
         st.session_state["modulo"] = None
 
  # Título
-st.markdown(
-    """
-    <h1 style='text-align:center; color:#4C3A60;'>
-        <img src="modulos/assets/logo_gapc.png" style="height:40px; vertical-align:middle; margin-right:8px;">
-        Menú Principal – GAPC
-    </h1>
-    """,
-    unsafe_allow_html=True,
-)
+col1, col2 = st.columns([1, 5])
+
+with col1:
+    st.image("TU_URL_O_RUTA", width=60)
+
+with col2:
+    st.markdown(
+        "<h1 style='color:#4C3A60; margin-top:10px;'>Menú Principal – GAPC</h1>",
+        unsafe_allow_html=True,
+    )
 
     # -------- TARJETA VISUAL ----------
     st.markdown(
