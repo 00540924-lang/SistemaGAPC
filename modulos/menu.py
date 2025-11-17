@@ -5,7 +5,7 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-    # -------- TÍTULO ----------
+    # Título
     st.markdown(
         """
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
@@ -15,7 +15,7 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
-    # -------- TARJETA VISUAL PRINCIPAL ----------
+    # -------- TARJETA VISUAL ----------
     st.markdown(
         """
         <div style="
@@ -30,29 +30,6 @@ def mostrar_menu():
             margin: auto;
         ">
             <b>Seleccione un módulo para continuar</b><br>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # -------- TARJETA VISUAL CERRAR SESIÓN ----------
-    st.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #FF6B6B, #FFABAB);
-            padding: 3px;
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 18px;
-            text-align: center;
-            width: 50%;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-            margin: 20px auto;
-            cursor:pointer;
-        "
-        onclick="window.location.reload()"
-        >
-            <b>🔒 Cerrar sesión</b>
         </div>
         """,
         unsafe_allow_html=True,
@@ -111,7 +88,7 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
-    # -------- TARJETAS MODULOS --------
+    # -------- TARJETAS VISUALES --------
     st.markdown(
         """
         <div class='cards-row'>
@@ -125,3 +102,9 @@ def mostrar_menu():
         """,
         unsafe_allow_html=True,
     )
+
+    # -------- CONTENIDO DEL MÓDULO --------
+    if st.session_state["modulo"]:
+        st.markdown("---")
+        st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
+        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
