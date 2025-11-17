@@ -97,10 +97,4 @@ div.stButton > button {
             st.session_state.clear()
             st.rerun()
 
-# -------- MOSTRAR CONTENIDO DEL MÓDULO --------
-from modulos.registrar_miembros import registrar_miembros
-
-if st.session_state["modulo"] == "registrar_miembros":
-    registrar_miembros()
-
 
