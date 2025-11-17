@@ -132,6 +132,31 @@ def mostrar_menu():
     # -------- BOTÓN CERRAR SESIÓN --------
     st.markdown("<br><br><br>", unsafe_allow_html=True)
 
+    # CSS para personalizar el botón
+st.markdown("""
+    <style>
+    /* Estilo del botón */
+    div.stButton > button {
+        background-color: #C44E74;     /* Color del botón */
+        color: white;                  /* Texto */
+        border-radius: 8px;            /* Bordes redondeados */
+        padding: 10px 20px;            /* Tamaño */
+        font-size: 16px;               /* Texto más grande */
+        border: none;                  /* Sin borde */
+        font-weight: 600;              /* Un poco más grueso */
+        cursor: pointer;
+    }
+
+    /* Animación al pasar el mouse */
+    div.stButton > button:hover {
+        background-color: #A23E60;     /* Color al pasar el mouse */
+        transform: scale(1.03);        /* Pequeño zoom */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
     # botón bonito centrado
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
