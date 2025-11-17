@@ -15,7 +15,15 @@ def mostrar_menu():
     st.markdown('<div class="logo-mover">', unsafe_allow_html=True)
     st.image("modulos/assets/logo_gapc.png", width=500)
     st.markdown('</div>', unsafe_allow_html=True)
-    
+ # Título
+    st.markdown(
+        """
+        <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
+            Menú Principal – GAPC
+        </h1>
+        """,
+        unsafe_allow_html=True,
+    )
     # -------- TARJETA VISUAL ----------
     st.markdown(
         """
