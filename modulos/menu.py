@@ -4,19 +4,16 @@ def mostrar_menu():
     # inicializar variable de sesión si no existe
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
-#logo
-st.markdown("""
-    <style>
-        .logo-mover {
-            margin-left: 60px;   /* AQUI CONTROLAS CUANTO SE MUEVE A LA DERECHA */
-        }
-    </style>
-""", unsafe_allow_html=True)
+ # -------- LOGO IZQUIERDA CON MARGEN ----------
+    st.markdown("""
+        <style>
+            .logo-mover { margin-left: 60px; }
+        </style>
+    """, unsafe_allow_html=True)
 
-st.markdown('<div class="logo-mover">', unsafe_allow_html=True)
-st.image("modulos/assets/logo_gapc.png", width=300)
-st.markdown('</div>', unsafe_allow_html=True)
-
+    st.markdown('<div class="logo-mover">', unsafe_allow_html=True)
+    st.image("modulos/assets/logo_gapc.png", width=500)
+    st.markdown('</div>', unsafe_allow_html=True)
     # Título
     st.markdown(
         """
