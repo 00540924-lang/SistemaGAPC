@@ -78,10 +78,10 @@ def mostrar_menu():
         }
 
         .card-sub {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 0.2px;
+            margin-top: 5px;
         }
         </style>
         """,
@@ -103,9 +103,15 @@ def mostrar_menu():
         unsafe_allow_html=True,
     )
 
+    # -------- BOTÓN CERRAR SESIÓN ----------
+    st.write("")
+    st.write("")
+    if st.button("🔒 Cerrar sesión", type="primary"):
+        st.session_state.clear()     # borrar variables de sesión
+        st.rerun()                   # recargar app
+
     # -------- CONTENIDO DEL MÓDULO --------
     if st.session_state["modulo"]:
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
-
