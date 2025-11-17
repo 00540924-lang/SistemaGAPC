@@ -128,3 +128,4 @@ def mostrar_menu():
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
             st.rerun()
+
