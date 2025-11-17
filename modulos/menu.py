@@ -75,15 +75,6 @@ div.stButton > button {
 
     # Tarjetas visuales
    st.markdown("""
-<div class='cards-row'>
-
-  <a href='?modulo=registrar_miembros' style="text-decoration:none;">
-    <div class='card g2'>
-        👥
-        <div class='card-sub'>Registro de miembros</div>
-    </div>
-</a>
-
     <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
     <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
     <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
