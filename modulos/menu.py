@@ -1,6 +1,10 @@
 import streamlit as st
 
 def mostrar_menu():
+    query_params = st.experimental_get_query_params()
+if "modulo" in query_params:
+    st.session_state["modulo"] = query_params["modulo"][0]
+
     # Inicializar variable de sesión
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
@@ -55,7 +59,7 @@ div.stButton > button {
             border-radius: 12px;
             padding: 12px 24px;
             font-size: 18px;
-            font-weight: 600;
+            font-weight: 2000;
             border: none;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -69,32 +73,35 @@ div.stButton > button {
         </style>
         """, unsafe_allow_html=True)
 
-    # Botones interactivos en lugar de links
-    st.markdown("<div class='card-sub'>", unsafe_allow_html=True)
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        if st.button("👥\nRegistro de miembros"):
-            st.session_state["modulo"] = "registrar_miembros"
-    with col2:
-        if st.button("🧾\nInspecciones y Evaluaciones"):
-            st.session_state["modulo"] = "inspecciones"
-    with col3:
-        if st.button("📄\nGestión Documental"):
-            st.session_state["modulo"] = "gestion_documental"
-    with col4:
-        if st.button("📊\nReportes"):
-            st.session_state["modulo"] = "reportes"
-    with col5:
-        if st.button("⚙️\nConfiguración"):
-            st.session_state["modulo"] = "configuracion"
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Tarjetas visuales
+    st.markdown("""
+        <div class='cards-row'>
+            <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
+            <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
+            <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
+            <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
+            <div class='card g6'>⚙️<div class='card-sub'>Configuración</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Contenido del módulo
+    if st.session_state["modulo"]:
+        st.markdown("---")
+        st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
+        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
 
     # Botón de cerrar sesión centrado
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
-            st.experimental_rerun()
+            st.rerun()
 
-if __name__ == "__main__":
-    mostrar_menu()
+# -------- MOSTRAR CONTENIDO DEL MÓDULO --------
+from modulos.registrar_miembros import registrar_miembros
+
+if st.session_state["modulo"] == "registrar_miembros":
+    registrar_miembros()
+
+# Llamar la función
+mostrar_menu()
