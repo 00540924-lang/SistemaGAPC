@@ -129,10 +129,12 @@ def mostrar_menu():
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
 
-    # -------- BOTÓN CERRAR SESIÓN --------
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
+# -------- BOTÓN CERRAR SESIÓN --------
 
-    # CSS para personalizar el botón
+# Espacio antes del botón
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+# CSS para personalizar el botón
 st.markdown("""
     <style>
     /* Estilo del botón */
@@ -157,9 +159,10 @@ st.markdown("""
     unsafe_allow_html=True
 )
 
-    # botón bonito centrado
-    col1, col2, col3 = st.columns([1,3,1])
-    with col2:
-        if st.button("🔒 Cerrar sesión"):
-            st.session_state.clear()
-            st.rerun()
+# Botón centrado
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    if st.button("🔒 Cerrar sesión"):
+        st.session_state.clear()
+        st.rerun()
+
