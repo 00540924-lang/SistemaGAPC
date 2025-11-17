@@ -48,7 +48,7 @@ def mostrar_menu():
         }
 
         .card {
-            width: 280px;
+            width: 200px;
             height: 150px;
             border-radius: 16px;
             padding: 18px;
