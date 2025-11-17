@@ -6,8 +6,7 @@ def mostrar_menu():
         st.session_state["modulo"] = None
 
 # -------- LOGO + TÍTULO EN LA MISMA FILA ----------
-    st.markdown(
-        """
+    st.markdown("""
         <div style="
             display: flex;
             align-items: center;
