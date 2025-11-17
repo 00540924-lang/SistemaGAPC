@@ -24,7 +24,7 @@ def mostrar_menu():
     )
         
   # -------- TARJETA VISUAL ----------
-   st.markdown(
+st.markdown(
     """
     <div style="
         background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
