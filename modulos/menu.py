@@ -11,13 +11,28 @@ def mostrar_menu():
         <h1 style='text-align:center; color:#3085C3; margin-bottom:4px'>
             Menú Principal – GAPC
         </h1>
-        <p style='text-align:center; color:#556; margin-top:0;'>
-            Seleccione un módulo para continuar
-        </p>
         """,
         unsafe_allow_html=True,
     )
 
+  # -------- TARJETA VISUAL ----------
+    st.markdown(
+    """
+    <div style="
+        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+        padding: 15px;
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 18px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        margin: auto;
+    ">
+        <b>Seleccione un módulo para continuar</b><br>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+    
     # CSS de las tarjetas y botones (PRO look)
     st.markdown(
         """
