@@ -77,32 +77,9 @@ div.stButton > button {
     st.markdown("""
         <div class='cards-row'>
             <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
-            col1, col2, col3 = st.columns([1,1,1])
-with col2:
-    if st.button("👥\nRegistro de miembros", key="btn_reg_miembros"):
-        st.session_state["modulo"] = "registrar_miembros"
-
-# Y aplicar estilo tarjeta
-st.markdown("""
-<style>
-#btn_reg_miembros button {
-    width: 150px;
-    height: 150px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #6A4BAF, #C08BE6);
-    color: white;
-    font-size: 45px;
-    font-weight: 700;
-    text-align: center;
-    border: none;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-}
-#btn_reg_miembros button:hover {
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.20);
-}
-</style>
-""", unsafe_allow_html=True)
+           <div class='card g4' onclick="window.location.href='?modulo=registrar_miembros'">
+    🧍‍♂️<div class='card-sub'>Registrar Miembros</div>
+</div>
 
             <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
             <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
