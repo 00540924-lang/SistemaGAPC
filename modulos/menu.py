@@ -26,23 +26,17 @@ def mostrar_menu():
   # -------- TARJETA VISUAL ----------
    st.markdown(
     """
-    <style>
-        .custom-card {
-            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-            padding: 18px;
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 18px;
-            text-align: center;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-            width: 80%;
-            margin: 10px auto;
-            font-weight: 600;
-        }
-    </style>
-
-    <div class="custom-card">
-        Seleccione un módulo para continuar
+    <div style="
+        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+        padding: 15px;
+        border-radius: 12px;
+        color: #ffffff;
+        font-size: 18px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        margin: auto;
+    ">
+        <b>Bienvenido</b><br>
+        Ingrese sus credenciales para continuar
     </div>
     """,
     unsafe_allow_html=True,
