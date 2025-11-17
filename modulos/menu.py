@@ -79,7 +79,7 @@ def mostrar_menu():
 
         .card-sub {
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 1000;
             opacity: 0.95;
             margin-top: 3px;
         }
