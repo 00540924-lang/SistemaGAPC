@@ -8,7 +8,7 @@ def mostrar_menu():
     # Título
     st.markdown(
         """
-        <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
+        <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
             Menú Principal – GAPC
         </h1>
         """,
@@ -48,7 +48,7 @@ def mostrar_menu():
         }
 
         .card {
-            width: 150px;
+            width: 280px;
             height: 150px;
             border-radius: 16px;
             padding: 18px;
@@ -58,7 +58,7 @@ def mostrar_menu():
             justify-content: center;
             align-items: center;
             font-weight: 700;
-            font-size: 50px;
+            font-size: 20px;
             text-align: center;
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
             transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -78,10 +78,10 @@ def mostrar_menu():
         }
 
         .card-sub {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             opacity: 0.95;
-            margin-top: 5px;
+            margin-top: 6px;
         }
         </style>
         """,
