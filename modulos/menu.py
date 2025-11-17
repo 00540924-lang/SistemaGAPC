@@ -20,7 +20,7 @@ def mostrar_menu():
     """
     <div style="
         background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-        padding: 15px;
+        padding: 10px;
         border-radius: 12px;
         color: #ffffff;
         font-size: 18px;
