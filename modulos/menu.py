@@ -4,7 +4,7 @@ def mostrar_menu():
     # inicializar variable de sesión si no existe
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
- 
+
     # -------- LOGO CENTRADO ----------
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
@@ -13,6 +13,7 @@ def mostrar_menu():
         st.image("modulos/assets/logo_gapc.png", width=800)
     with col3:
         st.write("")
+
     # Título
     st.markdown(
         """
@@ -22,27 +23,27 @@ def mostrar_menu():
         """,
         unsafe_allow_html=True,
     )
-        
-  # -------- TARJETA VISUAL ----------
-st.markdown(
-    """
-    <div style="
-        background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-        padding: 15px;
-        border-radius: 12px;
-        color: #ffffff;
-        font-size: 18px;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-        margin: auto;
-    ">
-        <b>Bienvenido</b><br>
-        Ingrese sus credenciales para continuar
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
-    # CSS de las tarjetas y botones (PRO look)
+    # -------- TARJETA VISUAL ----------
+    st.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+            padding: 15px;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 18px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+            margin: auto;
+        ">
+            <b>Bienvenido</b><br>
+            Seleccione un módulo para continuar
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # -------- CSS TARJETAS --------
     st.markdown(
         """
         <style>
@@ -72,7 +73,6 @@ st.markdown(
             cursor: pointer;
         }
 
-        /* Gradiente base */
         .g1 { background: linear-gradient(135deg, #3085C3, #5BB3E6); }
         .g2 { background: linear-gradient(135deg, #6A4BAF, #C08BE6); }
         .g3 { background: linear-gradient(135deg, #FF9A56, #FEEAA1); }
@@ -85,32 +85,18 @@ st.markdown(
             box-shadow: 0 12px 30px rgba(0,0,0,0.20);
         }
 
-        /* Estilo para los botones nativos de Streamlit para que ocupen todo el espacio de la tarjeta */
-        .stButton>button {
-            height: 150px;
-            width: 280px;
-            padding: 0;
-            border-radius: 16px;
-            background: transparent;
-            border: none;
-            font-weight: 700;
-            font-size: 20px;
-        }
-
-        /* Texto secundario debajo del título (pequeño) */
         .card-sub {
             font-size: 13px;
             font-weight: 600;
             opacity: 0.95;
             margin-top: 6px;
         }
-
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    # Visual: tarjetas decorativas (no clicables, sirven como "mockup" visual)
+    # -------- TARJETAS VISUALES --------
     st.markdown(
         """
         <div class='cards-row'>
@@ -125,7 +111,7 @@ st.markdown(
         unsafe_allow_html=True,
     )
 
-    # Muestra un resumen del módulo seleccionado
+    # -------- CONTENIDO DEL MÓDULO --------
     if st.session_state["modulo"]:
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
