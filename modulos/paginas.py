@@ -1,33 +1,49 @@
 import streamlit as st
 
 def cargar_pagina(opcion):
-    if opcion == "Inicio":
-        pagina_inicio()
-    elif opcion == "Usuarios":
-        pagina_usuarios()
-    elif opcion == "Inventario":
-        pagina_inventario()
+    if opcion == "Gestión de Proyectos":
+        pagina_proyectos()
+    elif opcion == "Control de Personal":
+        pagina_personal()
+    elif opcion == "Inspecciones y Evaluaciones":
+        pagina_inspecciones()
+    elif opcion == "Gestión Documental":
+        pagina_documentos()
     elif opcion == "Reportes":
         pagina_reportes()
+    elif opcion == "Configuración":
+        pagina_configuracion()
     else:
-        st.error("Página no encontrada.")
+        st.write("Seleccione un módulo para continuar.")
 
 
-def pagina_inicio():
-    st.title("Inicio")
-    st.write("Bienvenido al sistema.")
+# ----- PÁGINAS -----
+
+def pagina_proyectos():
+    st.title("📁 Gestión de Proyectos")
+    st.write("Aquí irán las funciones para administrar proyectos.")
 
 
-def pagina_usuarios():
-    st.title("Gestión de Usuarios")
-    st.write("Aquí puedes crear, editar y eliminar usuarios.")
+def pagina_personal():
+    st.title("👥 Control de Personal")
+    st.write("Aquí irán registros, asistencia, permisos, etc.")
 
 
-def pagina_inventario():
-    st.title("Inventario")
-    st.write("Aquí se registran productos, entradas y salidas.")
+def pagina_inspecciones():
+    st.title("🧾 Inspecciones y Evaluaciones")
+    st.write("Aquí se llenarán formularios y evaluaciones.")
+
+
+def pagina_documentos():
+    st.title("📄 Gestión Documental")
+    st.write("Aquí podrás subir, clasificar y consultar documentos.")
 
 
 def pagina_reportes():
-    st.title("Reportes")
-    st.write("Reportes generados por el sistema.")
+    st.title("📊 Reportes")
+    st.write("Aquí se generarán reportes en PDF/Excel y dashboards.")
+
+
+def pagina_configuracion():
+    st.title("⚙️ Configuración")
+    st.write("Ajustes del sistema, usuarios, permisos, etc.")
