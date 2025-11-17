@@ -75,35 +75,13 @@ div.stButton > button {
 
     # Tarjetas visuales
     st.markdown("""
-    <div class='cards-row'>
-        <a href='?modulo=registrar_miembros'>
-            <div class='card g2'>
-                👥<div class='card-sub'>Registro de miembros</div>
-            </div>
-        </a>
-        <a href='?modulo=inspecciones'>
-            <div class='card g3'>
-                🧾<div class='card-sub'>Inspecciones y Evaluaciones</div>
-            </div>
-        </a>
-        <a href='?modulo=gestion_documental'>
-            <div class='card g4'>
-                📄<div class='card-sub'>Gestión Documental</div>
-            </div>
-        </a>
-        <a href='?modulo=reportes'>
-            <div class='card g5'>
-                📊<div class='card-sub'>Reportes</div>
-            </div>
-        </a>
-        <a href='?modulo=configuracion'>
-            <div class='card g6'>
-                ⚙️<div class='card-sub'>Configuración</div>
-            </div>
-        </a>
-    </div>
-    """, unsafe_allow_html=True)
-
+        <div class='cards-row'>
+            <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
+            <div class='card g2'>👥<div class='card-sub'>Gestión de Proyectos</div></div>
+            <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
+            <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
+            <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
+            <div class='card g6'>⚙️<div class='card-sub'>Configuración</div></div>
         </div>
         """, unsafe_allow_html=True)
 
