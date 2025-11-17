@@ -1,14 +1,13 @@
 import streamlit as st
 
 def mostrar_menu():
+    query_params = st.experimental_get_query_params()
+if "modulo" in query_params:
+    st.session_state["modulo"] = query_params["modulo"][0]
+
     # Inicializar variable de sesión
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
-
-    # Capturar parámetros de URL
-    query_params = st.experimental_get_query_params()
-    if "modulo" in query_params:
-        st.session_state["modulo"] = query_params["modulo"][0]
 
     # Título
     st.markdown("""
@@ -17,11 +16,11 @@ def mostrar_menu():
         </h1>
         """, unsafe_allow_html=True)
 
-    # Tarjeta informativa
+    # Tarjeta visual
     st.markdown("""
         <div style="
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-            padding: 10px 0;
+            padding: 3px;
             border-radius: 12px;
             color: #4C3A60;
             font-size: 18px;
@@ -30,14 +29,14 @@ def mostrar_menu():
             box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
             margin: auto;
         ">
-            <b>Seleccione un módulo para continuar</b>
+            <b>Seleccione un módulo para continuar</b><br>
         </div>
         """, unsafe_allow_html=True)
 
-    # CSS de tarjetas y botón
+    # CSS para tarjetas y botón
     st.markdown("""
         <style>
-        .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:20px; }
+        .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:15px; }
         .card {
             width:150px; height:150px; border-radius:16px; padding:18px;
             color:white; display:flex; flex-direction:column; justify-content:center; align-items:center;
@@ -52,19 +51,20 @@ def mostrar_menu():
         .g6 { background: linear-gradient(135deg, #9A86AE, #D6CDE2); }
         .card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 12px 30px rgba(0,0,0,0.20); }
         .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
-        a { text-decoration:none; color:inherit; }
 
-        div.stButton > button {
+        /* Estilo del botón de cerrar sesión */
+div.stButton > button {
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             color: #4C3A60;
             border-radius: 12px;
             padding: 12px 24px;
             font-size: 18px;
+            font-weight: 2000;
             border: none;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-            margin-top: 40px;
+            margin-top: 70px;
         }
         div.stButton > button:hover {
             transform: translateY(-4px) scale(1.03);
@@ -73,8 +73,8 @@ def mostrar_menu():
         </style>
         """, unsafe_allow_html=True)
 
-    # Tarjetas visuales clicables
-    st.markdown("""
+    # Tarjetas visuales
+     st.markdown("""
     <div class='cards-row'>
         <a href='?modulo=registrar_miembros'>
             <div class='card g2'>
@@ -103,6 +103,12 @@ def mostrar_menu():
         </a>
     </div>
     """, unsafe_allow_html=True)
+
+    # Contenido del módulo
+    if st.session_state["modulo"]:
+        st.markdown("---")
+        st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
+        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
 
     # Botón de cerrar sesión centrado
     col1, col2, col3 = st.columns([1,3,1])
