@@ -58,7 +58,7 @@ def verificar_usuario(usuario, contraseña):
         if not result:
             return None
 
-        rol_limpio = result[1].strip().lower()   # ←←← AQUI ESTA LA CLAVE
+        rol_limpio = limpiar_rol(result[1])
 
         return {
             "usuario": result[0],
