@@ -5,15 +5,15 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
- # Título
-st.markdown(
-    """
-    <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
-        Menú Principal – GAPC
-    </h1>
-    """,
-    unsafe_allow_html=True,
-)
+    # Título
+    st.markdown(
+        """
+        <h1 style='text-align:center; color:#4C3A60; margin-bottom:4px'>
+            Menú Principal – GAPC
+        </h1>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # -------- TARJETA VISUAL ----------
     st.markdown(
@@ -108,3 +108,4 @@ st.markdown(
         st.markdown("---")
         st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].capitalize()}")
         st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
+
