@@ -9,7 +9,7 @@ def mostrar_menu():
     st.markdown(
         """
         <h1 style='text-align:center; color:#3085C3; margin-bottom:4px'>
-            Panel Principal – GAPC
+            Menú Principal – GAPC
         </h1>
         <p style='text-align:center; color:#556; margin-top:0;'>
             Seleccione un módulo para continuar
@@ -27,7 +27,7 @@ def mostrar_menu():
             justify-content: center;
             gap: 20px;
             flex-wrap: wrap;
-            margin-top: 25px;
+            margin-top: 80px;
         }
 
         .card {
