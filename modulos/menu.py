@@ -55,7 +55,7 @@ def mostrar_menu():
             border-radius: 12px;
             padding: 12px 24px;
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 900;
             border: none;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
