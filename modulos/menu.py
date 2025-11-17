@@ -5,15 +5,15 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-    # -------- LOGO CENTRADO ----------
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col1:
-        st.write("")
-    with col2:
-        st.image("modulos/assets/logo_gapc.png", width=800)
-    with col3:
-        st.write("")
+   # -------- LOGO IZQUIERDA ----------
+col1, col2 = st.columns([1, 4])
 
+with col1:
+    st.image("modulos/assets/logo_gapc.png", width=250)  # Ajusta el tamaño si quieres
+
+with col2:
+    st.write("")
+¿
     # Título
     st.markdown(
         """
