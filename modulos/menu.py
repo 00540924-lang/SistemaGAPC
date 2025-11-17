@@ -8,7 +8,7 @@ def mostrar_menu():
     # Título
     st.markdown(
         """
-        <h1 style='text-align:center; color:#4C3A60; font-size: 18px; margin-bottom:4px'>
+        <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
             Menú Principal – GAPC
         </h1>
         """,
