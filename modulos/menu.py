@@ -104,12 +104,6 @@ def mostrar_menu():
     </div>
     """, unsafe_allow_html=True)
 
-    # Contenido del módulo
-    if st.session_state["modulo"]:
-        st.markdown("---")
-        st.subheader(f"🔎 Módulo seleccionado: {st.session_state['modulo'].replace('_',' ').capitalize()}")
-        st.write("Aquí aparecerá la interfaz y opciones específicas del módulo seleccionado.")
-
     # Botón de cerrar sesión centrado
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
