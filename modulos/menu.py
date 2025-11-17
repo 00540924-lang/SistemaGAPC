@@ -5,11 +5,6 @@ def mostrar_menu():
     if "modulo" not in st.session_state:
         st.session_state["modulo"] = None
 
-    # Obtener parámetros de la URL
-    query_params = st.experimental_get_query_params()
-    if "modulo" in query_params:
-        st.session_state["modulo"] = query_params["modulo"][0]
-
     # Título
     st.markdown("""
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
@@ -53,7 +48,6 @@ def mostrar_menu():
         .card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 12px 30px rgba(0,0,0,0.20); }
         .card-sub { font-size:15px; font-weight:600; opacity:0.95; margin-top:0.2px; }
 
-        /* Estilo del botón de cerrar sesión */
         div.stButton > button {
             background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
             color: #4C3A60;
@@ -74,36 +68,25 @@ def mostrar_menu():
         </style>
         """, unsafe_allow_html=True)
 
-    # Tarjetas visuales
-    st.markdown("""
-    <div class='cards-row'>
-        <a href='?modulo=registrar_miembros'>
-            <div class='card g2'>
-                👥<div class='card-sub'>Registro de miembros</div>
-            </div>
-        </a>
-        <a href='?modulo=inspecciones'>
-            <div class='card g3'>
-                🧾<div class='card-sub'>Inspecciones y Evaluaciones</div>
-            </div>
-        </a>
-        <a href='?modulo=gestion_documental'>
-            <div class='card g4'>
-                📄<div class='card-sub'>Gestión Documental</div>
-            </div>
-        </a>
-        <a href='?modulo=reportes'>
-            <div class='card g5'>
-                📊<div class='card-sub'>Reportes</div>
-            </div>
-        </a>
-        <a href='?modulo=configuracion'>
-            <div class='card g6'>
-                ⚙️<div class='card-sub'>Configuración</div>
-            </div>
-        </a>
-    </div>
-    """, unsafe_allow_html=True)
+    # Botones interactivos en lugar de links
+    st.markdown("<div class='cards-row'>", unsafe_allow_html=True)
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        if st.button("👥\nRegistro de miembros"):
+            st.session_state["modulo"] = "registrar_miembros"
+    with col2:
+        if st.button("🧾\nInspecciones y Evaluaciones"):
+            st.session_state["modulo"] = "inspecciones"
+    with col3:
+        if st.button("📄\nGestión Documental"):
+            st.session_state["modulo"] = "gestion_documental"
+    with col4:
+        if st.button("📊\nReportes"):
+            st.session_state["modulo"] = "reportes"
+    with col5:
+        if st.button("⚙️\nConfiguración"):
+            st.session_state["modulo"] = "configuracion"
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # Contenido del módulo
     if st.session_state["modulo"]:
@@ -116,9 +99,7 @@ def mostrar_menu():
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
-            st.experimental_rerun()  # Use rerun para reiniciar la app
+            st.experimental_rerun()
 
-# Ejecutar la función
 if __name__ == "__main__":
     mostrar_menu()
-
