@@ -9,7 +9,7 @@ def mostrar_menu():
 col1, col2 = st.columns([1, 4])
 
 with col1:
-    st.image("modulos/assets/logo_gapc.png", width=270)  # Ajusta el tamaño si quieres
+    st.image("modulos/assets/logo_gapc.png", width=300)  # Ajusta el tamaño si quieres
 
 with col2:
     st.write("")
