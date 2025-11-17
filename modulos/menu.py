@@ -52,7 +52,7 @@ def mostrar_menu():
             height: 150px;
             border-radius: 16px;
             padding: 18px;
-            padding-bottom: 60px;
+            padding-bottom: 80px;
             color: white;
             display: flex;
             flex-direction: column;
