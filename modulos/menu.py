@@ -74,17 +74,22 @@ def mostrar_menu():
         </style>
         """, unsafe_allow_html=True)
 
-    # Tarjetas visuales
-    st.markdown("""
-        <div class='cards-row'>
-            <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
-            <div class='card g1'>👥<div class='card-sub'>Registro de miembros</div></div>
-            <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
-            <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
-            <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
-            <div class='card g6'>⚙️<div class='card-sub'>Configuración</div></div>
+  # Tarjetas visuales
+st.markdown("""
+    <div class='cards-row'>
+        <div class='card g1'>📁<div class='card-sub'>Gestión de Proyectos</div></div>
+
+        <div class='card g2' onclick="window.location.href='?modulo=registrar_miembros'" style="cursor:pointer;">
+            👥
+            <div class='card-sub'>Registro de miembros</div>
         </div>
-        """, unsafe_allow_html=True)
+
+        <div class='card g3'>🧾<div class='card-sub'>Inspecciones y Evaluaciones</div></div>
+        <div class='card g4'>📄<div class='card-sub'>Gestión Documental</div></div>
+        <div class='card g5'>📊<div class='card-sub'>Reportes</div></div>
+        <div class='card g6'>⚙️<div class='card-sub'>Configuración</div></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Contenido del módulo
     if st.session_state["modulo"]:
