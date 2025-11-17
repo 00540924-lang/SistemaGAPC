@@ -30,7 +30,7 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # CSS para tarjetas y botón
-     st.markdown("""
+    st.markdown("""
         <style>
         .cards-row { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:15px; }
         .card {
