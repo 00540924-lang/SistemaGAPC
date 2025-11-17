@@ -4,69 +4,97 @@ def mostrar_menu():
 
     st.markdown(
         """
-        <h2 style="text-align: center; margin-bottom: 10px;">
-            Panel principal – GAPC
+        <h2 style="text-align: center; margin-bottom: 20px;">
+            Panel Principal – Sistema GAPC
         </h2>
         """,
         unsafe_allow_html=True
     )
 
-    # ---- Estilos CSS de botones modernos ----
+    # ------------------------------
+    #   ESTILOS PARA BOTONES TARJETA
+    # ------------------------------
     st.markdown(
         """
         <style>
 
-        .card-btn {
-            background: linear-gradient(135deg, #3085C3, #FEEAA1);
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            font-weight: bold;
-            color: white;
-            font-size: 18px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
-            transition: 0.3s;
-            cursor: pointer;
+        .card-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-top: 30px;
         }
 
-        .card-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0px 6px 15px rgba(0,0,0,0.25);
+        .card {
+            width: 260px;
+            height: 140px;
+            background: linear-gradient(135deg, #3085C3, #FEEAA1);
+            border-radius: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 23px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            box-shadow: 0px 6px 12px rgba(0,0,0,0.15);
         }
+
+        .card:hover {
+            transform: scale(1.07);
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.25);
+        }
+
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    # ---- GRID de botones ----
+    # -----------------------------------------------
+    #     TARJETAS COMO BOTONES (ACCIONES REALES)
+    # -----------------------------------------------
+    st.markdown("<div class='card-container'>", unsafe_allow_html=True)
+
+    # Usamos botones invisibles encima de tarjetas HTML
     col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button("📊 Dashboard", key="dash"):
-            st.session_state["modulo_actual"] = "dashboard"
-
-    with col2:
-        if st.button("👤 Usuarios", key="users"):
-            st.session_state["modulo_actual"] = "usuarios"
-
-    with col3:
-        if st.button("📁 Proyectos", key="proyectos"):
-            st.session_state["modulo_actual"] = "proyectos"
-
-    st.write("")
-
     col4, col5, col6 = st.columns(3)
 
-    with col4:
-        if st.button("📦 Inventario", key="invent"):
-            st.session_state["modulo_actual"] = "inventario"
+    # ---- BOTONES ----
+    if col1.button("📊 Dashboard", key="btn_dashboard"):
+        st.session_state["modulo_actual"] = "dashboard"
 
-    with col5:
-        if st.button("📄 Reportes", key="reportes"):
-            st.session_state["modulo_actual"] = "reportes"
+    if col2.button("👥 Grupos", key="btn_grupos"):
+        st.session_state["modulo_actual"] = "grupos"
 
-    with col6:
-        if st.button("⚙️ Configuración", key="config"):
-            st.session_state["modulo_actual"] = "configuracion"
+    if col3.button("🧾 Reuniones", key="btn_reuniones"):
+        st.session_state["modulo_actual"] = "reuniones"
+
+    if col4.button("💰 Caja", key="btn_caja"):
+        st.session_state["modulo_actual"] = "caja"
+
+    if col5.button("📄 Reportes", key="btn_reportes"):
+        st.session_state["modulo_actual"] = "reportes"
+
+    if col6.button("⚙️ Configuración", key="btn_config"):
+        st.session_state["modulo_actual"] = "configuracion"
+
+    # ---- Tarjetas Visuales (solo estética) ----
+    st.markdown(
+        """
+        <div class='card-container'>
+            <div class='card'>📊 <br> Dashboard</div>
+            <div class='card'>👥 <br> Grupos</div>
+            <div class='card'>🧾 <br> Reuniones</div>
+            <div class='card'>💰 <br> Caja</div>
+            <div class='card'>📄 <br> Reportes</div>
+            <div class='card'>⚙️ <br> Configuración</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 
