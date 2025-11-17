@@ -70,7 +70,7 @@ div.stButton > button {
         """, unsafe_allow_html=True)
 
     # Botones interactivos en lugar de links
-    st.markdown("<div class='cards-row'>", unsafe_allow_html=True)
+    st.markdown("<div class='card-sub'>", unsafe_allow_html=True)
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         if st.button("👥\nRegistro de miembros"):
