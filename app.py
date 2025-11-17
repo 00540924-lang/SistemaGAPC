@@ -6,4 +6,4 @@ import streamlit as st
 if "usuario" not in st.session_state:
     login()
 else:
-    dashboard()
+    #dashboard()
