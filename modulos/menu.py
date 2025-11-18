@@ -20,8 +20,8 @@ div.stButton {
 
 /* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 240px !important;   /* ← tamaño fijo horizontal */
-    height: 90px !important;   /* ← tamaño fijo vertical */
+    width: 180px !important;   /* ← tamaño fijo horizontal */
+    height: 100px !important;   /* ← tamaño fijo vertical */
     padding: 0 !important;
 
     display: flex !important;
