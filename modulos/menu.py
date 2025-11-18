@@ -11,83 +11,70 @@ def mostrar_menu():
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
     
-# --------------------------
-# CSS para botones
-# --------------------------
 st.markdown("""
 <style>
-/* Centrar botones */
-div[data-testid="stButton"] {
-    display: flex;
-    justify-content: center;
-    margin: 10px 0;
+
+div.stButton {
+    display: flex !important;
+    justify-content: center !important;  /* Evita expandirse al 100% */
 }
 
-/* Estilo general */
-div[data-testid="stButton"] > button {
-    width: 200px;
-    height: 150px;
-    font-size: 18px;
-    font-weight: 600;
-    border-radius: 12px;
-    border: none;
-    color: white;
-    cursor: pointer;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+/* Estilo base de TODOS los botones */
+div.stButton > button {
+    width: 240px !important;   /* ← tamaño fijo horizontal */
+    height: 90px !important;   /* ← tamaño fijo vertical */
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    white-space: nowrap !important;   /* No permite que el texto salte de línea */
+    overflow: hidden !important;      /* Evita que el texto desborde */
+    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
+
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #4C3A60 !important;
+
+    border-radius: 12px !important;
+    border: none !important;
+
+    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
 }
 
-/* Hover general */
-div[data-testid="stButton"] > button:hover {
-    transform: scale(1.07);
-    box-shadow: 0 10px 22px rgba(0,0,0,0.3);
+/* Hover */
+div.stButton > button:hover {
+    transform: scale(1.07) !important;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
-/* Colores de botones específicos */
-div[data-testid="stButton"] > button:nth-of-type(1) { background-color: #F4B400; }
-div[data-testid="stButton"] > button:nth-of-type(2) { background-color: #8E24AA; }
-div[data-testid="stButton"] > button:nth-of-type(3) { background-color: #E53935; }
-div[data-testid="stButton"] > button:nth-of-type(4) { background-color: #1E88E5; }
-div[data-testid="stButton"] > button:nth-of-type(5) { background-color: #43A047; }
-div[data-testid="stButton"] > button:nth-of-type(6) { background-color: #6D4C41; }
+/* Colores personalizados */
+#proyectos_btn > button { background-color: #F4B400 !important; }
+#usuarios_btn > button { background-color: #8E24AA !important; }
+#grupos_btn > button { background-color: #E53935 !important; }
+#documentos_btn > button { background-color: #1E88E5 !important; }
+#reportes_btn > button { background-color: #43A047 !important; }
+#configuracion_btn > button { background-color: #6D4C41 !important; }
 
-/* Botón logout más pequeño */
-div[data-testid="stButton"] > button:nth-of-type(7) {
-    width: 200px;
-    height: 60px;
-    background-color: #424242;
-    border-radius: 10px;
+/* Logout */
+#logout_btn > button {
+    width: 200px !important;
+    height: 60px !important;
+    background-color: #424242 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    transition: transform 0.2s ease !important;
 }
-div[data-testid="stButton"] > button:nth-of-type(7):hover {
-    background-color: black;
-    transform: scale(1.05);
+#logout_btn > button:hover {
+    transform: scale(1.05) !important;
+    background-color: #000000 !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
-# --------------------------
-# Botones en Python
-# --------------------------
-if st.button("Proyectos"):
-    st.write("Botón Proyectos clickeado")
-
-if st.button("Usuarios"):
-    st.write("Botón Usuarios clickeado")
-
-if st.button("Grupos"):
-    st.write("Botón Grupos clickeado")
-
-if st.button("Documentos"):
-    st.write("Botón Documentos clickeado")
-
-if st.button("Reportes"):
-    st.write("Botón Reportes clickeado")
-
-if st.button("Configuración"):
-    st.write("Botón Configuración clickeado")
-
-if st.button("Logout"):
-    st.write("Has cerrado sesión")
     # -----------------------------------------------------
     #                    TÍTULO
     # -----------------------------------------------------
