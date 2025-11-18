@@ -66,47 +66,36 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # CSS — TARJETAS NEUMÓRFICAS PREMIUM
+    # CSS PARA BOTONES → GLASSMORPHISM
     # ---------------------------------------
     st.markdown("""
 <style>
 
 button[kind="secondary"] {
-    width: 170px !important;
-    height: 170px !important;
+    width: 180px !important;
+    height: 160px !important;
 
-    background: #e3e3e3 !important;
+    background: linear-gradient(135deg, rgba(122,72,204,0.35), rgba(255,110,127,0.30)) !important;
+    border: 1px solid rgba(255,255,255,0.35) !important;
 
-    border-radius: 25px !important;
-    border: none !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
 
+    border-radius: 20px !important;
+    color: white !important;
     font-size: 20px !important;
     font-weight: 700 !important;
-    color: #4C3A60 !important;
-
     padding: 20px !important;
 
-    box-shadow:
-        8px 8px 16px rgba(0,0,0,0.18),
-        -8px -8px 16px rgba(255,255,255,0.8) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
 
-    transition: all 0.22s ease-in-out !important;
+    transition: all 0.25s ease !important;
 }
 
 button[kind="secondary"]:hover {
-    transform: translateY(-8px) scale(1.04) !important;
-
-    box-shadow:
-        12px 12px 22px rgba(0,0,0,0.22),
-        -10px -10px 20px rgba(255,255,255,0.9) !important;
-}
-
-button[kind="secondary"]:active {
-    transform: scale(0.97) !important;
-
-    box-shadow:
-        inset 5px 5px 12px rgba(0,0,0,0.25),
-        inset -5px -5px 12px rgba(255,255,255,0.7) !important;
+    transform: translateY(-8px) scale(1.05) !important;
+    border-color: rgba(255,255,255,0.75) !important;
+    box-shadow: 0 12px 35px rgba(255,110,127,0.45) !important;
 }
 
 </style>
@@ -115,7 +104,7 @@ button[kind="secondary"]:active {
     # ---------------------------------------
     # GRID DE BOTONES
     # ---------------------------------------
-    st.write("")
+    st.write("") 
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
