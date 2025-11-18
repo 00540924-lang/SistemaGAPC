@@ -116,7 +116,7 @@ def pagina_grupos():
     # =========================================
     # LISTAR MIEMBROS DEL GRUPO (MEJORADO)
     # =========================================
-    st.write("### Miembros del grupo")
+    st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
 
     cursor.execute("""
         SELECT M.id_miembro, M.nombre
