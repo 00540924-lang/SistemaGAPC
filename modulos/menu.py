@@ -10,69 +10,89 @@ def mostrar_menu():
     # -----------------------------------------------------
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
+import streamlit as st
+
+# CSS para botones con animación y colores
 st.markdown("""
 <style>
 
 div.stButton {
     display: flex !important;
-    justify-content: center !important;  /* Evita expandirse al 100% */
+    justify-content: center !important;
+    margin: 10px 0;  /* separa los botones verticalmente */
 }
 
 /* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 240px !important;   /* ← tamaño fijo horizontal */
-    height: 90px !important;   /* ← tamaño fijo vertical */
-    padding: 0 !important;
+    width: 240px;
+    height: 90px;
+    padding: 0;
 
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    white-space: nowrap !important;   /* No permite que el texto salte de línea */
-    overflow: hidden !important;      /* Evita que el texto desborde */
-    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    color: #4C3A60 !important;
+    font-size: 18px;
+    font-weight: 600;
+    color: #4C3A60;
 
-    border-radius: 12px !important;
-    border: none !important;
+    border-radius: 12px;
+    border: none;
 
-    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
-/* Hover */
+/* Hover para todos los botones */
 div.stButton > button:hover {
-    transform: scale(1.07) !important;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    transform: scale(1.07);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30);
 }
 
 /* Colores personalizados */
-#proyectos_btn > button { background-color: #F4B400 !important; }
-#usuarios_btn > button { background-color: #8E24AA !important; }
-#grupos_btn > button { background-color: #E53935 !important; }
-#documentos_btn > button { background-color: #1E88E5 !important; }
-#reportes_btn > button { background-color: #43A047 !important; }
-#configuracion_btn > button { background-color: #6D4C41 !important; }
+.proyectos_btn > button { background-color: #F4B400; }
+.usuarios_btn > button { background-color: #8E24AA; color: white; }
+.grupos_btn > button { background-color: #E53935; color: white; }
+.documentos_btn > button { background-color: #1E88E5; color: white; }
+.reportes_btn > button { background-color: #43A047; color: white; }
+.configuracion_btn > button { background-color: #6D4C41; color: white; }
 
 /* Logout */
-#logout_btn > button {
-    width: 200px !important;
-    height: 60px !important;
-    background-color: #424242 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    transition: transform 0.2s ease !important;
+.logout_btn > button {
+    width: 200px;
+    height: 60px;
+    background-color: #424242;
+    color: white;
+    border-radius: 10px;
+    transition: transform 0.2s ease;
 }
-#logout_btn > button:hover {
-    transform: scale(1.05) !important;
-    background-color: #000000 !important;
+.logout_btn > button:hover {
+    transform: scale(1.05);
+    background-color: #000000;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
+# Ejemplo de uso con contenedores para aplicar clases
+with st.container():
+    st.markdown('<div class="proyectos_btn">', unsafe_allow_html=True)
+    st.button("Proyectos")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="usuarios_btn">', unsafe_allow_html=True)
+    st.button("Usuarios")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="logout_btn">', unsafe_allow_html=True)
+    st.button("Logout")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                    TÍTULO
