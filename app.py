@@ -29,28 +29,3 @@ if modulo == "registrar_miembros":
 
 elif modulo:
     cargar_pagina(modulo)
-
-# ================================
-# CONTROLADOR DE PANTALLAS
-# ================================
-if st.session_state.get("pagina", "menu") == "menu":
-    mostrar_menu()
-
-elif st.session_state["pagina"] == "usuarios":
-    pagina_usuarios()
-
-elif st.session_state["pagina"] == "proyectos":
-    pagina_proyectos()
-
-elif st.session_state["pagina"] == "inspecciones":
-    pagina_inspecciones()
-
-elif st.session_state["pagina"] == "documentos":
-    pagina_documentos()
-
-elif st.session_state["pagina"] == "reportes":
-    pagina_reportes()
-
-elif st.session_state["pagina"] == "configuracion":
-    pagina_configuracion()
-
