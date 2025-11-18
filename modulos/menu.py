@@ -13,7 +13,6 @@ def mostrar_menu():
     st.markdown("""
     <style>
 
-    /* ESTILO GENERAL DE BOTONES DEL MENÚ */
     div.stButton > button {
         color: #4C3A60 !important;
         border-radius: 12px !important;
@@ -27,21 +26,18 @@ def mostrar_menu():
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
 
-    /* ANIMACIÓN */
     div.stButton > button:hover {
         transform: scale(1.07) !important;
         box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
     }
 
-    /* 🎨 COLORES POR MÓDULO */
-    #proyectos_btn > button { background-color: #F4B400 !important; }      /* Amarillo */
-    #usuarios_btn > button { background-color: #8E24AA !important; }       /* Morado */
-    #inspecciones_btn > button { background-color: #E53935 !important; }   /* Rojo */
-    #documentos_btn > button { background-color: #1E88E5 !important; }     /* Azul */
-    #reportes_btn > button { background-color: #43A047 !important; }       /* Verde */
-    #configuracion_btn > button { background-color: #6D4C41 !important; }  /* Café */
+    #proyectos_btn > button { background-color: #F4B400 !important; }
+    #usuarios_btn > button { background-color: #8E24AA !important; }
+    #grupos_btn > button { background-color: #E53935 !important; }
+    #documentos_btn > button { background-color: #1E88E5 !important; }
+    #reportes_btn > button { background-color: #43A047 !important; }
+    #configuracion_btn > button { background-color: #6D4C41 !important; }
 
-    /* BOTÓN CERRAR SESIÓN */
     #logout_btn > button {
         background-color: #424242 !important;
         color: white !important;
@@ -70,7 +66,7 @@ def mostrar_menu():
     modulos_base = [
         ("📁 Gestión de Proyectos", "proyectos", "proyectos_btn"),
         ("👥 Gestión de Usuarios", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "inspecciones_btn"),
+        ("📝 Grupos", "grupos", "grupos_btn"),
         ("📄 Gestión Documental", "documentos", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
@@ -103,11 +99,10 @@ def mostrar_menu():
 
     for i, (texto, modulo, css_id) in enumerate(modulos):
         with cols[i % 3]:
-            btn = st.container()
-            with btn:
+            container = st.container()
+            with container:
                 b = st.button(texto, key=f"btn_{modulo}")
-                # Aplicar ID de CSS al contenedor
-                btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
+                container.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
 
                 if b:
                     st.session_state.page = modulo
