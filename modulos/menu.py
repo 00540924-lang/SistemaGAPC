@@ -48,7 +48,7 @@ def mostrar_menu():
     #configuracion_btn button { background-color: #6D4C41 !important; color: white !important; }
 
     #logout_btn button {
-        width: 20px !important;
+        width: 200px !important;
         height: 60px !important;
         background-color: #424242 !important;
         color: white !important;
