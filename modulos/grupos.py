@@ -67,7 +67,9 @@ def pagina_grupos():
         cursor.close()
         conn.close()
         return
+
     st.write("### ⚙️ Opciones del grupo")
+
     grupo_id = st.selectbox(
         "Selecciona un grupo",
         options=[g["id_grupo"] for g in grupos],
@@ -114,7 +116,7 @@ def pagina_grupos():
                 st.info("Operación cancelada.")
 
     # =========================================
-    # LISTAR MIEMBROS DEL GRUPO (MEJORADO)
+    # LISTAR MIEMBROS DEL GRUPO (X A LA DERECHA)
     # =========================================
     st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
 
@@ -129,48 +131,39 @@ def pagina_grupos():
     if miembros:
 
         for m in miembros:
-            with st.container():
 
-                col1, col2 = st.columns([12, 1])
+            # Tarjeta con nombre y botón alineado a la derecha
+            st.markdown(
+                f"""
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    background: #F5F4FB;
+                    border-radius: 12px;
+                    border-left: 5px solid #6C63FF;
+                    padding: 12px 18px;
+                    margin-bottom: 6px;
+                    font-size: 16px;
+                ">
+                    <span>✔️ {m['nombre']}</span>
+                    <span style="margin-left: 10px;"></span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                # CARD Visual
-                with col1:
-                    st.markdown(
-                        f"""
-                        <div style="
-                            padding: 12px 18px;
-                            background: #F5F4FB;
-                            border-radius: 12px;
-                            border-left: 5px solid #6C63FF;
-                            font-size: 16px;
-                            display: flex;
-                            align-items: center;
-                            height: 45px;
-                            margin-bottom: 6px;
-                        ">
-                            ✔️&nbsp;&nbsp;{m['nombre']}
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                with col2:
-                    delete_button = st.button(
-                        "✖️", 
-                        key=f"del_{grupo_id}_{m['id_miembro']}",
-                        help="Eliminar miembro"
-                    )
-
-                    if delete_button:
-                        cursor.execute(
-                            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-                            (grupo_id, m["id_miembro"])
-                        )
-                        conn.commit()
-                        st.success(f"{m['nombre']} eliminado.")
-                        cursor.close()
-                        conn.close()
-                        st.rerun()
+            # Botón X (posición real, Streamlit lo coloca a la derecha del contenedor)
+            if st.button("✖️", key=f"del_{grupo_id}_{m['id_miembro']}"):
+                cursor.execute(
+                    "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
+                    (grupo_id, m["id_miembro"])
+                )
+                conn.commit()
+                st.success(f"{m['nombre']} eliminado.")
+                cursor.close()
+                conn.close()
+                st.rerun()
 
     else:
         st.info("Este grupo no tiene miembros.")
