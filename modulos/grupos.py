@@ -73,25 +73,27 @@ def pagina_grupos():
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
     )
 
-    # --------------------------------------------------------
-    # BOTÓN PARA ELIMINAR EL GRUPO COMPLETO
-    # --------------------------------------------------------
-    st.write("### Opciones del grupo seleccionado")
+    # -------------------------------------
+# DIÁLOGO DE CONFIRMACIÓN
+# -------------------------------------
+if st.session_state.get("confirmar_eliminar", False):
 
-    if st.button("🗑️ Eliminar grupo"):
-        if st.confirm("¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer."):
-            
-            # Primero eliminamos los miembros relacionados
-            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_seleccionado,))
+    st.warning("⚠️ ¿Estás seguro de que deseas eliminar este grupo? Esta acción es irreversible.")
 
-            # Luego eliminamos el grupo
-            cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_seleccionado,))
-            conn.commit()
+    colA, colB = st.columns(2)
 
-            st.success("Grupo eliminado correctamente.")
-            st.rerun()
+    with colA:
+        if st.button("Sí, eliminar"):
+            eliminar_grupo(st.session_state["grupo_a_eliminar"])
+            st.success("Grupo eliminado exitosamente.")
+            st.session_state["confirmar_eliminar"] = False
+            st.experimental_rerun()
 
-    st.write("### Miembros del grupo")
+    with colB:
+        if st.button("Cancelar"):
+            st.session_state["confirmar_eliminar"] = False
+            st.info("Eliminación cancelada.")
+
 
     # ---------------------------------------------
     # OBTENER MIEMBROS DEL GRUPO
