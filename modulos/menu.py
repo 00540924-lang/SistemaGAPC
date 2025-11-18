@@ -122,6 +122,23 @@ def mostrar_menu():
 .btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }  
 .btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }  
 
+/* Asegurar que el div cubra el área visual y que el botón "invisible" quede debajo */
+.card-wrapper {
+    position: relative;
+}
+.hidden-button-holder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* evita interferir con el clic del DIV que hará .click() */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0; /* ocultarlo visualmente */
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -137,20 +154,27 @@ def mostrar_menu():
         with cols[i % 3]:
 
             # ---- BOTÓN INVISIBLE QUE DISPARA LA ACCIÓN ----
+            # Usamos un carácter invisible como etiqueta para evitar mostrar texto
             btn_id = f"btn_hidden_{modulo}"
-            clicked = st.button(" ", key=btn_id, help="", label_visibility="collapsed")
+            clicked = st.button("\u200b", key=btn_id, help="")
 
             if clicked:
                 st.session_state["modulo_actual"] = modulo
                 st.rerun()
 
             # ---- TARJETA CLICKEABLE (HTML) ----
+            # el onclick dispara el click del botón invisible
             st.markdown(
                 f"""
-                <div class="{clase_color} card-click"
-                     onclick="document.getElementById('{btn_id}').click();">
-                    <span class="icono-grande">{icono}</span>
-                    {texto}
+                <div class="card-wrapper">
+                    <div class="{clase_color} card-click"
+                         onclick="document.getElementById('{btn_id}').click();">
+                        <span class="icono-grande">{icono}</span>
+                        {texto}
+                    </div>
+                    <div class="hidden-button-holder">
+                        <!-- El botón real está renderizado por Streamlit; este contenedor solo ayuda al layout -->
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
