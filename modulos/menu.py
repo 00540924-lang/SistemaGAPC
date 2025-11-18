@@ -112,7 +112,7 @@ def mostrar_menu():
 }
 
 /* ---- DEGRADADOS PASTEL DEL LOGO GAPC ---- */
-.btn1 { background: linear-gradient(135deg, #FFC0CB, #C9B2D9); }  
+.btn1 { background: linear-gradient(135deg, #AEDFF7, #C9B2D9); }  
 .btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }  
 .btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }  
 .btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }  
