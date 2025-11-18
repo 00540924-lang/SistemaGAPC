@@ -6,7 +6,7 @@ from modulos.menu import mostrar_menu
 # CONFIGURACIÓN DE VARIABLES DE SESIÓN
 # ==========================================
 st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("page", "menu")  # Página por defecto
+st.session_state.setdefault("modulo_actual", "menu")  # Página por defecto del menú
 
 
 # ==========================================
@@ -20,47 +20,47 @@ if not st.session_state["sesion_iniciada"]:
 # ==========================================
 # DESPACHADOR DE PÁGINAS PRINCIPAL
 # ==========================================
-pagina = st.session_state.get("page", "menu")
+mod = st.session_state.get("modulo_actual", "menu")
 
 # ---- MENÚ PRINCIPAL ----
-if pagina == "menu":
+if mod == "menu":
     mostrar_menu()
 
 # ---- GESTIÓN DE PROYECTOS ----
-elif pagina == "proyectos":
+elif mod == "proyectos":
     from modulos.proyectos import vista_proyectos
     vista_proyectos()
 
 # ---- GESTIÓN DE USUARIOS ----
-elif pagina == "usuarios":
+elif mod == "usuarios":
     from modulos.usuarios import vista_usuarios
     vista_usuarios()
 
 # ---- INSPECCIONES ----
-elif pagina == "inspecciones":
+elif mod == "inspecciones":
     from modulos.inspecciones import vista_inspecciones
     vista_inspecciones()
 
 # ---- DOCUMENTOS ----
-elif pagina == "documentos":
+elif mod == "documentos":
     from modulos.documentos import vista_documental
     vista_documental()
 
 # ---- REPORTES ----
-elif pagina == "reportes":
+elif mod == "reportes":
     from modulos.reportes import vista_reportes
     vista_reportes()
 
 # ---- CONFIGURACIÓN ----
-elif pagina == "configuracion":
+elif mod == "configuracion":
     from modulos.configuracion import vista_configuracion
     vista_configuracion()
 
-# ---- REGISTRAR MIEMBROS (TU PANTALLA) ----
-elif pagina == "registrar_miembros":
+# ---- REGISTRAR MIEMBROS ----
+elif mod == "registrar_miembros":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
 
+# ---- PÁGINA NO ENCONTRADA ----
 else:
     st.error("❌ Página no encontrada.")
-
