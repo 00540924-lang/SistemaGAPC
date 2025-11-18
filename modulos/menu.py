@@ -7,58 +7,62 @@ def mostrar_menu():
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-# -----------------------------------------------------
-# 🎨 CSS - Botones con animación + colores
-# -----------------------------------------------------
+    # -----------------------------------------------------
+    #      🎨 CSS - Botones con animación + colores
+    # -----------------------------------------------------
+    st.markdown("""
+    <style>
 
-st.markdown("""
-<style>
+    /* ESTILO GENERAL DE BOTONES DEL MENÚ */
+    div.stButton > button {
+        color: white !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        height: 110px !important;
+        border: none !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+    }
 
-/* ESTILO GENERAL DE BOTONES DEL MENÚ */
-div.stButton > button {
-    color: #4C3A60 !important;
-    border-radius: 12px !important;
-    padding: 20px !important;
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    width: 100% !important;
-    height: 100px !important;
-    border: none !important;
-    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-}
+    /* ANIMACIÓN */
+    div.stButton > button:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
 
-/* ANIMACIÓN */
-div.stButton > button:hover {
-    transform: scale(1.07) !important;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
-}
+    /* 🎨 COLORES POR MÓDULO */
+    #proyectos_btn > button { background-color: #F4B400 !important; }      /* Amarillo */
+    #usuarios_btn > button { background-color: #8E24AA !important; }       /* Morado */
+    #inspecciones_btn > button { background-color: #E53935 !important; }   /* Rojo */
+    #documentos_btn > button { background-color: #1E88E5 !important; }     /* Azul */
+    #reportes_btn > button { background-color: #43A047 !important; }       /* Verde */
+    #configuracion_btn > button { background-color: #6D4C41 !important; }  /* Café */
 
-/* 🎨 COLORES POR MÓDULO */
-#proyectos_btn > button { background-color: #F4B400 !important; }      /* Amarillo */
-#usuarios_btn > button { background-color: #8E24AA !important; }       /* Morado */
-#inspecciones_btn > button { background-color: #E53935 !important; }   /* Rojo */
-#documentos_btn > button { background-color: #1E88E5 !important; }     /* Azul */
-#reportes_btn > button { background-color: #43A047 !important; }       /* Verde */
-#configuracion_btn > button { background-color: #6D4C41 !important; }  /* Café */
+    /* BOTÓN CERRAR SESIÓN */
+    #logout_btn > button {
+        background-color: #424242 !important;
+        color: white !important;
+        border-radius: 10px !important;
+        padding: 12px 22px !important;
+        font-size: 16px !important;
+        width: 200px !important;
+        transition: transform 0.2s ease !important;
+    }
+    #logout_btn > button:hover {
+        transform: scale(1.05) !important;
+        background-color: #000000 !important;
+    }
 
-/* BOTÓN CERRAR SESIÓN */
-#logout_btn > button {
-    background-color: #424242 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    padding: 12px 22px !important;
-    font-size: 16px !important;
-    width: 200px !important;
-    transition: transform 0.2s ease !important;
-}
-#logout_btn > button:hover {
-    transform: scale(1.05) !important;
-    background-color: #000000 !important;
-}
+    </style>
+    """, unsafe_allow_html=True)
 
-</style>
-""", unsafe_allow_html=True)
+    # -----------------------------------------------------
+    #                    TÍTULO
+    # -----------------------------------------------------
+    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                   MÓDULOS BASE
