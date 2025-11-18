@@ -65,9 +65,6 @@ def mostrar_menu():
         </div>
         """, unsafe_allow_html=True)
 
-    # ---------------------------------------
-    # CSS GLASSMORPHISM + COLORES DIFERENTES
-    # ---------------------------------------
        # ---------------------------------------
     # CSS GLASSMORPHISM + COLORES DIFERENTES + ICONO GRANDE
     # ---------------------------------------
