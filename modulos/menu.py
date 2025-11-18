@@ -14,12 +14,11 @@ def mostrar_menu():
     if rol == "institucional":
         modulos = [
             ("📁", "Gestión de Proyectos", "proyectos"),
-            ("👥", "Gestión de Usuarios", "usuarios"),
+            ("👥", "Gestión de Usuarios", "registrar_miembros"),  # ⚡ Aquí se conecta con registrar_miembros
             ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
             ("📄", "Gestión Documental", "documentos"),
             ("📊", "Reportes", "reportes"),
             ("⚙️", "Configuración", "configuracion"),
-            ("➕", "Registrar Miembros", "registrar_miembros"),
         ]
 
     elif rol == "promotor":
@@ -84,29 +83,26 @@ def mostrar_menu():
 
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"
+
         with cols[i % 3]:
-            # BOTÓN STREAMLIT INVISIBLE
+            # Botón Streamlit invisible
             boton_streamlit = st.button("", key=f"real_{modulo}")
 
-            # BOTÓN HTML CON JS PARA DISPARAR EL BOTÓN STREAMLIT
+            # Botón HTML
             st.markdown(f"""
                 <button class="{clase_color}" id="btn_{modulo}">
                     <span class="icono-grande">{icono}</span>
                     {texto}
                 </button>
-
                 <script>
-                    const btn = document.getElementById("btn_{modulo}");
-                    btn.addEventListener("click", function(){{
-                        const streamlitBtn = window.parent.document.querySelector('button[kind="secondary"][data-testid="stButton"]#real_{modulo}');
-                        if(streamlitBtn) {{
-                            streamlitBtn.click();
-                        }}
-                    }});
+                const btn = window.parent.document.getElementById("btn_{modulo}");
+                btn.addEventListener("click", function(){{
+                    document.querySelector('button[data-testid="stButton"][key="real_{modulo}"]').click();
+                }});
                 </script>
             """, unsafe_allow_html=True)
 
-            # SI SE PRESIONÓ EL BOTÓN, CAMBIA LA PÁGINA
+            # Si se presionó el botón, cambiar la página
             if boton_streamlit:
                 st.session_state.page = modulo
                 st.rerun()
@@ -114,7 +110,7 @@ def mostrar_menu():
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
-    st.write("")  # espaciado
+    st.write("")  # Espaciado
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
         st.rerun()
