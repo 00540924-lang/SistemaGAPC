@@ -1,121 +1,95 @@
 import streamlit as st
+from streamlit_extras.stylable_container import stylable_container
 
 def mostrar_menu():
 
-    rol = st.session_state.get("rol", None)
+    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
+    st.write("")
 
-    if not rol:
-        st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
-        st.stop()
+    # --------- MODULOS -----------
+    opciones = [
+        {"id": "proyectos", "titulo": "Gestión de Proyectos", "icono": "📁"},
+        {"id": "usuarios", "titulo": "Gestión de Usuarios", "icono": "👥"},
+        {"id": "inspecciones", "titulo": "Inspecciones y Evaluaciones", "icono": "🧾"},
+        {"id": "documentos", "titulo": "Gestión Documental", "icono": "📄"},
+        {"id": "reportes", "titulo": "Reportes", "icono": "📊"},
+        {"id": "configuracion", "titulo": "Configuración", "icono": "⚙️"},
+    ]
 
-    # ---------------------------------------
-    # CONFIGURAR MÓDULOS SEGÚN ROL
-    # ---------------------------------------
-    if rol == "institucional":
-        modulos = [
-            ("📁", "Gestión de Proyectos", "proyectos"),
-            ("👥", "Gestión de Usuarios", "registrar_miembros"),
-            ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
-            ("📄", "Gestión Documental", "documentos"),
-            ("📊", "Reportes", "reportes"),
-            ("⚙️", "Configuración", "configuracion"),
-        ]
-
-    elif rol == "promotor":
-        modulos = [
-            ("📁", "Gestión de Proyectos", "proyectos"),
-            ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
-        ]
-
-    elif rol == "miembro":
-        modulos = [
-            ("📄", "Gestión Documental", "documentos"),
-        ]
-
-    # ---------------------------------------
-    # TÍTULO Y CSS
-    # ---------------------------------------
-    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
-
-    st.markdown("""
-<style>
-.btn-glass {
-    padding: 18px;
-    height: 150px;
-    width: 100%;
-    border-radius: 18px;
-    color: #4C3A60;
-    font-size: 16px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    margin-bottom: 18px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 18px rgba(0,0,0,0.15);
-    transition: 0.25s ease-in-out;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-}
-.btn-glass:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.20);
-}
-.icono-grande {
-    font-size: 42px;
-    margin-bottom: 6px;
-}
-.btn1 { background: linear-gradient(135deg, #AEDFF7, #C9B2D9); }
-.btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }
-.btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }
-.btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }
-.btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
-.btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
-
-/* OCULTAR BOTONES STREAMLIT INVISIBLES */
-button[data-testid="stButton"][key^="real_"] {
-    display: none;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # ---------------------------------------
-    # GRID DE BOTONES
-    # ---------------------------------------
+    # 3 columnas
     cols = st.columns(3)
 
-    for i, (icono, texto, modulo) in enumerate(modulos):
-        clase_color = f"btn-glass btn{i+1}"
+    for i, item in enumerate(opciones):
+        col = cols[i % 3]
 
-        with cols[i % 3]:
-            # Botón Streamlit invisible (se mantiene pero está oculto con CSS)
-            boton_streamlit = st.button("", key=f"real_{modulo}")
+        with col:
 
-            # Botón HTML
-            st.markdown(f"""
-                <button class="{clase_color}" id="btn_{modulo}">
-                    <span class="icono-grande">{icono}</span>
-                    {texto}
-                </button>
-                <script>
-                const btn = window.parent.document.getElementById("btn_{modulo}");
-                btn.addEventListener("click", function(){{
-                    document.querySelector('button[data-testid="stButton"][key="real_{modulo}"]').click();
-                }});
-                </script>
-            """, unsafe_allow_html=True)
+            # TARJETA ESTÉTICA (Glassmorphism)
+            with stylable_container(
+                key=f"card_{item['id']}",
+                css_styles=f"""
+                    {{
+                        background: linear-gradient(135deg, #ffffff99, #ffffff22);
+                        padding: 22px;
+                        border-radius: 20px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+                        transition: 0.25s ease-in-out;
+                        text-align:center;
+                    }}
+                    .styled-container:hover {{
+                        transform: scale(1.05);
+                        box-shadow: 0 6px 22px rgba(0,0,0,0.20);
+                    }}
+                """
+            ):
+                # CONTENIDO TARJETA
+                st.markdown(
+                    f"""
+                    <div style="font-size:50px; margin-bottom:8px;">{item['icono']}</div>
+                    <div style="font-size:18px; font-weight:700; color:#4C3A60;">
+                        {item['titulo']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            # Si se presionó el botón, cambiar la página
-            if boton_streamlit:
-                st.session_state.page = modulo
-                st.rerun()
+                # ------------ CLICK INVISIBLE (NO MUESTRA NADA) ------------
+                click_script = f"""
+                    <script>
+                        const card = window.parent.document.querySelector('[key="card_{item['id']}"]');
+                        if (card) {{
+                            card.onclick = () => {{
+                                window.parent.postMessage({{"page": "{item['id']}"}}, "*");
+                            }};
+                        }}
+                    </script>
+                """
+                st.markdown(click_script, unsafe_allow_html=True)
 
-    # ---------------------------------------
-    # BOTÓN CERRAR SESIÓN
-    # ---------------------------------------
-    st.write("")  # Espaciado
+    # ------------ LISTENER GLOBAL PARA RECIBIR CLICK EN PYTHON ------------
+    st.markdown("""
+        <script>
+            window.addEventListener("message", (event) => {
+                if (event.data.page) {
+                    const input = document.getElementById("streamlit-page-input");
+                    input.value = event.data.page;
+                    input.dispatchEvent(new Event("change"));
+                }
+            });
+        </script>
+    """, unsafe_allow_html=True)
+
+    # INPUT OCULTO QUE STREAMLIT SI ESCUCHA
+    st.text_input("", key="streamlit-page-input", label_visibility="hidden")
+
+    # CAMBIO DE PÁGINA
+    sel = st.session_state.get("streamlit-page-input", "")
+    if sel:
+        st.session_state["modulo_actual"] = sel
+        st.rerun()
+
+    # CERRAR SESIÓN
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
         st.rerun()
