@@ -12,12 +12,14 @@ def mostrar_menu():
     # -----------------------------------------------------
     st.markdown("""
     <style>
+    /* Centrar todos los botones */
     div.stButton {
         display: flex !important;
         justify-content: center !important;
         margin: 10px 0;
     }
 
+    /* Estilo base de todos los botones */
     div.stButton > button {
         width: 240px;
         height: 90px;
@@ -40,13 +42,16 @@ def mostrar_menu():
 
         transition: transform 0.25s ease, box-shadow 0.25s ease;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+        cursor: pointer;
     }
 
+    /* Hover para todos los botones */
     div.stButton > button:hover {
         transform: scale(1.07);
         box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30);
     }
 
+    /* Colores por clase */
     .proyectos_btn > button { background-color: #F4B400; }
     .usuarios_btn > button { background-color: #8E24AA; color: white; }
     .grupos_btn > button { background-color: #E53935; color: white; }
@@ -54,6 +59,7 @@ def mostrar_menu():
     .reportes_btn > button { background-color: #43A047; color: white; }
     .configuracion_btn > button { background-color: #6D4C41; color: white; }
 
+    /* Botón logout */
     .logout_btn > button {
         width: 200px;
         height: 60px;
@@ -62,6 +68,7 @@ def mostrar_menu():
         border-radius: 10px;
         transition: transform 0.2s ease;
     }
+
     .logout_btn > button:hover {
         transform: scale(1.05);
         background-color: #000000;
@@ -106,18 +113,24 @@ def mostrar_menu():
     for i, (texto, modulo, css_class) in enumerate(modulos):
         col = cols[i % 3]
         with col:
-            st.markdown(f"<div class='{css_class}'>", unsafe_allow_html=True)
+            # Aplica la clase CSS al botón mediante st.markdown
+            button_html = f"<div class='{css_class}'></div>"
+            st.markdown(button_html, unsafe_allow_html=True)
             if st.button(texto, key=f"btn_{modulo}"):
                 st.session_state.page = modulo
-            st.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     # Botón cerrar sesión
     # -----------------------------------------------------
     st.write("---")
-    st.markdown("<div class='logout_btn'>", unsafe_allow_html=True)
+    st.markdown("<div class='logout_btn'></div>", unsafe_allow_html=True)
     if st.button("🔒 Cerrar sesión", key="logout"):
         st.session_state.clear()
         st.experimental_rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
+# -----------------------------------------------------
+# Ejecutar menú
+# -----------------------------------------------------
+if "rol" not in st.session_state:
+    st.session_state.rol = "institucional"  # Solo para pruebas
+mostrar_menu()
