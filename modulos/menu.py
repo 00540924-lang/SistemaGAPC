@@ -1,139 +1,102 @@
 import streamlit as st
+from streamlit_extras.stylable_container import stylable_container
 
-def mostrar_menu():
-    rol = st.session_state.get("rol", None)
+st.set_page_config(page_title="Menú Principal", layout="wide")
 
-    if not rol:
-        st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
-        return
+st.markdown("""
+<style>
+.menu-title {
+    font-size: 48px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 40px;
+    margin-top: -20px;
+}
 
-    # -----------------------------------------------------
-    # CSS CORRECTO: COLOR + ANIMACIÓN POR MÓDULO
-    # -----------------------------------------------------
-    st.markdown("""
-    <style>
+/* --- ESTILO BASE DE TODAS LAS TARJETAS --- */
+.card {
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    color: #3b3b3b;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.10);
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-    /* ESTILO GENERAL */
-    .menu-btn {
-        color: white !important;
-        border-radius: 12px !important;
-        padding: 20px !important;
-        font-size: 18px !important;
-        font-weight: 600 !important;
-        width: 100% !important;
-        height: 110px !important;
-        border: none !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    }
+/* Animación hover */
+.card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0px 6px 20px rgba(0,0,0,0.18);
+}
 
-    .menu-btn:hover {
-        transform: scale(1.07) !important;
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
-    }
+/* --- COLORES INDIVIDUALES POR MÓDULO --- */
+.card-proyectos { background: #FFF3C4; }      /* Amarillo suave */
+.card-usuarios { background: #DDEBFF; }        /* Azul claro */
+.card-inspecciones { background: #FFE1E1; }    /* Rojo suave */
+.card-documentos { background: #F3E8FF; }      /* Morado suave */
+.card-reportes { background: #DFFFE2; }        /* Verde suave */
+.card-config { background: #F2F2F2; }          /* Gris claro */
+.card-logout { background: #FCE8FF; }          /* Rosa suave */
+</style>
+""", unsafe_allow_html=True)
 
-    /* 🎨 COLORES POR CLASE */
-    .btn-proyectos      { background-color: #F4B400 !important; }
-    .btn-usuarios       { background-color: #8E24AA !important; }
-    .btn-inspecciones   { background-color: #E53935 !important; }
-    .btn-documentos     { background-color: #1E88E5 !important; }
-    .btn-reportes       { background-color: #43A047 !important; }
-    .btn-configuracion  { background-color: #6D4C41 !important; }
+st.markdown("<h1 class='menu-title'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    /* BOTÓN CERRAR SESIÓN */
-    .logout-btn {
-        background-color: #424242 !important;
-        color: white !important;
-        border-radius: 10px !important;
-        padding: 12px 22px !important;
-        font-size: 16px !important;
-        width: 200px !important;
-        transition: transform 0.2s ease !important;
-    }
 
-    .logout-btn:hover {
-        transform: scale(1.05) !important;
-        background-color: #000000 !important;
-    }
+# ------------------- FILA 1 -------------------
+col1, col2, col3 = st.columns([1,1,1])
 
-    </style>
-    """, unsafe_allow_html=True)
+with col1:
+    with stylable_container(key="proyectos", css_classes=["card", "card-proyectos"]):
+        if st.button("📁  Gestión de Proyectos", key="btn_proy"):
+            st.switch_page("pages/1_📁_Gestion_de_Proyectos.py")
 
-    # -----------------------------------------------------
-    # TÍTULO
-    # -----------------------------------------------------
-    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
+with col2:
+    with stylable_container(key="usuarios", css_classes=["card", "card-usuarios"]):
+        if st.button("👥  Gestión de Usuarios", key="btn_users"):
+            st.switch_page("pages/2_👥_Gestion_de_Usuarios.py")
 
-    # -----------------------------------------------------
-    # MÓDULOS BASE: TEXTO, PAGE, CLASE CSS
-    # -----------------------------------------------------
-    modulos_base = [
-        ("📁 Gestión de Proyectos", "proyectos", "btn-proyectos"),
-        ("👥 Gestión de Usuarios", "registrar_miembros", "btn-usuarios"),
-        ("📝 Inspecciones y Evaluaciones", "inspecciones", "btn-inspecciones"),
-        ("📄 Gestión Documental", "documentos", "btn-documentos"),
-        ("📊 Reportes", "reportes", "btn-reportes"),
-        ("⚙️ Configuración", "configuracion", "btn-configuracion"),
-    ]
+with col3:
+    with stylable_container(key="insp", css_classes=["card", "card-inspecciones"]):
+        if st.button("📝  Inspecciones y Evaluaciones", key="btn_insp"):
+            st.switch_page("pages/3_📝_Inspecciones.py")
 
-    # -----------------------------------------------------
-    # LÓGICA DE ROLES
-    # -----------------------------------------------------
-    if rol == "institucional":
-        modulos = modulos_base
-    elif rol == "promotor":
-        modulos = [m for m in modulos_base if m[1] in ["proyectos", "inspecciones"]]
-    elif rol == "miembro":
-        modulos = [m for m in modulos_base if m[1] == "documentos"]
-    else:
-        st.warning("⚠️ Este rol no tiene módulos asignados.")
-        return
 
-    # -----------------------------------------------------
-    # GRID DE BOTONES
-    # -----------------------------------------------------
-    cols = st.columns(3)
+# ------------------- FILA 2 -------------------
+col4, col5, col6 = st.columns([1,1,1])
 
-    for i, (texto, modulo, css_class) in enumerate(modulos):
-        with cols[i % 3]:
+with col4:
+    with stylable_container(key="docs", css_classes=["card", "card-documentos"]):
+        if st.button("📄  Gestión Documental", key="btn_docs"):
+            st.switch_page("pages/4_📄_Gestion_Documental.py")
 
-            # Creamos un botón invisible
-            clicked = st.button(texto, key=f"btn_{modulo}")
+with col5:
+    with stylable_container(key="reportes", css_classes=["card", "card-reportes"]):
+        if st.button("📊  Reportes", key="btn_reports"):
+            st.switch_page("pages/5_📊_Reportes.py")
 
-            # Insertamos CSS directo al botón recién creado
-            st.markdown(
-                f"""
-                <script>
-                    var btn = document.querySelector('button[k='{f"btn_{modulo}"}']');
-                    if (btn) {{
-                        btn.classList.add('menu-btn');
-                        btn.classList.add('{css_class}');
-                    }}
-                </script>
-                """,
-                unsafe_allow_html=True
-            )
+with col6:
+    with stylable_container(key="config", css_classes=["card", "card-config"]):
+        if st.button("⚙️  Configuración", key="btn_conf"):
+            st.switch_page("pages/6_⚙️_Configuracion.py")
 
-            if clicked:
-                st.session_state.page = modulo
-                st.rerun()
 
-    # -----------------------------------------------------
-    # CERRAR SESIÓN
-    # -----------------------------------------------------
-    st.write("---")
-    logout = st.button("🔒 Cerrar sesión", key="logout")
+# ------------------- SEPARADOR -------------------
+st.markdown("<hr style='margin:40px 0;'>", unsafe_allow_html=True)
 
-    st.markdown("""
-        <script>
-            var l = document.querySelector('button[k="logout"]');
-            if (l) { l.classList.add('logout-btn'); }
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
 
-    if logout:
-        st.session_state.clear()
-        st.rerun()
+# ------------------- BOTÓN DE SALIR -------------------
+col7, col8, col9 = st.columns([1,1,1])
+
+with col2:
+    with stylable_container(key="logout", css_classes=["card", "card-logout"]):
+        if st.button("🔒  Cerrar sesión", key="btn_logout"):
+            st.switch_page("Login.py")
 
