@@ -11,9 +11,20 @@ def mostrar_menu():
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
     
+# --------------------------
+# CSS para botones
+# --------------------------
 st.markdown("""
 <style>
-button.custom-btn {
+/* Centrar botones */
+div[data-testid="stButton"] {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+/* Estilo general */
+div[data-testid="stButton"] > button {
     width: 200px;
     height: 150px;
     font-size: 18px;
@@ -23,48 +34,60 @@ button.custom-btn {
     color: white;
     cursor: pointer;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
-    margin: 10px 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
 }
 
 /* Hover general */
-button.custom-btn:hover {
+div[data-testid="stButton"] > button:hover {
     transform: scale(1.07);
     box-shadow: 0 10px 22px rgba(0,0,0,0.3);
 }
 
-/* Colores específicos */
-button#proyectos { background-color: #F4B400; }
-button#usuarios { background-color: #8E24AA; }
-button#grupos { background-color: #E53935; }
-button#documentos { background-color: #1E88E5; }
-button#reportes { background-color: #43A047; }
-button#configuracion { background-color: #6D4C41; }
-button#logout {
-    background-color: #424242;
+/* Colores de botones específicos */
+div[data-testid="stButton"] > button:nth-of-type(1) { background-color: #F4B400; }
+div[data-testid="stButton"] > button:nth-of-type(2) { background-color: #8E24AA; }
+div[data-testid="stButton"] > button:nth-of-type(3) { background-color: #E53935; }
+div[data-testid="stButton"] > button:nth-of-type(4) { background-color: #1E88E5; }
+div[data-testid="stButton"] > button:nth-of-type(5) { background-color: #43A047; }
+div[data-testid="stButton"] > button:nth-of-type(6) { background-color: #6D4C41; }
+
+/* Botón logout más pequeño */
+div[data-testid="stButton"] > button:nth-of-type(7) {
+    width: 200px;
     height: 60px;
+    background-color: #424242;
     border-radius: 10px;
 }
-button#logout:hover { background-color: black; transform: scale(1.05); }
+div[data-testid="stButton"] > button:nth-of-type(7):hover {
+    background-color: black;
+    transform: scale(1.05);
+}
 </style>
 """, unsafe_allow_html=True)
 
 # --------------------------
-# Función para crear botones HTML
+# Botones en Python
 # --------------------------
-def html_button(label, btn_id):
-    return st.markdown(f'<button class="custom-btn" id="{btn_id}">{label}</button>', unsafe_allow_html=True)
+if st.button("Proyectos"):
+    st.write("Botón Proyectos clickeado")
 
-# --------------------------
-# Botones
-# --------------------------
-html_button("Proyectos", "proyectos")
-html_button("Usuarios", "usuarios")
-html_button("Grupos", "grupos")
-html_button("Documentos", "documentos")
-html_button("Reportes", "reportes")
-html_button("Configuración", "configuracion")
-html_button("Logout", "logout")
+if st.button("Usuarios"):
+    st.write("Botón Usuarios clickeado")
 
+if st.button("Grupos"):
+    st.write("Botón Grupos clickeado")
+
+if st.button("Documentos"):
+    st.write("Botón Documentos clickeado")
+
+if st.button("Reportes"):
+    st.write("Botón Reportes clickeado")
+
+if st.button("Configuración"):
+    st.write("Botón Configuración clickeado")
+
+if st.button("Logout"):
+    st.write("Has cerrado sesión")
     # -----------------------------------------------------
     #                    TÍTULO
     # -----------------------------------------------------
