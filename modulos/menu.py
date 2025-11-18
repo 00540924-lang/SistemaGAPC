@@ -17,6 +17,14 @@ def mostrar_menu():
     st.markdown("""
     <style>
     
+    /* 🔴 CORRECCIÓN CLAVE PARA EL TAMAÑO UNIFORME: 
+       Forzamos al contenedor del botón a ocupar todo el espacio de la columna.
+       Esto anula cualquier cálculo de ancho basado en el texto del botón. 
+    */
+    div[data-testid="stButton"] {
+        width: 100% !important; 
+    }
+    
     /* ESTILO GENERAL DE BOTONES DEL MENÚ */
     div.stButton > button {
         color: #4C3A60 !important;
@@ -26,19 +34,18 @@ def mostrar_menu():
         font-weight: 600 !important;
         
         /* LA CLAVE PARA EL MISMO TAMAÑO ES ESTABLECER AMBOS: */
-        width: 100% !important; /* Ocupa todo el ancho de la columna (ahora forzada) */
+        width: 100% !important; /* Ocupa todo el ancho del contenedor forzado arriba */
         height: 110px !important; /* Altura fija para todos */
         
         border: none !important;
         transition: transform 0.25s ease, box-shadow 0.25s ease !important;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-        /* Aseguramos que el texto esté centrado verticalmente */
+        
+        /* Alineación y envoltura de texto */
         display: flex;
         justify-content: center;
         align-items: center;
         text-align: center;
-        
-        /* Aseguramos que el texto largo se ajuste dentro del botón */
         white-space: normal !important; 
         word-break: break-word;
     }
@@ -87,7 +94,6 @@ def mostrar_menu():
         width: 200px !important; 
         height: auto !important; /* Permitir que la altura se ajuste */
         transition: transform 0.2s ease !important;
-        /* Sobreescribir el box-shadow general */
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
     }
     div[data-testid="stButton"] button[key="logout"]:hover {
@@ -139,8 +145,8 @@ def mostrar_menu():
     # -----------------------------------------------------
     #                   GRID DE BOTONES
     # -----------------------------------------------------
-    # 🔴 CAMBIO CLAVE: Definir explícitamente el ancho de las 3 columnas
-    cols = st.columns([1, 1, 1])
+    # Usamos st.columns(3) para una distribución estándar.
+    cols = st.columns(3)
 
     for i, (texto, modulo) in enumerate(modulos):
         with cols[i % 3]:
@@ -154,7 +160,7 @@ def mostrar_menu():
     # -----------------------------------------------------
     st.write("---")
     
-    # 🔴 CAMBIO CLAVE: Definir explícitamente el ancho de las columnas para centrar el botón
+    # Mantenemos las columnas explícitas para centrar el botón de cerrar sesión
     col_center, col_btn, col_end = st.columns([1, 0.5, 1])
 
     with col_btn:
