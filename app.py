@@ -23,15 +23,9 @@ mostrar_menu()
 # ---- CARGAR EL MÓDULO SEGÚN state ----
 modulo = st.session_state.get("modulo")
 
-# ---- Registrar Miembros ----
-if modulo == "usuarios":
-    # Importamos y ejecutamos tu módulo de registrar miembros
-    from modulos.registrar_miembros import mostrar_registro_miembros
-    mostrar_registro_miembros()
+if modulo == "registrar_miembros":
+    from modulos.registrar_miembros import registrar_miembros
+    registrar_miembros()
 
-# ---- Otros módulos ----
 elif modulo:
-    # Suponiendo que tienes una función genérica para cargar otros módulos
     cargar_pagina(modulo)
-
-
