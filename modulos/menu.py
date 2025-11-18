@@ -13,7 +13,7 @@ def mostrar_menu():
     if rol == "institucional":
         modulos = [
             ("📁", "Gestión de Proyectos", "proyectos"),
-            ("👥", "Gestión de Usuarios", "registrar_miembros"),  # Conecta con formulario
+            ("👥", "Gestión de Usuarios", "registrar_miembros"),
             ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
             ("📄", "Gestión Documental", "documentos"),
             ("📊", "Reportes", "reportes"),
@@ -82,16 +82,27 @@ def mostrar_menu():
 
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"
+
         with cols[i % 3]:
-            # Botón real Streamlit invisible
+            # Botón Streamlit invisible
             boton_streamlit = st.button("", key=f"real_{modulo}")
 
-            # Botón HTML completo como tarjeta
+            # Tarjeta HTML con tu CSS original
             st.markdown(f"""
-                <button class="{clase_color}" onclick="document.querySelector('button[kind=\\\"secondary\\\"][data-testid=\\\"stButton\\\"][key=\\\"real_{modulo}\\\"]').click()">
+                <button class="{clase_color}" id="btn_{modulo}">
                     <span class="icono-grande">{icono}</span>
                     {texto}
                 </button>
+
+                <script>
+                const btn = document.getElementById("btn_{modulo}");
+                btn.addEventListener("click", function(){{
+                    const streamlitBtn = window.parent.document.querySelector('button[kind="secondary"][data-testid="stButton"]#real_{modulo}');
+                    if(streamlitBtn) {{
+                        streamlitBtn.click();
+                    }}
+                }});
+                </script>
             """, unsafe_allow_html=True)
 
             # Si se presionó el botón, cambiar la página
@@ -102,7 +113,7 @@ def mostrar_menu():
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
-    st.write("")  # Espaciado
+    st.write("")
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
         st.rerun()
