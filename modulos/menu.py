@@ -10,70 +10,39 @@ def mostrar_menu():
     # -----------------------------------------------------
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
-    div.stButton {
-    display: flex !important;
-    justify-content: center !important;
+
+# Estilos para centrar y hacer grande el emoji
+st.markdown("""
+<style>
+.emoji {
+    font-size: 48px;
+    text-align: center;
+    margin-bottom: 5px;
 }
+</style>
+""", unsafe_allow_html=True)
 
-/* Estilo base de TODOS los botones */
-div.stButton > button {
-    width: 240px !important;
-    height: 120px !important; /* un poco más alto para el emoji grande */
-    padding: 10px !important;
+# Crear columnas para organizar botones
+cols = st.columns(3)
 
-    display: flex !important;
-    flex-direction: column !important; /* Cambiar a columna para emoji arriba */
-    align-items: center !important;
-    justify-content: center !important;
+# Botón 1 - Gestión de Proyectos
+with cols[0]:
+    st.markdown("<div class='emoji'>📁</div>", unsafe_allow_html=True)
+    if st.button("Gestión de Proyectos"):
+        st.write("Presionaste Gestión de Proyectos")
 
-    white-space: normal !important; /* Permite salto de línea */
-    overflow: visible !important;   /* Mostrar todo el contenido */
-    text-overflow: clip !important; /* Sin puntos suspensivos */
+# Botón 2 - Gestión de Usuarios
+with cols[1]:
+    st.markdown("<div class='emoji'>👥</div>", unsafe_allow_html=True)
+    if st.button("Gestión de Usuarios"):
+        st.write("Presionaste Gestión de Usuarios")
 
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    color: #4C3A60 !important;
+# Botón 3 - Grupos
+with cols[2]:
+    st.markdown("<div class='emoji'>📝</div>", unsafe_allow_html=True)
+    if st.button("Grupos"):
+        st.write("Presionaste Grupos")
 
-    border-radius: 12px !important;
-    border: none !important;
-
-    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-}
-
-/* Emoji dentro del botón */
-div.stButton > button > span.emoji {
-    font-size: 48px !important; /* Tamaño grande para emoji */
-    margin-bottom: 8px !important; /* Espacio entre emoji y texto */
-}
-
-/* Hover */
-div.stButton > button:hover {
-    transform: scale(1.07) !important;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
-}
-
-/* Colores personalizados */
-#proyectos_btn > button { background-color: #F4B400 !important; }
-#usuarios_btn > button { background-color: #8E24AA !important; }
-#grupos_btn > button { background-color: #E53935 !important; }
-#documentos_btn > button { background-color: #1E88E5 !important; }
-#reportes_btn > button { background-color: #43A047 !important; }
-#configuracion_btn > button { background-color: #6D4C41 !important; }
-
-/* Logout */
-#logout_btn > button {
-    width: 200px !important;
-    height: 60px !important;
-    background-color: #424242 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    transition: transform 0.2s ease !important;
-}
-#logout_btn > button:hover {
-    transform: scale(1.05) !important;
-    background-color: #000000 !important;
-}
 
     # -----------------------------------------------------
     #                    TÍTULO
