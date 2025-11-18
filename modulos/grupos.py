@@ -30,6 +30,7 @@ def pagina_grupos():
     # FORMULARIO PARA CREAR NUEVO GRUPO
     # =========================================
     st.subheader("➕ Registrar nuevo grupo")
+
     nombre = st.text_input("Nombre del Grupo")
     distrito = st.text_input("Distrito")
     inicio_ciclo = st.date_input("Inicio del Ciclo", value=date.today())
@@ -116,9 +117,8 @@ def pagina_grupos():
                 st.info("Operación cancelada.")
 
     # =========================================
-    # LISTAR MIEMBROS DEL GRUPO (NOMBRE + X PEGADA)
+    # LISTAR MIEMBROS DEL GRUPO
     # =========================================
-    st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
     try:
         cursor.execute("""
             SELECT M.id_miembro, M.nombre
@@ -131,46 +131,24 @@ def pagina_grupos():
         st.error(f"Error al obtener miembros: {e}")
         miembros = []
 
-    # capturar parámetro URL para eliminar miembro
-    params = st.experimental_get_query_params()
-    miembro_eliminar = params.get("delete_member", [None])[0]
-
-    # eliminar miembro si se solicitó
-    if miembro_eliminar:
-        try:
-            cursor.execute(
-                "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-                (grupo_id, miembro_eliminar)
-            )
-            conn.commit()
-            st.success("Miembro eliminado.")
-        except Exception as e:
-            st.error(f"Error al eliminar miembro: {e}")
-        finally:
-            st.experimental_set_query_params()  # limpiar parámetros URL
-            st.experimental_rerun()
-
-    # mostrar miembros con texto + X enlazada
+    st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
     if miembros:
         for m in miembros:
-            col1, col2 = st.columns([14, 1])
+            col1, col2 = st.columns([15, 1])
             with col1:
-                st.markdown(f"<span style='font-size:17px;'>✔️ {m['nombre']}</span>", unsafe_allow_html=True)
+                st.markdown(f"✔️ {m['nombre']}")
             with col2:
-                st.markdown(
-                    f"""
-                    <a href="?delete_member={m['id_miembro']}"
-                       style="
-                           color: red;
-                           font-size: 20px;
-                           font-weight: bold;
-                           text-decoration: none;
-                       ">
-                       ✖️
-                    </a>
-                    """,
-                    unsafe_allow_html=True
-                )
+                if st.button("✖️", key=f"del_{grupo_id}_{m['id_miembro']}"):
+                    try:
+                        cursor.execute(
+                            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
+                            (grupo_id, m['id_miembro'])
+                        )
+                        conn.commit()
+                        st.success(f"{m['nombre']} eliminado.")
+                        st.experimental_rerun()
+                    except Exception as e:
+                        st.error(f"Error al eliminar miembro: {e}")
     else:
         st.info("Este grupo no tiene miembros.")
 
