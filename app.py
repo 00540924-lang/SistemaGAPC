@@ -6,7 +6,7 @@ from modulos.menu import mostrar_menu
 # VARIABLES DE SESIÓN
 # -------------------------
 st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("page", "menu")  # Página por defecto
+st.session_state.setdefault("page", "menu")  # Página inicial por defecto
 
 
 # -------------------------
@@ -30,4 +30,16 @@ if pagina == "menu":
 elif pagina == "registrar_miembros":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
+
+# ---- GESTIÓN USUARIOS ----
+elif pagina == "gestion_usuarios":
+    from modulos.gestion_usuarios import gestion_usuarios
+    gestion_usuarios()
+
+# ---- CUALQUIER OTRO MÓDULO ----
+# Puedes agregar más formularios aquí:
+# elif pagina == "inventario":
+#     from modulos.inventario import inventario
+#     inventario()
+
 
