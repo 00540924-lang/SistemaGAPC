@@ -7,9 +7,9 @@ def mostrar_menu():
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-    # -----------------------------------------------------
-    #      🎨 CSS - Botones con animación + colores
-    # -----------------------------------------------------
+# -----------------------------------------------------
+#      🎨 CSS - Botones con animación + colores
+# -----------------------------------------------------
 st.markdown("""
 <style>
 
@@ -73,6 +73,46 @@ div[data-testid="stButton"] > button:hover {
 
 </style>
 """, unsafe_allow_html=True)
+
+# -----------------------------------------------------
+#      🎯 Botones con contenedores para IDs
+# -----------------------------------------------------
+
+# Proyectos
+st.markdown('<div id="proyectos_btn">', unsafe_allow_html=True)
+st.button("Proyectos")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Usuarios
+st.markdown('<div id="usuarios_btn">', unsafe_allow_html=True)
+st.button("Usuarios")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Grupos
+st.markdown('<div id="grupos_btn">', unsafe_allow_html=True)
+st.button("Grupos")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Documentos
+st.markdown('<div id="documentos_btn">', unsafe_allow_html=True)
+st.button("Documentos")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Reportes
+st.markdown('<div id="reportes_btn">', unsafe_allow_html=True)
+st.button("Reportes")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Configuración
+st.markdown('<div id="configuracion_btn">', unsafe_allow_html=True)
+st.button("Configuración")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Logout
+st.markdown('<div id="logout_btn">', unsafe_allow_html=True)
+st.button("Cerrar sesión")
+st.markdown('</div>', unsafe_allow_html=True)
+
 
     # -----------------------------------------------------
     #                    TÍTULO
