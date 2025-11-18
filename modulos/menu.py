@@ -66,7 +66,7 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # TARJETAS
+    # ESTILOS CSS PARA TARJETAS
     # ---------------------------------------
     st.markdown("""
     <style>
@@ -108,17 +108,27 @@ def mostrar_menu():
         font-weight:600; 
         opacity:0.95; 
     }
+    a {
+        text-decoration:none;
+    }
     </style>
     """, unsafe_allow_html=True)
 
+    # ---------------------------------------
+    # GENERAR TARJETAS CON ENLACES <a>
+    # ---------------------------------------
     html_cards = "<div class='cards-row'>"
 
     for icono, texto, modulo in modulos:
+        # CORRECCIÓN: Se envuelve el DIV de la tarjeta dentro del tag <a>
+        # para que se apliquen los estilos CSS y funcione el enlace.
         html_cards += f"""
-            <div class='card' onclick="window.location.href='?modulo={modulo}'">
-                <div class='card-icon'>{icono}</div>
-                <div class='card-sub'>{texto}</div>
-            </div>
+            <a href='?modulo={modulo}'>
+                <div class='card'>
+                    <div class='card-icon'>{icono}</div>
+                    <div class='card-sub'>{texto}</div>
+                </div>
+            </a>
         """
 
     html_cards += "</div>"
