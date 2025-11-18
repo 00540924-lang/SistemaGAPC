@@ -11,6 +11,11 @@ def registrar_miembros():
         dui = st.text_input("DUI")
         telefono = st.text_input("Telefono")
         enviar = st.form_submit_button("Registrar")
+ # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")  # espaciado
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
 
     # ------------------ PROCESAR FORMULARIO ------------------
     if enviar:
@@ -71,9 +76,5 @@ def registrar_miembros():
     except Exception as e:
         st.error(f"Error general al mostrar miembros: {e}")
 
-    # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # espaciado
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
+   
 
