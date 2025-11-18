@@ -93,6 +93,13 @@ def mostrar_menu():
     box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 
+/* ---- ICONO GRANDE ---- */
+.icono-grande {
+    font-size: 42px;    /* AJUSTA EL TAMAÑO DEL EMOJI AQUÍ */
+    display: block;
+    margin-bottom: 6px;
+}
+
 /* Degradados individuales */
 <style>
 /* Paleta basada en tu imagen GAPC */
@@ -125,19 +132,17 @@ def mostrar_menu():
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
-        clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
-        with cols[i % 3]:
-            clicked = st.markdown(
-                f"""
-                <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
-                    {icono}<br>{texto}
-                </button>
-                """,
-                unsafe_allow_html=True
-            )
-            if f"btn_{modulo}" in st.session_state:
-                st.session_state["modulo"] = modulo
-                st.rerun()
+    clase_color = f"btn-glass btn{i+1}"  # asigna btn1, btn2, btn3...
+    with cols[i % 3]:
+        st.markdown(
+            f"""
+            <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
+                <span class="icono-grande">{icono}</span>
+                {texto}
+            </button>
+            """,
+            unsafe_allow_html=True
+        )
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
