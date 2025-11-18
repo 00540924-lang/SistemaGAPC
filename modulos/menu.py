@@ -93,13 +93,6 @@ def mostrar_menu():
     box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 
-/* ---- ICONO GRANDE ---- */
-.icono-grande {
-    font-size: 42px;    /* AJUSTA EL TAMAÑO DEL EMOJI AQUÍ */
-    display: block;
-    margin-bottom: 6px;
-}
-
 /* Degradados individuales */
 <style>
 /* Paleta basada en tu imagen GAPC */
