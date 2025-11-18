@@ -6,10 +6,10 @@ def registrar_miembros():
     st.title("🧍 Registro de Miembros")
 
     # ------------------ FORMULARIO ------------------
-    with st.form("form_Miembro"):
+    with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
-        telefono = st.text_input("Teléfono")
+        telefono = st.text_input("Telefono")
         enviar = st.form_submit_button("Registrar")
 
     # ------------------ PROCESAR FORMULARIO ------------------
@@ -37,13 +37,8 @@ def registrar_miembros():
         except Exception as e:
             st.error(f"Error general: {e}")
 
-    # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # espaciado
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
-
-    # ------------------ TABLA DE MIEMBROS ------------------
+    # ------------------ LISTA DE MIEMBROS ------------------
+    st.markdown("### Miembros Registrados")
     try:
         conexion = mysql.connector.connect(
             host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
@@ -52,49 +47,30 @@ def registrar_miembros():
             database="bzn5gsi7ken7lufcglbg"
         )
         cursor = conexion.cursor()
-        cursor.execute("SELECT Nombre, DUI, Telefono FROM Miembros")
+        cursor.execute("SELECT id_miembros, Nombre, DUI, Telefono FROM Miembros")
         miembros = cursor.fetchall()
+        cursor.close()
+        conexion.close()
 
         if miembros:
-            # Crear DataFrame y renombrar columnas
-            df = pd.DataFrame(Miembros, columns=["No.", "Nombre", "DUI", "Teléfono"])
-            df.index = df.index + 1  # numeración desde 1
-
-            # Convertir a HTML con clase para CSS
-            html = df.to_html(classes="Miembros-table", index=False)
-
-            # Mostrar tabla centrada con encabezados centrados
+            # Crear DataFrame
+            df = pd.DataFrame(miembros, columns=["No.", "Nombre", "DUI", "Teléfono"])
+            df.index = range(1, len(df) + 1)  # Numerar desde 1
+            # Mostrar tabla centrando encabezados
             st.markdown(
-                f"""
-                <style>
-                    .Miembros-table th {{
-                        text-align: center;
-                        background-color: #f0f0f0;
-                        padding: 8px;
-                    }}
-                    .Miembros-table td {{
-                        text-align: center;
-                        padding: 8px;
-                    }}
-                    .Miembros-table {{
-                        width: 80%;
-                        margin-left: auto;
-                        margin-right: auto;
-                        border-collapse: collapse;
-                    }}
-                </style>
-                <h3 style="text-align:center;">Miembros Registrados</h3>
-                {html}
-                """,
+                df.to_html(index=False, justify="center"),
                 unsafe_allow_html=True
             )
         else:
-            st.info("No hay miembros registrados aún.")
-
-        cursor.close()
-        conexion.close()
+            st.info("No hay miembros registrados todavía.")
 
     except mysql.connector.Error as e:
         st.error(f"Error MySQL al mostrar miembros: {e}")
     except Exception as e:
         st.error(f"Error general al mostrar miembros: {e}")
+
+    # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")  # Espaciado
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
