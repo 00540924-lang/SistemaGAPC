@@ -44,7 +44,7 @@ def mostrar_menu():
     # ---------------------------------------
     st.markdown("""
         <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
-        Menú Principal – GAPC
+            Menú Principal – GAPC
         </h1>
         """, unsafe_allow_html=True)
 
