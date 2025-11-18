@@ -1,6 +1,5 @@
 import streamlit as st
 from modulos.login import login
-from modulos.menu import mostrar_menu
 
 # ------------------------------
 # VARIABLES DE SESIÓN
