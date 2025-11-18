@@ -32,13 +32,13 @@ def mostrar_menu():
         ]
 
     # ---------------------------------------
-    # TÍTULO Y CSS
+    # TÍTULO Y CSS ORIGINAL
     # ---------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     st.markdown("""
     <style>
-    .tarjeta {
+    .btn-glass {
         padding: 18px;
         height: 150px;
         width: 100%;
@@ -46,6 +46,7 @@ def mostrar_menu():
         color: #4C3A60;
         font-size: 16px;
         font-weight: 700;
+        border: none;
         cursor: pointer;
         margin-bottom: 18px;
         backdrop-filter: blur(10px);
@@ -57,11 +58,11 @@ def mostrar_menu():
         justify-content: center;
         text-align: center;
     }
-    .tarjeta:hover {
+    .btn-glass:hover {
         transform: scale(1.05);
         box-shadow: 0 6px 24px rgba(0,0,0,0.20);
     }
-    .icono {
+    .icono-grande {
         font-size: 42px;
         margin-bottom: 6px;
     }
@@ -75,43 +76,28 @@ def mostrar_menu():
     """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # GRID DE TARJETAS
+    # GRID DE BOTONES
     # ---------------------------------------
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
-        clase_color = f"tarjeta btn{i+1}"
-
+        clase_color = f"btn-glass btn{i+1}"
         with cols[i % 3]:
-            if st.button(f"{icono}\n{texto}", key=f"{modulo}", help=f"Ir a {texto}"):
+            # Botón real Streamlit invisible
+            boton_streamlit = st.button("", key=f"real_{modulo}")
+
+            # Botón HTML completo como tarjeta
+            st.markdown(f"""
+                <button class="{clase_color}" onclick="document.querySelector('button[kind=\\\"secondary\\\"][data-testid=\\\"stButton\\\"][key=\\\"real_{modulo}\\\"]').click()">
+                    <span class="icono-grande">{icono}</span>
+                    {texto}
+                </button>
+            """, unsafe_allow_html=True)
+
+            # Si se presionó el botón, cambiar la página
+            if boton_streamlit:
                 st.session_state.page = modulo
                 st.rerun()
-            # Aplica CSS para que el botón se vea como tarjeta
-            st.markdown(f"""
-                <style>
-                    div[data-testid="stButton"][data-key="{modulo}"] > button {{
-                        all: unset;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        height: 150px;
-                        border-radius: 18px;
-                        cursor: pointer;
-                        color: #4C3A60;
-                        font-weight: 700;
-                        font-size: 16px;
-                        box-shadow: 0 4px 18px rgba(0,0,0,0.15);
-                        margin-bottom: 18px;
-                        text-align: center;
-                        background: linear-gradient(135deg, #AEDFF7, #C9B2D9);
-                    }}
-                    div[data-testid="stButton"][data-key="{modulo}"] > button:hover {{
-                        transform: scale(1.05);
-                        box-shadow: 0 6px 24px rgba(0,0,0,0.20);
-                    }}
-                </style>
-            """, unsafe_allow_html=True)
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
