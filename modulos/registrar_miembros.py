@@ -23,7 +23,7 @@ def registrar_miembros():
             st.success("Conexión exitosa ✅")
             cursor = conexion.cursor()
 
-            sql = "INSERT INTO miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s, %s)"
+            sql = "INSERT INTO miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             datos = (nombre, dui, telefono)
             cursor.execute(sql, datos)
             conexion.commit()
