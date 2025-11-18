@@ -19,7 +19,7 @@ def registrar_miembros():
                 user="uiazxdhtd3r8o7uv",
                 password="uGjZ9MXWemv7vPsjOdA5",
                 database="bzn5gsi7ken7lufcglbg"
-    
+            )
             cursor = conexion.cursor()
 
             # Solo 3 campos porque la tabla ya no tiene 'Rol'
