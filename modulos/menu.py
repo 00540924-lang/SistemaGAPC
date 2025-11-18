@@ -10,57 +10,101 @@ def mostrar_menu():
     # -----------------------------------------------------
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
-    st.markdown("""
-    <style>
-    div[data-testid="stButton"] {
-        display: flex !important;
-        justify-content: center !important;
-    }
+    
+st.markdown("""
+<style>
+/* Centrar todos los botones */
+div[data-testid="stButton"] {
+    display: flex !important;
+    justify-content: center !important;
+}
 
-    div[data-testid="stButton"] > button {
-        width: 200px !important;
-        height: 150px !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        font-size: 18px !important;
-        font-weight: 600 !important;
-        border-radius: 12px !important;
-        border: none !important;
-        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
-    }
+/* Estilo general de los botones */
+div[data-testid="stButton"] > button {
+    width: 200px !important;
+    height: 150px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+    border: none !important;
+    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+}
 
-    div[data-testid="stButton"] > button:hover {
-        transform: scale(1.07) !important;
-        box-shadow: 0 10px 22px rgba(0,0,0,0.30) !important;
-    }
+/* Hover general */
+div[data-testid="stButton"] > button:hover {
+    transform: scale(1.07) !important;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.30) !important;
+}
 
-    #proyectos_btn button { background-color: #F4B400 !important; color: #F4B400 !important; }
-    #usuarios_btn button { background-color: #8E24AA !important; color: white !important; }
-    #grupos_btn button { background-color: #E53935 !important; color: white !important; }
-    #documentos_btn button { background-color: #1E88E5 !important; color: white !important; }
-    #reportes_btn button { background-color: #43A047 !important; color: white !important; }
-    #configuracion_btn button { background-color: #6D4C41 !important; color: white !important; }
+/* Colores por botón */
+#proyectos_btn button { background-color: #F4B400 !important; color: white !important; }
+#usuarios_btn button { background-color: #8E24AA !important; color: white !important; }
+#grupos_btn button { background-color: #E53935 !important; color: white !important; }
+#documentos_btn button { background-color: #1E88E5 !important; color: white !important; }
+#reportes_btn button { background-color: #43A047 !important; color: white !important; }
+#configuracion_btn button { background-color: #6D4C41 !important; color: white !important; }
 
-    #logout_btn button {
-        width: 200px !important;
-        height: 60px !important;
-        background-color: #424242 !important;
-        color: white !important;
-        border-radius: 10px !important;
-        transition: transform 0.2s ease !important;
-    }
-    #logout_btn button:hover {
-        transform: scale(1.05) !important;
-        background-color: black !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+/* Botón de logout más pequeño */
+#logout_btn button {
+    width: 200px !important;
+    height: 60px !important;
+    background-color: #424242 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    transition: transform 0.2s ease !important;
+}
+#logout_btn button:hover {
+    transform: scale(1.05) !important;
+    background-color: black !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --------------------------
+# Botones con ids
+# --------------------------
+st.markdown('<div id="proyectos_btn">', unsafe_allow_html=True)
+if st.button("Proyectos"):
+    st.write("Botón Proyectos clickeado")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div id="usuarios_btn">', unsafe_allow_html=True)
+if st.button("Usuarios"):
+    st.write("Botón Usuarios clickeado")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div id="grupos_btn">', unsafe_allow_html=True)
+if st.button("Grupos"):
+    st.write("Botón Grupos clickeado")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div id="documentos_btn">', unsafe_allow_html=True)
+if st.button("Documentos"):
+    st.write("Botón Documentos clickeado")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div id="reportes_btn">', unsafe_allow_html=True)
+if st.button("Reportes"):
+    st.write("Botón Reportes clickeado")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div id="configuracion_btn">', unsafe_allow_html=True)
+if st.button("Configuración"):
+    st.write("Botón Configuración clickeado")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div id="logout_btn">', unsafe_allow_html=True)
+if st.button("Logout"):
+    st.write("Has cerrado sesión")
+st.markdown('</div>', unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                    TÍTULO
