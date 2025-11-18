@@ -76,7 +76,6 @@ def pagina_grupos():
     # --------------------------------------------------------
     # BOTÓN PARA ELIMINAR EL GRUPO COMPLETO
     # --------------------------------------------------------
-    st.write("### Opciones del grupo seleccionado")
 
     if st.button("🗑️ Eliminar grupo"):
         if st.confirm("¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer."):
