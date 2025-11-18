@@ -10,27 +10,25 @@ def mostrar_menu():
     # -----------------------------------------------------
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
-    st.markdown("""
-<style>
-
-div.stButton {
+    div.stButton {
     display: flex !important;
-    justify-content: center !important;  /* Evita expandirse al 100% */
+    justify-content: center !important;
 }
 
 /* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 240px !important;   /* ← tamaño fijo horizontal */
-    height: 90px !important;   /* ← tamaño fijo vertical */
-    padding: 0 !important;
+    width: 240px !important;
+    height: 120px !important; /* un poco más alto para el emoji grande */
+    padding: 10px !important;
 
     display: flex !important;
+    flex-direction: column !important; /* Cambiar a columna para emoji arriba */
     align-items: center !important;
     justify-content: center !important;
 
-    white-space: nowrap !important;   /* No permite que el texto salte de línea */
-    overflow: hidden !important;      /* Evita que el texto desborde */
-    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
+    white-space: normal !important; /* Permite salto de línea */
+    overflow: visible !important;   /* Mostrar todo el contenido */
+    text-overflow: clip !important; /* Sin puntos suspensivos */
 
     font-size: 18px !important;
     font-weight: 600 !important;
@@ -41,6 +39,12 @@ div.stButton > button {
 
     transition: transform 0.25s ease, box-shadow 0.25s ease !important;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* Emoji dentro del botón */
+div.stButton > button > span.emoji {
+    font-size: 48px !important; /* Tamaño grande para emoji */
+    margin-bottom: 8px !important; /* Espacio entre emoji y texto */
 }
 
 /* Hover */
@@ -70,9 +74,6 @@ div.stButton > button:hover {
     transform: scale(1.05) !important;
     background-color: #000000 !important;
 }
-
-</style>
-""", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                    TÍTULO
