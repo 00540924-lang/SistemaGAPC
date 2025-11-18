@@ -20,8 +20,8 @@ def mostrar_menu():
         padding: 20px !important;
         font-size: 18px !important;
         font-weight: 600 !important;
-        width: 150% !important;
-        height: 150px !important;
+        width: 100% !important;
+        height: 100px !important;
         border: none !important;
         transition: transform 0.25s ease, box-shadow 0.25s ease !important;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
