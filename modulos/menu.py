@@ -1,64 +1,46 @@
 import streamlit as st
 
 def mostrar_menu():
-    rol = st.session_state.get("rol", None)
-
-    if not rol:
-        st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
-        st.stop()
-
-    # ---------------------------------------
-    # CONFIGURAR MÓDULOS Y COLORES
-    # ---------------------------------------
-    # Estructura de módulos: (Icono, Texto, Modulo Key, Color_Inicio, Color_Fin)
+    # ... (código para definir rol y módulos omitido) ...
+    # Asegúrate de que tu definición de módulos incluya los colores: (Icono, Texto, Key, Color1, Color2)
+    # Ejemplo:
     modulos_base = [
         ("📁", "Gestión de Proyectos", "proyectos", "#AEDFF7", "#C9B2D9"),
-        ("👥", "Gestión de Usuarios", "registrar_miembros", "#F7DCC4", "#F4CDB3"),
-        ("🧾", "Inspecciones y Evaluaciones", "inspecciones", "#BEE4DD", "#A6D9D0"),
-        ("📄", "Gestión Documental", "documentos", "#C9B2D9", "#F7DCC4"),
-        ("📊", "Reportes", "reportes", "#A6D9D0", "#DCC8E3"),
-        ("⚙️", "Configuración", "configuracion", "#F4CDB3", "#BEE4DD"),
+        # ... (resto de módulos) ...
     ]
     
-    # Lógica para asignar módulos según el rol
-    if rol == "institucional":
-        modulos = modulos_base
-    elif rol == "promotor":
-        modulos = [m for m in modulos_base if m[2] in ["proyectos", "inspecciones"]]
-    elif rol == "miembro":
-        modulos = [m for m in modulos_base if m[2] in ["documentos"]]
+    # ... (Lógica para asignar 'modulos' según el rol) ...
 
-
-    # ---------------------------------------
-    # TÍTULO Y CSS CRÍTICO (Estilo y Superposición)
-    # ---------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
+    # 🚨 BLOQUE CSS CORREGIDO 🚨
     st.markdown("""
 <style>
-/* 1. Estilos base para el botón Streamlit (Aplica a todos los botones st.button) */
+/* 1. Estilos base para el botón Streamlit (contenedor data-testid) */
 [data-testid="stButton"] > button {
-    /* Estilos de tarjeta */
+    /* **CRÍTICO:** Forzar el tamaño de la tarjeta para que no sean barras verticales */
     height: 150px;
-    width: 100%;
+    width: 100%; 
     border-radius: 18px;
+    
+    /* Mantenemos el resto de estilos */
     color: #4C3A60;
     font-size: 16px;
     font-weight: 700;
     border: none;
     cursor: pointer;
     margin-bottom: 18px;
-    /* Efecto Glassmorphism */
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 4px 18px rgba(0,0,0,0.15);
     transition: 0.25s ease-in-out;
-    /* Es importante que no muestre el contenido del label (que es un espacio) */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 10px;
+
+    /* Intentamos de nuevo ocultar el botón nativo. Si falla, al menos tendrá forma de tarjeta */
+    /* background: transparent; 
+    border: none; */
 }
 
 /* 2. Estilos hover */
@@ -71,11 +53,9 @@ def mostrar_menu():
 .card-design-layer {
     position: relative;
     z-index: 10;
-    /* CRÍTICO: Permite que el clic atraviese esta capa y llegue al botón subyacente */
     pointer-events: none; 
     text-align: center;
     width: 100%;
-    /* Estilos de Icono y Texto */
     color: #4C3A60; 
     font-size: 16px; 
     font-weight: 700;
@@ -83,15 +63,9 @@ def mostrar_menu():
 .icono-grande {
     font-size: 42px;
     margin-bottom: 6px;
-    display: block; /* Asegura que el icono esté en su propia línea */
-    pointer-events: none; /* Redundante, pero seguro */
+    display: block; 
+    pointer-events: none; 
 }
-
-/* 4. Oculta el label del botón cerrar sesión (si fuera necesario) */
-/* Quita esta regla si afecta el botón cerrar sesión */
-/* [data-testid="stButton"] button[key^="card_"] {
-    display: none;
-} */
 </style>
 """, unsafe_allow_html=True)
 
@@ -102,13 +76,12 @@ def mostrar_menu():
 
     for i, (icono, texto, modulo, color1, color2) in enumerate(modulos):
         
-        # Función de callback de Streamlit
         def on_button_click(target_module):
             st.session_state.page = target_module
             st.rerun()
 
         with cols[i % 3]:
-            # 1. Contenido HTML del diseño (Icono y Texto)
+            # 1. Contenido HTML del diseño
             button_design = f"""
                 <div class="card-design-layer">
                     <span class="icono-grande">{icono}</span>
@@ -125,11 +98,11 @@ def mostrar_menu():
                 }}
                 
                 /* 🚨 CRÍTICO: Superposición - Mueve el diseño HTML sobre el botón */
-                /* Apunta al div que contiene el st.markdown (el diseño) */
+                /* Aseguramos que el diseño se superponga perfectamente */
                 [data-testid="stVerticalBlock"] > div > div:nth-child({(i%3) * 2 + 1}) > div:nth-child(1) {{
-                    margin-bottom: -150px; /* Mueve el diseño hacia abajo, sobre el botón */
+                    margin-bottom: -150px; 
                     position: relative;
-                    z-index: 20; /* Asegura que esté sobre el botón */
+                    z-index: 20; 
                 }}
                 </style>
             """, unsafe_allow_html=True)
@@ -138,7 +111,6 @@ def mostrar_menu():
             st.markdown(button_design, unsafe_allow_html=True)
             
             # 4. Botón Streamlit real con la lógica (label vacío)
-            # Este es el elemento que recibe el clic.
             if st.button(
                 label=" ", 
                 key=f"card_{modulo}",
