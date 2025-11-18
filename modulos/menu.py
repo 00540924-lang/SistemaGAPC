@@ -73,7 +73,7 @@ def mostrar_menu():
 .btn-glass {
     padding: 18px;
     height: 150px;
-    width: 100%;
+    width: 80%;
     border-radius: 18px;
     color: #4C3A60;
     font-size: 18px;
