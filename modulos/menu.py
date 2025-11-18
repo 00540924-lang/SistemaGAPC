@@ -8,18 +8,18 @@ def mostrar_menu():
         st.stop()
 
     # ---------------------------------------
-    # CONFIGURAR MÓDULOS SEGÚN ROL (Añadimos los colores a la lista)
+    # CONFIGURAR MÓDULOS SEGÚN ROL
     # ---------------------------------------
-    # Los colores deben estar en la lista para el CSS dinámico
     modulos_base = [
-        ("📁", "Gestión de Proyectos", "proyectos", "#AEDFF7", "#C9B2D9"),
-        ("👥", "Gestión de Usuarios", "registrar_miembros", "#F7DCC4", "#F4CDB3"),
-        ("🧾", "Inspecciones y Evaluaciones", "inspecciones", "#BEE4DD", "#A6D9D0"),
-        ("📄", "Gestión Documental", "documentos", "#C9B2D9", "#F7DCC4"),
-        ("📊", "Reportes", "Reportes", "#A6D9D0", "#DCC8E3"),
-        ("⚙️", "Configuración", "configuracion", "#F4CDB3", "#BEE4DD"),
+        ("📁", "Gestión de Proyectos", "proyectos"),
+        ("👥", "Gestión de Usuarios", "registrar_miembros"),
+        ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
+        ("📄", "Gestión Documental", "documentos"),
+        ("📊", "Reportes", "reportes"),
+        ("⚙️", "Configuración", "configuracion"),
     ]
-
+    
+    # ... (Lógica para asignar 'modulos' según el rol, usando modulos_base) ...
     if rol == "institucional":
         modulos = modulos_base
     elif rol == "promotor":
@@ -27,16 +27,17 @@ def mostrar_menu():
     elif rol == "miembro":
         modulos = [m for m in modulos_base if m[2] in ["documentos"]]
 
+
     # ---------------------------------------
     # TÍTULO Y CSS
     # ---------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # Bloque CSS general (Estilos de Tarjeta y Layout)
     st.markdown("""
 <style>
-/* 1. Estilos base para el botón Streamlit (contenedor data-testid) */
-[data-testid="stButton"] > button {
+/* Estilos para el botón HTML visible (tarjeta) */
+.btn-glass {
+    padding: 18px;
     height: 150px;
     width: 100%;
     border-radius: 18px;
@@ -53,90 +54,87 @@ def mostrar_menu():
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
-    padding: 10px;
+    text-align: center;
 }
-
-/* 2. Estilos hover */
-[data-testid="stButton"] > button:hover {
+.btn-glass:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
-
-/* 3. Estilos de íconos/texto internos */
 .icono-grande {
     font-size: 42px;
     margin-bottom: 6px;
 }
+.btn1 { background: linear-gradient(135deg, #AEDFF7, #C9B2D9); }
+.btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }
+.btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }
+.btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }
+.btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
+.btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
 
-/* 4. Selector para el st.markdown con el diseño: 
-   Asegura que el diseño sea transparente al clic y se superponga */
-.card-design-layer {
-    position: relative;
-    z-index: 10; /* Asegura que esté encima */
-    pointer-events: none; /* PERMITE que el clic atraviese */
-    text-align: center;
-    width: 100%;
-    /* Mueve el diseño hacia la izquierda para alinearlo en la columna */
-    transform: translateX(-50%); 
+/* 🚨 CRÍTICO: Oculta el botón real de Streamlit que genera el recuadro blanco */
+/* Usamos el selector del botón dentro del contenedor */
+[data-testid="stButton"] button {
+    display: none !important; 
+}
+
+/* Selector para el contenedor stButton que queremos ocultar */
+[data-testid="stButton"] {
+    margin-bottom: -18px; /* Ajusta el margen para que el layout se vea apretado */
+    height: 0; /* Asegura que no ocupe espacio si es posible */
 }
 </style>
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # GRID DE BOTONES
+    # GRID DE BOTONES Y GENERACIÓN DE HTML
     # ---------------------------------------
     cols = st.columns(3)
+    
+    js_final_script = "<script>"
 
-    for i, (icono, texto, modulo, color1, color2) in enumerate(modulos):
-        
-        # Función de callback de Streamlit
-        def on_button_click(target_module):
-            st.session_state.page = target_module
-            st.rerun()
+    for i, (icono, texto, modulo) in enumerate(modulos):
+        clase_color = f"btn-glass btn{i+1}"
 
         with cols[i % 3]:
-            # 1. Contenido HTML del diseño
-            button_content = f"""
-                <div class="card-design-layer">
-                    <span class="icono-grande">{icono}</span>
-                    <span style='display: block;'>{texto}</span>
-                </div>
-            """
-            
-            # 2. Inyectamos el CSS de color y ajuste dinámico
+            # 1. Botón Streamlit (invisible) que ejecuta la lógica
+            boton_streamlit = st.button(" ", key=f"real_{modulo}")
+
+            # 2. Botón HTML (visible, la tarjeta)
+            # Inyectamos el diseño que SÍ se ve bien.
             st.markdown(f"""
-                <style>
-                /* Aplica el color de fondo a la tarjeta (st.button) */
-                [data-testid="stButton"] button[key="card_{modulo}"] {{
-                    background: linear-gradient(135deg, {color1}, {color2});
-                }}
-                
-                /* 🚨 Ajuste de Superposición: Mueve el diseño HTML de la tarjeta */
-                /* Apuntamos al div que contiene el st.markdown */
-                [data-testid="stVerticalBlock"] > div > div:nth-child({(i%3) + 1}) > div:nth-child(1) {{
-                    margin-bottom: -150px; /* Mueve el diseño hacia abajo, sobre el botón */
-                    position: relative;
-                    z-index: 20; /* Más alto que el diseño */
-                }}
-                </style>
+                <div class="custom-menu-card">
+                    <button class="{clase_color}" id="btn_{modulo}">
+                        <span class="icono-grande">{icono}</span>
+                        {texto}
+                    </button>
+                </div>
             """, unsafe_allow_html=True)
 
-            # 3. Inyectamos el diseño HTML
-            st.markdown(button_content, unsafe_allow_html=True)
-            
-            # 4. Botón Streamlit real con la lógica (label vacío)
-            # Este es el elemento que debe recibir el clic
-            if st.button(
-                label=" ", 
-                key=f"card_{modulo}",
-                on_click=on_button_click,
-                args=(modulo,), 
-            ):
-                pass
-            
+            # 3. Código JavaScript de conexión.
+            js_final_script += f"""
+                const btnHtml_{modulo} = window.parent.document.getElementById("btn_{modulo}");
+                // Busca el botón Streamlit invisible por su key.
+                const stBtnHidden_{modulo} = window.parent.document.querySelector('[data-testid="stButton"] button[key="real_{modulo}"]');
+                
+                if (btnHtml_{modulo} && stBtnHidden_{modulo}) {{
+                    btnHtml_{modulo}.addEventListener("click", () => stBtnHidden_{modulo}.click());
+                }}
+            """
+
+            # 4. Si se presionó el botón Streamlit invisible, cambiar la página
+            if boton_streamlit:
+                st.session_state.page = modulo
+                st.rerun()
+
     # ---------------------------------------
-    # BOTÓN CERRAR SESIÓN (Aseguramos que no se vea afectado por el CSS)
+    # INYECCIÓN FINAL DE JAVASCRIPT
+    # ---------------------------------------
+    js_final_script += "</script>"
+    # Inyectamos el script completo fuera de las columnas para asegurar la ejecución
+    st.markdown(js_final_script, unsafe_allow_html=True)
+
+    # ---------------------------------------
+    # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
     st.write("") 
     if st.button("🔒 Cerrar sesión"):
