@@ -8,71 +8,47 @@ def mostrar_menu():
         return
 
     # -----------------------------------------------------
-    #      🎨 CSS - Botones con animación + colores
+    #                    CSS
     # -----------------------------------------------------
     st.markdown("""
-<style>
+    <style>
+    div.stButton > button {
+        width: 240px !important;
+        height: 90px !important;
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        border: none !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        color: white !important;
+    }
+    div.stButton > button:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0,0,0,0.3) !important;
+    }
+    /* Colores por orden (importante: coincidir con el orden de los botones) */
+    div.stButton > button:nth-of-type(1) { background-color: #F4B400; color:#4C3A60; }
+    div.stButton > button:nth-of-type(2) { background-color: #8E24AA; }
+    div.stButton > button:nth-of-type(3) { background-color: #E53935; }
+    div.stButton > button:nth-of-type(4) { background-color: #1E88E5; }
+    div.stButton > button:nth-of-type(5) { background-color: #43A047; }
+    div.stButton > button:nth-of-type(6) { background-color: #6D4C41; }
 
-div.stButton {
-    display: flex !important;
-    justify-content: center !important;  /* Evita expandirse al 100% */
-}
-
-/* Estilo base de TODOS los botones */
-div.stButton > button {
-    width: 240px !important;   /* ← tamaño fijo horizontal */
-    height: 90px !important;   /* ← tamaño fijo vertical */
-    padding: 0 !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-
-    white-space: nowrap !important;   /* No permite que el texto salte de línea */
-    overflow: hidden !important;      /* Evita que el texto desborde */
-    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
-
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    color: #4C3A60 !important;
-
-    border-radius: 12px !important;
-    border: none !important;
-
-    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-}
-
-/* Hover */
-div.stButton > button:hover {
-    transform: scale(1.07) !important;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
-}
-
-/* Colores personalizados */
-#proyectos_btn > button { background-color: #F4B400 !important; }
-#usuarios_btn > button { background-color: #8E24AA !important; }
-#grupos_btn > button { background-color: #E53935 !important; }
-#documentos_btn > button { background-color: #1E88E5 !important; }
-#reportes_btn > button { background-color: #43A047 !important; }
-#configuracion_btn > button { background-color: #6D4C41 !important; }
-
-/* Logout */
-#logout_btn > button {
-    width: 200px !important;
-    height: 60px !important;
-    background-color: #424242 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    transition: transform 0.2s ease !important;
-}
-#logout_btn > button:hover {
-    transform: scale(1.05) !important;
-    background-color: #000000 !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
+    /* Logout */
+    #logout_btn > button {
+        width: 200px !important;
+        height: 60px !important;
+        background-color: #424242 !important;
+        color: white !important;
+        border-radius: 10px !important;
+        transition: transform 0.2s ease !important;
+    }
+    #logout_btn > button:hover {
+        transform: scale(1.05) !important;
+        background-color: #000000 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                    TÍTULO
@@ -83,12 +59,12 @@ div.stButton > button:hover {
     #                   MÓDULOS BASE
     # -----------------------------------------------------
     modulos_base = [
-        ("📁 Gestión de Proyectos", "proyectos", "proyectos_btn"),
-        ("👥 Gestión de Usuarios", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "inspecciones_btn"),
-        ("📄 Gestión Documental", "documentos", "documentos_btn"),
-        ("📊 Reportes", "reportes", "reportes_btn"),
-        ("⚙️ Configuración", "configuracion", "configuracion_btn"),
+        ("📁 Gestión de Proyectos", "proyectos"),
+        ("👥 Gestión de Usuarios", "registrar_miembros"),
+        ("📝 Grupos", "grupos"),
+        ("📄 Gestión Documental", "documentos"),
+        ("📊 Reportes", "reportes"),
+        ("⚙️ Configuración", "configuracion"),
     ]
 
     # -----------------------------------------------------
@@ -96,48 +72,30 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     if rol == "institucional":
         modulos = modulos_base
-
     elif rol == "promotor":
-        modulos = [
-            m for m in modulos_base if m[1] in ["proyectos", "inspecciones"]
-        ]
-
+        modulos = [m for m in modulos_base if m[1] in ["proyectos", "grupos"]]
     elif rol == "miembro":
-        modulos = [
-            m for m in modulos_base if m[1] == "documentos"
-        ]
-
+        modulos = [m for m in modulos_base if m[1] == "documentos"]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
     # -----------------------------------------------------
-    #               GRID DE BOTONES
+    #               BOTONES STREAMLIT
     # -----------------------------------------------------
     cols = st.columns(3)
-
-    for i, (texto, modulo, css_id) in enumerate(modulos):
+    for i, (texto, modulo) in enumerate(modulos):
         with cols[i % 3]:
-            btn = st.container()
-            with btn:
-                b = st.button(texto, key=f"btn_{modulo}")
-                # Aplicar ID de CSS al contenedor
-                btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
-
-                if b:
-                    st.session_state.page = modulo
-                    st.rerun()
+            if st.button(texto, key=f"btn_{modulo}"):
+                st.session_state.page = modulo
+                st.rerun()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
     # -----------------------------------------------------
     st.write("---")
-
-    logout_container = st.container()
-    with logout_container:
-        logout = st.button("🔒 Cerrar sesión", key="logout")
-        logout_container.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
-
-        if logout:
+    with st.container():
+        if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
+
