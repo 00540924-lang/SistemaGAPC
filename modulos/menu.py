@@ -7,20 +7,17 @@ def mostrar_menu():
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-    # -----------------------------------------------------
+# -----------------------------------------------------
 #      🎨 CSS - Botones centrados con animación
 # -----------------------------------------------------
 st.markdown("""
 <style>
 
- /* CONTENEDOR GENERAL PARA CENTRAR TODOS LOS BOTONES */
- .center-buttons {
-     display: flex;
-     flex-direction: column;
-     justify-content: center;
-     align-items: center;
-     gap: 25px;
-     width: 100%;
+ /* CENTRAR TODOS LOS BOTONES */
+ .center-buttons button {
+     margin-left: auto !important;
+     margin-right: auto !important;
+     display: block !important;
  }
 
  /* BOTONES: estilo base */
@@ -30,8 +27,8 @@ st.markdown("""
      padding: 20px !important;
      font-size: 18px !important;
      font-weight: 600 !important;
-     width: 350px !important;     /* ⬅️ TAMANO UNIFORME */
-     height: 100px !important;    /* ⬅️ TAMANO UNIFORME */
+     width: 350px !important;
+     height: 100px !important;
      border: none !important;
      transition: transform 0.25s ease, box-shadow 0.25s ease !important;
      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
@@ -43,7 +40,7 @@ st.markdown("""
      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
  }
 
- /* 🎨 COLORES POR MÓDULO */
+ /* COLORES */
  #proyectos_btn > button { background-color: #F4B400 !important; }
  #usuarios_btn > button { background-color: #8E24AA !important; }
  #inspecciones_btn > button { background-color: #E53935 !important; }
@@ -51,15 +48,12 @@ st.markdown("""
  #reportes_btn > button { background-color: #43A047 !important; }
  #configuracion_btn > button { background-color: #6D4C41 !important; }
 
- /* BOTÓN CERRAR SESIÓN */
+ /* CERRAR SESIÓN */
  #logout_btn > button {
      background-color: #424242 !important;
      color: white !important;
-     border-radius: 10px !important;
-     padding: 12px 22px !important;
-     font-size: 16px !important;
      width: 200px !important;
-     transition: transform 0.2s ease !important;
+     border-radius: 10px !important;
  }
  #logout_btn > button:hover {
      transform: scale(1.05) !important;
@@ -69,8 +63,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 # -----------------------------------------------------
-#      🚀 BOTONES CENTRADOS
+#      🚀 BOTONES — SIN DIV CONTENEDOR
 # -----------------------------------------------------
 
 st.markdown('<div class="center-buttons">', unsafe_allow_html=True)
@@ -81,16 +76,9 @@ st.button("Inspecciones", key="inspecciones_btn")
 st.button("Documentos", key="documentos_btn")
 st.button("Reportes", key="reportes_btn")
 st.button("Configuración", key="configuracion_btn")
-
-# Botón cerrar sesión
 st.button("Cerrar sesión", key="logout_btn")
 
 st.markdown('</div>', unsafe_allow_html=True)
-
-    # -----------------------------------------------------
-    #                    TÍTULO
-    # -----------------------------------------------------
-    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                   MÓDULOS BASE
