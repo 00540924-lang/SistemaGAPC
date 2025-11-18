@@ -1,88 +1,47 @@
 import streamlit as st
+from modulos.login import login
+from modulos.menu import mostrar_menu
 
-def mostrar_menu():
+# ------------------------------
+# VARIABLES DE SESIÓN
+# ------------------------------
+st.session_state.setdefault("sesion_iniciada", False)
+st.session_state.setdefault("page", "menu")
 
-    st.markdown(
-        "<h1 style='text-align:center; color:#4C3A60;'>Menú Principal – GAPC</h1>",
-        unsafe_allow_html=True
-    )
-    st.write("")
+# ------------------------------
+# LOGIN
+# ------------------------------
+if not st.session_state["sesion_iniciada"]:
+    login()
+    st.stop()
 
-    # --------- MODULOS -----------
-    opciones = [
-        {"id": "proyectos", "titulo": "Gestión de Proyectos", "icono": "📁",
-         "color": "linear-gradient(135deg, #B7D3F2, #C9B6E4)"},
-        {"id": "usuarios", "titulo": "Gestión de Usuarios", "icono": "👥",
-         "color": "linear-gradient(135deg, #F7D9C4, #E8B7DE)"},
-        {"id": "inspecciones", "titulo": "Inspecciones y Evaluaciones", "icono": "🧾",
-         "color": "linear-gradient(135deg, #A8E6CF, #DCEDC1)"},
-        {"id": "documentos", "titulo": "Gestión Documental", "icono": "📄",
-         "color": "linear-gradient(135deg, #EAD6EE, #F6EEC7)"},
-        {"id": "reportes", "titulo": "Reportes", "icono": "📊",
-         "color": "linear-gradient(135deg, #B2EBF2, #D7BDE2)"},
-        {"id": "configuracion", "titulo": "Configuración", "icono": "⚙️",
-         "color": "linear-gradient(135deg, #F7E7C4, #E3C4A8)"}
-    ]
+# ------------------------------
+# ROUTER
+# ------------------------------
+page = st.session_state["page"]
 
-    cols = st.columns(3)
+if page == "menu":
+    mostrar_menu()
 
-    for i, item in enumerate(opciones):
-        col = cols[i % 3]
-        with col:
+elif page == "usuarios":
+    from modulos.registrar_miembros import registrar_miembros
+    registrar_miembros()
 
-            # TARJETA CON ESTILO Y CURSOR
-            st.markdown(
-                f"""
-                <div class="card" id="card_{item['id']}"
-                    style="
-                        background:{item['color']};
-                        padding: 30px;
-                        border-radius: 22px;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                        text-align:center;
-                        cursor:pointer;
-                        transition:0.2s;
-                        margin-bottom: 25px;
-                    ">
-                    <div style="font-size:55px;">{item['icono']}</div>
-                    <div style="margin-top:10px; font-size:19px; font-weight:700; color:#4C3A60;">
-                        {item['titulo']}
-                    </div>
-                </div>
+elif page == "proyectos":
+    st.title("⚒ Gestión de Proyectos (Aún no implementado)")
 
-                <script>
-                const card = window.parent.document.getElementById("card_{item['id']}");
-                if (card) {{
-                    card.onclick = () => {{
-                        window.parent.postMessage({{"page": "{item['id']}"}}, "*");
-                    }};
-                }}
-                </script>
-                """,
-                unsafe_allow_html=True
-            )
+elif page == "inspecciones":
+    st.title("🔍 Inspecciones (Aún no implementado)")
 
-    # LISTENER QUE STREAMLIT SÍ LEE
-    st.markdown("""
-        <script>
-            window.addEventListener("message", (event) => {
-                if (event.data.page) {
-                    const input = document.getElementById("streamlit-page-input");
-                    input.value = event.data.page;
-                    input.dispatchEvent(new Event("change"));
-                }
-            });
-        </script>
-    """, unsafe_allow_html=True)
+elif page == "documentos":
+    st.title("📄 Documentos (Aún no implementado)")
 
-    st.text_input("", key="streamlit-page-input", label_visibility="hidden")
+elif page == "reportes":
+    st.title("📊 Reportes (Aún no implementado)")
 
-    sel = st.session_state.get("streamlit-page-input", "")
-    if sel:
-        st.session_state["page"] = sel
-        st.rerun()
+elif page == "configuracion":
+    st.title("⚙️ Configuración (Aún no implementado)")
 
-    # CERRAR SESIÓN
-    if st.button("🔒 Cerrar sesión"):
-        st.session_state.clear()
-        st.rerun()
+else:
+    st.error("❌ Página no encontrada.")
+
