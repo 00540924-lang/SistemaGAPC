@@ -18,8 +18,8 @@ def mostrar_menu():
     }
 
     div[data-testid="stButton"] > button {
-        width: 240px !important;
-        height: 90px !important;
+        width: 150px !important;
+        height: 150px !important;
         padding: 0 !important;
         display: flex !important;
         align-items: center !important;
