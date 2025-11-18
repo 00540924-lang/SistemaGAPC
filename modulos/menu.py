@@ -79,8 +79,8 @@ def mostrar_menu():
 .card-design-layer {
     position: relative;
     z-index: 10;
-    /* CRÍTICO: Permite que el clic atraviese esta capa y llegue al botón subyacente */
-    pointer-events: none; 
+    /* 🚨 CRÍTICO: FORZAR PROPIEDAD PARA EL CLIC */
+    pointer-events: none !important; 
     text-align: center;
     width: 100%;
     color: #4C3A60; 
@@ -91,7 +91,7 @@ def mostrar_menu():
     font-size: 42px;
     margin-bottom: 6px;
     display: block; 
-    pointer-events: none; 
+    pointer-events: none !important; /* Doble seguridad */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -126,7 +126,7 @@ def mostrar_menu():
                 }}
                 
                 /* 🚨 CRÍTICO: Superposición - Mueve el diseño HTML sobre el botón */
-                /* Usamos un selector basado en la posición en la columna (0, 1, 2) */
+                /* Usamos un selector que se ajusta a la estructura de Streamlit */
                 [data-testid="stVerticalBlock"] > div > div:nth-child({(i%3) * 2 + 1}) > div:nth-child(1) {{
                     margin-bottom: -150px; /* Desplaza el diseño hacia abajo */
                     position: relative;
@@ -149,7 +149,7 @@ def mostrar_menu():
                 pass
             
     # ---------------------------------------
-    # BOTÓN CERRAR SESIÓN (Aseguramos que no se vea afectado por el CSS)
+    # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
     st.write("") 
     if st.button("🔒 Cerrar sesión"):
