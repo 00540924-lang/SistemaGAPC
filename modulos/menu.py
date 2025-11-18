@@ -8,39 +8,34 @@ def mostrar_menu():
         st.stop()
 
     # ---------------------------------------
-    # CONFIGURAR MÓDULOS SEGÚN ROL
+    # CONFIGURAR MÓDULOS SEGÚN ROL (Añadimos los colores a la lista)
     # ---------------------------------------
+    # Los colores deben estar en la lista para el CSS dinámico
+    modulos_base = [
+        ("📁", "Gestión de Proyectos", "proyectos", "#AEDFF7", "#C9B2D9"),
+        ("👥", "Gestión de Usuarios", "registrar_miembros", "#F7DCC4", "#F4CDB3"),
+        ("🧾", "Inspecciones y Evaluaciones", "inspecciones", "#BEE4DD", "#A6D9D0"),
+        ("📄", "Gestión Documental", "documentos", "#C9B2D9", "#F7DCC4"),
+        ("📊", "Reportes", "Reportes", "#A6D9D0", "#DCC8E3"),
+        ("⚙️", "Configuración", "configuracion", "#F4CDB3", "#BEE4DD"),
+    ]
+
     if rol == "institucional":
-        modulos = [
-            ("📁", "Gestión de Proyectos", "proyectos", "#AEDFF7", "#C9B2D9"),
-            ("👥", "Gestión de Usuarios", "registrar_miembros", "#F7DCC4", "#F4CDB3"),
-            ("🧾", "Inspecciones y Evaluaciones", "inspecciones", "#BEE4DD", "#A6D9D0"),
-            ("📄", "Gestión Documental", "documentos", "#C9B2D9", "#F7DCC4"),
-            ("📊", "Reportes", "reportes", "#A6D9D0", "#DCC8E3"),
-            ("⚙️", "Configuración", "configuracion", "#F4CDB3", "#BEE4DD"),
-        ]
-
+        modulos = modulos_base
     elif rol == "promotor":
-        modulos = [
-            ("📁", "Gestión de Proyectos", "proyectos", "#AEDFF7", "#C9B2D9"),
-            ("🧾", "Inspecciones y Evaluaciones", "inspecciones", "#BEE4DD", "#A6D9D0"),
-        ]
-
+        modulos = [m for m in modulos_base if m[2] in ["proyectos", "inspecciones"]]
     elif rol == "miembro":
-        modulos = [
-            ("📄", "Gestión Documental", "documentos", "#C9B2D9", "#F7DCC4"),
-        ]
-        
+        modulos = [m for m in modulos_base if m[2] in ["documentos"]]
+
     # ---------------------------------------
     # TÍTULO Y CSS
     # ---------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # 🚨 CSS: Aplicamos el estilo de tarjeta y el degradado de color
+    # Bloque CSS general (Estilos de Tarjeta y Layout)
     st.markdown("""
 <style>
 /* 1. Estilos base para el botón Streamlit (contenedor data-testid) */
-/* El selector apunta al botón real dentro del contenedor */
 [data-testid="stButton"] > button {
     height: 150px;
     width: 100%;
@@ -55,12 +50,11 @@ def mostrar_menu():
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 4px 18px rgba(0,0,0,0.15);
     transition: 0.25s ease-in-out;
-    /* Forzar que el contenido (HTML inyectado) se centre */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 10px; /* Ajuste del padding */
+    padding: 10px;
 }
 
 /* 2. Estilos hover */
@@ -73,6 +67,18 @@ def mostrar_menu():
 .icono-grande {
     font-size: 42px;
     margin-bottom: 6px;
+}
+
+/* 4. Selector para el st.markdown con el diseño: 
+   Asegura que el diseño sea transparente al clic y se superponga */
+.card-design-layer {
+    position: relative;
+    z-index: 10; /* Asegura que esté encima */
+    pointer-events: none; /* PERMITE que el clic atraviese */
+    text-align: center;
+    width: 100%;
+    /* Mueve el diseño hacia la izquierda para alinearlo en la columna */
+    transform: translateX(-50%); 
 }
 </style>
 """, unsafe_allow_html=True)
@@ -90,52 +96,47 @@ def mostrar_menu():
             st.rerun()
 
         with cols[i % 3]:
-            # 1. Creamos el contenido HTML del botón
+            # 1. Contenido HTML del diseño
             button_content = f"""
-                <span class="icono-grande">{icono}</span>
-                <span style='text-align:center;'>{texto}</span>
+                <div class="card-design-layer">
+                    <span class="icono-grande">{icono}</span>
+                    <span style='display: block;'>{texto}</span>
+                </div>
             """
             
-            # 2. Inyectamos CSS específico para el color del botón
-            # Usamos el KEY del botón para apuntar exactamente a ese widget
+            # 2. Inyectamos el CSS de color y ajuste dinámico
             st.markdown(f"""
                 <style>
+                /* Aplica el color de fondo a la tarjeta (st.button) */
                 [data-testid="stButton"] button[key="card_{modulo}"] {{
                     background: linear-gradient(135deg, {color1}, {color2});
+                }}
+                
+                /* 🚨 Ajuste de Superposición: Mueve el diseño HTML de la tarjeta */
+                /* Apuntamos al div que contiene el st.markdown */
+                [data-testid="stVerticalBlock"] > div > div:nth-child({(i%3) + 1}) > div:nth-child(1) {{
+                    margin-bottom: -150px; /* Mueve el diseño hacia abajo, sobre el botón */
+                    position: relative;
+                    z-index: 20; /* Más alto que el diseño */
                 }}
                 </style>
             """, unsafe_allow_html=True)
 
-            # 3. Usamos el componente st.button (con un truco para el HTML)
-            # Como Streamlit ya no acepta HTML en el label, inyectamos el HTML ANTES
-            # y usamos un botón que no tiene label, dejando que el CSS lo posicione.
-            
-            # Usamos un truco: inyectamos el HTML del icono y texto y luego un botón con un label simple
+            # 3. Inyectamos el diseño HTML
             st.markdown(button_content, unsafe_allow_html=True)
             
-            # Botón Streamlit real con la lógica (label vacío)
+            # 4. Botón Streamlit real con la lógica (label vacío)
+            # Este es el elemento que debe recibir el clic
             if st.button(
-                label=" ", # ¡Label vacío! Es CRUCIAL
+                label=" ", 
                 key=f"card_{modulo}",
                 on_click=on_button_click,
                 args=(modulo,), 
             ):
                 pass
             
-            # 🚨 El truco final: usamos CSS para mover el contenido HTML sobre el botón nativo
-            st.markdown(f"""
-                <style>
-                /* Selecciona el bloque vertical (contenedor) y mueve el HTML hacia el botón */
-                [data-testid="stVerticalBlock"] > div:nth-child({(i % 3) * 2 + 1}) > div:nth-child(1) {{
-                    margin-bottom: -150px; /* Mueve el diseño de texto y icono hacia abajo, sobre el botón vacío */
-                    pointer-events: none; /* Crucial: permite que el clic atraviese este HTML y llegue al botón */
-                }}
-                </style>
-            """, unsafe_allow_html=True)
-
-
     # ---------------------------------------
-    # BOTÓN CERRAR SESIÓN
+    # BOTÓN CERRAR SESIÓN (Aseguramos que no se vea afectado por el CSS)
     # ---------------------------------------
     st.write("") 
     if st.button("🔒 Cerrar sesión"):
