@@ -6,11 +6,10 @@ def mostrar_menu():
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-    # CSS para personalizar botones específicos según su key
+    # CSS para los botones según su key
     st.markdown("""
     <style>
-    /* Botón proyectos */
-    button[kind="primary"][data-testid="stButton"][aria-label="btn_proyectos"] {
+    button[aria-label="btn_proyectos"] {
         background-color: #F4B400 !important;
         color: #4C3A60 !important;
         width: 240px !important;
@@ -18,9 +17,15 @@ def mostrar_menu():
         font-weight: 600 !important;
         font-size: 18px !important;
         border-radius: 12px !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    /* Botón usuarios */
-    button[kind="primary"][data-testid="stButton"][aria-label="btn_registrar_miembros"] {
+    button[aria-label="btn_proyectos"]:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
+
+    button[aria-label="btn_registrar_miembros"] {
         background-color: #8E24AA !important;
         color: white !important;
         width: 240px !important;
@@ -28,9 +33,15 @@ def mostrar_menu():
         font-weight: 600 !important;
         font-size: 18px !important;
         border-radius: 12px !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    /* Botón grupos */
-    button[kind="primary"][data-testid="stButton"][aria-label="btn_grupos"] {
+    button[aria-label="btn_registrar_miembros"]:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
+
+    button[aria-label="btn_grupos"] {
         background-color: #E53935 !important;
         color: white !important;
         width: 240px !important;
@@ -38,9 +49,15 @@ def mostrar_menu():
         font-weight: 600 !important;
         font-size: 18px !important;
         border-radius: 12px !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    /* Botón documentos */
-    button[kind="primary"][data-testid="stButton"][aria-label="btn_documentos"] {
+    button[aria-label="btn_grupos"]:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
+
+    button[aria-label="btn_documentos"] {
         background-color: #1E88E5 !important;
         color: white !important;
         width: 240px !important;
@@ -48,9 +65,15 @@ def mostrar_menu():
         font-weight: 600 !important;
         font-size: 18px !important;
         border-radius: 12px !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    /* Botón reportes */
-    button[kind="primary"][data-testid="stButton"][aria-label="btn_reportes"] {
+    button[aria-label="btn_documentos"]:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
+
+    button[aria-label="btn_reportes"] {
         background-color: #43A047 !important;
         color: white !important;
         width: 240px !important;
@@ -58,9 +81,15 @@ def mostrar_menu():
         font-weight: 600 !important;
         font-size: 18px !important;
         border-radius: 12px !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    /* Botón configuración */
-    button[kind="primary"][data-testid="stButton"][aria-label="btn_configuracion"] {
+    button[aria-label="btn_reportes"]:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
+
+    button[aria-label="btn_configuracion"] {
         background-color: #6D4C41 !important;
         color: white !important;
         width: 240px !important;
@@ -68,56 +97,75 @@ def mostrar_menu():
         font-weight: 600 !important;
         font-size: 18px !important;
         border-radius: 12px !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    /* Botón logout */
-    button[kind="primary"][data-testid="stButton"][aria-label="logout_btn"] {
-        background-color: #424242 !important;
-        color: white !important;
+    button[aria-label="btn_configuracion"]:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+    }
+
+    /* Logout */
+    button[aria-label="logout_btn"] {
         width: 200px !important;
         height: 60px !important;
-        font-weight: 600 !important;
-        font-size: 16px !important;
+        background-color: #424242 !important;
+        color: white !important;
         border-radius: 10px !important;
+        transition: transform 0.2s ease !important;
     }
-    button[kind="primary"][data-testid="stButton"][aria-label="logout_btn"]:hover {
-        background-color: #000000 !important;
+    button[aria-label="logout_btn"]:hover {
         transform: scale(1.05) !important;
-        transition: all 0.2s ease !important;
+        background-color: #000000 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
+    # Título
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     modulos_base = [
-        ("📁 Gestión de Proyectos", "proyectos"),
-        ("👥 Gestión de Usuarios", "registrar_miembros"),
-        ("📝 Grupos", "grupos"),
-        ("📄 Gestión Documental", "documentos"),
-        ("📊 Reportes", "reportes"),
-        ("⚙️ Configuración", "configuracion"),
+        ("📁 Gestión de Proyectos", "proyectos", "btn_proyectos"),
+        ("👥 Gestión de Usuarios", "registrar_miembros", "btn_registrar_miembros"),
+        ("📝 Grupos", "grupos", "btn_grupos"),
+        ("📄 Gestión Documental", "documentos", "btn_documentos"),
+        ("📊 Reportes", "reportes", "btn_reportes"),
+        ("⚙️ Configuración", "configuracion", "btn_configuracion"),
     ]
 
-    # Filtrado rol
+    rol = st.session_state.get("rol", None)
+
     if rol == "institucional":
         modulos = modulos_base
+
     elif rol == "promotor":
-        modulos = [m for m in modulos_base if m[1] in ["proyectos", "grupos"]]
+        modulos = [
+            m for m in modulos_base if m[1] in ["proyectos", "grupos"]
+        ]
+
     elif rol == "miembro":
-        modulos = [m for m in modulos_base if m[1] == "documentos"]
+        modulos = [
+            m for m in modulos_base if m[1] == "documentos"
+        ]
+
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
     cols = st.columns(3)
-    for i, (texto, modulo) in enumerate(modulos):
+    for i, (texto, modulo, key) in enumerate(modulos):
         with cols[i % 3]:
-            if st.button(texto, key=f"btn_{modulo}", help=texto):
+            if st.button(texto, key=key):
                 st.session_state.page = modulo
                 st.experimental_rerun()
 
-    st.markdown("---")
-
+    st.write("---")
     if st.button("🔒 Cerrar sesión", key="logout_btn"):
         st.session_state.clear()
         st.experimental_rerun()
+
+# Para probar la función (ejemplo):
+if "rol" not in st.session_state:
+    st.session_state["rol"] = "institucional"
+
+mostrar_menu()
