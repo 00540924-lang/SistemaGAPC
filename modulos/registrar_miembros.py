@@ -6,7 +6,7 @@ def registrar_miembros():
     st.title("🧍 Registro de Miembros")
 
     # ------------------ FORMULARIO ------------------
-    with st.form("form_miembro"):
+    with st.form("form_Miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
         telefono = st.text_input("Teléfono")
@@ -23,7 +23,7 @@ def registrar_miembros():
             )
             cursor = conexion.cursor()
 
-            sql = "INSERT INTO miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
+            sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             datos = (nombre, dui, telefono)
             cursor.execute(sql, datos)
             conexion.commit()
@@ -52,31 +52,31 @@ def registrar_miembros():
             database="bzn5gsi7ken7lufcglbg"
         )
         cursor = conexion.cursor()
-        cursor.execute("SELECT id_miembros, Nombre, DUI, Telefono FROM miembros")
+        cursor.execute("SELECT Nombre, DUI, Telefono FROM Miembros")
         miembros = cursor.fetchall()
 
         if miembros:
             # Crear DataFrame y renombrar columnas
-            df = pd.DataFrame(miembros, columns=["No.", "Nombre", "DUI", "Teléfono"])
+            df = pd.DataFrame(Miembros, columns=["No.", "Nombre", "DUI", "Teléfono"])
             df.index = df.index + 1  # numeración desde 1
 
             # Convertir a HTML con clase para CSS
-            html = df.to_html(classes="miembros-table", index=False)
+            html = df.to_html(classes="Miembros-table", index=False)
 
             # Mostrar tabla centrada con encabezados centrados
             st.markdown(
                 f"""
                 <style>
-                    .miembros-table th {{
+                    .Miembros-table th {{
                         text-align: center;
                         background-color: #f0f0f0;
                         padding: 8px;
                     }}
-                    .miembros-table td {{
+                    .Miembros-table td {{
                         text-align: center;
                         padding: 8px;
                     }}
-                    .miembros-table {{
+                    .Miembros-table {{
                         width: 80%;
                         margin-left: auto;
                         margin-right: auto;
