@@ -67,12 +67,14 @@ def pagina_grupos():
         cursor.close()
         conn.close()
         return
-    st.write("### ⚙️ Opciones del grupo")
+
     grupo_id = st.selectbox(
         "Selecciona un grupo",
         options=[g["id_grupo"] for g in grupos],
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
     )
+
+    st.write("### Opciones del grupo")
 
     # =========================================
     # ELIMINAR GRUPO (CON CONFIRMACIÓN)
@@ -116,7 +118,7 @@ def pagina_grupos():
     # =========================================
     # LISTAR MIEMBROS DEL GRUPO
     # =========================================
-    st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
+    st.write("### Miembros del grupo")
 
     cursor.execute("""
         SELECT M.id_miembro, M.nombre
