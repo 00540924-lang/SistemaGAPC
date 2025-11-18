@@ -21,21 +21,21 @@ div.stButton {
 
 /* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 180px !important;    /* ← tamaño fijo horizontal */
-    height: 100px !important;    /* ← tamaño fijo vertical */
+    width: 180px !important;
+    height: 100px !important;
     padding: 0 !important;
 
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 
-    white-space: nowrap !important;     /* No permite que el texto salte de línea */
-    overflow: hidden !important;        /* Evita que el texto desborde */
-    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 
     font-size: 18px !important;
     font-weight: 600 !important;
-    color: white !important; /* Cambiado a blanco para mejor contraste con colores fuertes */
+    color: white !important; /* Blanco para fondos oscuros */
 
     border-radius: 12px !important;
     border: none !important;
@@ -51,12 +51,16 @@ div.stButton > button:hover {
 }
 
 /* Colores personalizados - Apuntando al contenedor div.stButton por el ID inyectado */
-#proyectos_btn > button { background-color: #F4B400 !important; color: #4C3A60 !important;} /* Amarillo */
-#usuarios_btn > button { background-color: #8E24AA !important; } /* Púrpura */
-#grupos_btn > button { background-color: #E53935 !important; } /* Rojo */
-#documentos_btn > button { background-color: #1E88E5 !important; } /* Azul */
-#reportes_btn > button { background-color: #43A047 !important; } /* Verde */
-#configuracion_btn > button { background-color: #6D4C41 !important; } /* Marrón */
+/* ¡CORRECCIÓN! El color del texto es fundamental para el botón AMARILLO */
+#proyectos_btn > button { 
+    background-color: #F4B400 !important; 
+    color: #4C3A60 !important; /* Texto oscuro para contrastar con el amarillo */
+} 
+#usuarios_btn > button { background-color: #8E24AA !important; }
+#grupos_btn > button { background-color: #E53935 !important; }
+#documentos_btn > button { background-color: #1E88E5 !important; }
+#reportes_btn > button { background-color: #43A047 !important; }
+#configuracion_btn > button { background-color: #6D4C41 !important; }
 
 /* Logout */
 #logout_btn > button {
@@ -86,7 +90,7 @@ div.stButton > button:hover {
     modulos_base = [
         ("📁 Gestión de Proyectos", "proyectos", "proyectos_btn"),
         ("👥 Gestión de Usuarios", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "grupos_btn"), # Corregido: "inspecciones_btn" a "grupos_btn" para coincidir con la lista de módulos base
+        ("📝 Grupos", "grupos", "grupos_btn"),
         ("📄 Gestión Documental", "documentos", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
@@ -97,41 +101,36 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     if rol == "institucional":
         modulos = modulos_base
-
     elif rol == "promotor":
-        # Se ha corregido la lista de módulos para el rol "promotor"
-        modulos = [
-            m for m in modulos_base if m[1] in ["proyectos", "grupos"] 
-        ]
-
+        modulos = [m for m in modulos_base if m[1] in ["proyectos", "grupos"]]
     elif rol == "miembro":
-        modulos = [
-            m for m in modulos_base if m[1] == "documentos"
-        ]
-
+        modulos = [m for m in modulos_base if m[1] == "documentos"]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
     # -----------------------------------------------------
-    #                       GRID DE BOTONES (Solución para colores)
+    #                       GRID DE BOTONES (Solución robusta para colores)
     # -----------------------------------------------------
-    # Usamos 3 columnas para la rejilla
     cols = st.columns(3)
 
     for i, (texto, modulo, css_id) in enumerate(modulos):
+        key = f"btn_{modulo}"
         with cols[i % 3]:
-            # 1. Creamos el botón con una key única (que se usa en el data-testid)
-            b = st.button(texto, key=f"btn_{modulo}")
+            # 1. Creamos el botón
+            b = st.button(texto, key=key)
 
-            # 2. Inyectamos JavaScript para encontrar el botón y poner el ID
-            #    en su contenedor padre (div.stButton) después de que Streamlit lo renderice.
+            # 2. Inyectamos JavaScript para encontrar el botón y poner el ID en su contenedor.
+            # Este script es más fiable que buscar por data-testid
             st.markdown(f"""
                 <script>
-                    var button = window.parent.document.querySelector('[data-testid="stButton-btn_{modulo}"]');
-                    if (button) {{
-                        // El padre del botón es el div.stButton. Le asignamos el ID.
-                        button.parentElement.id = "{css_id}";
+                    const key = "{key}";
+                    // Busca el elemento del botón por su clave Streamlit
+                    let buttonElement = window.parent.document.querySelector('[data-testid="stButton-{key}"]');
+                    
+                    if (buttonElement) {{
+                        // Asigna el ID al contenedor padre (div.stButton)
+                        buttonElement.parentElement.id = "{css_id}";
                     }}
                 </script>
             """, unsafe_allow_html=True)
@@ -140,58 +139,48 @@ div.stButton > button:hover {
             if b:
                 st.session_state.page = modulo
                 st.rerun()
-    
+
     # -----------------------------------------------------
-    #                   BOTÓN CERRAR SESIÓN (Solución para color)
+    #                   BOTÓN CERRAR SESIÓN 
     # -----------------------------------------------------
     st.write("---")
 
-    logout_container = st.container()
-    with logout_container:
-        logout = st.button("🔒 Cerrar sesión", key="logout")
-        
-        # Inyectamos JavaScript para el botón de cerrar sesión
-        st.markdown(f"""
-            <script>
-                var logout_button = window.parent.document.querySelector('[data-testid="stButton-logout"]');
-                if (logout_button) {{
-                    logout_button.parentElement.id = "logout_btn";
-                }}
-            </script>
-        """, unsafe_allow_html=True)
+    logout = st.button("🔒 Cerrar sesión", key="logout")
+    
+    # Inyectamos JavaScript para el botón de cerrar sesión
+    st.markdown(f"""
+        <script>
+            let logout_button = window.parent.document.querySelector('[data-testid="stButton-logout"]');
+            if (logout_button) {{
+                logout_button.parentElement.id = "logout_btn";
+            }}
+        </script>
+    """, unsafe_allow_html=True)
 
-        if logout:
-            st.session_state.clear()
-            # Asume que la página de inicio de sesión es "login"
-            st.session_state.page = "login" 
-            st.rerun()
+    if logout:
+        st.session_state.clear()
+        st.session_state.page = "login" 
+        st.rerun()
 
 # -----------------------------------------------------
 #                       EJEMPLO DE USO (para pruebas)
 # -----------------------------------------------------
 
-# Inicializa el estado de la sesión si es la primera vez que se carga
 if 'page' not in st.session_state:
     st.session_state.page = 'menu'
 if 'rol' not in st.session_state:
-    # Simula que un usuario ha iniciado sesión con un rol específico para probar
-    st.session_state.rol = 'institucional' 
-    # Para probar otros roles, cambia la línea de arriba a:
-    # st.session_state.rol = 'promotor'
-    # st.session_state.rol = 'miembro'
+    st.session_state.rol = 'institucional'
 
 # Lógica de renderizado de páginas
 if st.session_state.page == 'menu':
     mostrar_menu()
 elif st.session_state.page == 'login':
     st.title("Página de Login Simulada")
-    # Agrega un botón para simular un inicio de sesión
     if st.button("Simular Inicio de Sesión como Institucional"):
         st.session_state.rol = 'institucional'
         st.session_state.page = 'menu'
         st.rerun()
 else:
-    # Simulación de la página del módulo seleccionado
     st.header(f"Estás en el módulo: {st.session_state.page.replace('_', ' ').title()}")
     if st.button("← Volver al Menú Principal"):
         st.session_state.page = 'menu'
