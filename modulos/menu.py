@@ -75,7 +75,7 @@ def mostrar_menu():
     height: 150px;
     width: 100%;
     border-radius: 18px;
-    color: white;
+    color: #4C3A60;
     font-size: 18px;
     font-weight: 700;
     border: none;
