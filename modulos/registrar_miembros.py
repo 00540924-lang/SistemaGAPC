@@ -23,6 +23,7 @@ def registrar_miembros():
             )
             cursor = conexion.cursor()
 
+            # Insertar datos
             sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             datos = (nombre, dui, telefono)
             cursor.execute(sql, datos)
@@ -37,8 +38,10 @@ def registrar_miembros():
         except Exception as e:
             st.error(f"Error general: {e}")
 
-    # ------------------ LISTA DE MIEMBROS ------------------
-    st.markdown("### Miembros Registrados")
+    # ------------------ MOSTRAR MIEMBROS ------------------
+    st.write("")  # espaciado
+    st.subheader("📝 Miembros Registrados")
+
     try:
         conexion = mysql.connector.connect(
             host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
@@ -48,21 +51,20 @@ def registrar_miembros():
         )
         cursor = conexion.cursor()
         cursor.execute("SELECT Nombre, DUI, Telefono FROM Miembros")
-        miembros = cursor.fetchall()
+        resultados = cursor.fetchall()
         cursor.close()
         conexion.close()
 
-        if miembros:
-            # Crear DataFrame
-            df = pd.DataFrame(miembros, columns=["No.", "Nombre", "DUI", "Teléfono"])
-            df.index = range(1, len(df) + 1)  # Numerar desde 1
-            # Mostrar tabla centrando encabezados
-            st.markdown(
-                df.to_html(index=False, justify="center"),
-                unsafe_allow_html=True
-            )
+        # Crear DataFrame y agregar columna No.
+        if resultados:
+            df = pd.DataFrame(resultados, columns=["Nombre", "DUI", "Teléfono"])
+            df.index = df.index + 1  # empieza en 1
+            df.index.name = "No."
+            st.dataframe(df.style.set_properties(**{'text-align': 'center'}).set_table_styles(
+                [{'selector': 'th', 'props': [('text-align', 'center')]}]
+            ))
         else:
-            st.info("No hay miembros registrados todavía.")
+            st.info("No hay miembros registrados.")
 
     except mysql.connector.Error as e:
         st.error(f"Error MySQL al mostrar miembros: {e}")
@@ -70,7 +72,8 @@ def registrar_miembros():
         st.error(f"Error general al mostrar miembros: {e}")
 
     # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # Espaciado
+    st.write("")  # espaciado
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
+
