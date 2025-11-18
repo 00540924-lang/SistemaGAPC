@@ -5,7 +5,9 @@ def pagina_grupos():
     st.header("Registrar Grupo")
 
     nombre = st.text_input("Nombre del Grupo")
-    descripcion = st.text_area("Descripción del Grupo")
+    distrito = st.text_input("Distrito")
+    inicio_ciclo = st.date_input("Inicio del Ciclo")
+
 
     # Obtener lista de miembros
     conn = mysql.connector.connect(
