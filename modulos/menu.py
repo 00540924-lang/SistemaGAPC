@@ -94,6 +94,9 @@ def mostrar_menu():
 }
 
 /* Degradados individuales */
+<style>
+/* Paleta basada en tu imagen GAPC */
+
 .btn1 { 
     background: linear-gradient(135deg, #DCC8E3, #C9B2D9); 
 }  /* Lila pastel */
@@ -116,7 +119,7 @@ def mostrar_menu():
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # TARJETAS POR MÓDULOS CON ACCIÓN EN "Gestión de Usuarios"
+    # TARJETAS POR MÓDULOS
     # ---------------------------------------
     st.write("")
     cols = st.columns(3)
@@ -124,21 +127,17 @@ def mostrar_menu():
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
         with cols[i % 3]:
-            # Detectar clic en "Gestión de Usuarios"
-            if texto == "Gestión de Usuarios":
-                if st.button(f"{icono}  {texto}", key=f"btn_{modulo}"):
-                    st.session_state["modulo"] = "usuarios"
-                    st.experimental_rerun()
-            else:
-                # Mantener visual de los demás botones
-                st.markdown(
-                    f"""
-                    <button class="{clase_color}">
-                        {icono}<br>{texto}
-                    </button>
-                    """,
-                    unsafe_allow_html=True
-                )
+            clicked = st.markdown(
+                f"""
+                <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
+                    {icono}<br>{texto}
+                </button>
+                """,
+                unsafe_allow_html=True
+            )
+            if f"btn_{modulo}" in st.session_state:
+                st.session_state["modulo"] = modulo
+                st.rerun()
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
@@ -148,6 +147,4 @@ def mostrar_menu():
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
-            st.experimental_rerun()
-
-
+            st.rerun()
