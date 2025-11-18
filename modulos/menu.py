@@ -75,7 +75,7 @@ def mostrar_menu():
     height: 150px;
     width: 100%;
     border-radius: 18px;
-    color: #4C3A60;
+    color: white;
     font-size: 18px;
     font-weight: 700;
     border: none;
@@ -94,34 +94,21 @@ def mostrar_menu():
 }
 
 /* Degradados individuales */
-<style>
-/* Paleta basada en tu imagen GAPC */
+.btn1 { background: linear-gradient(135deg, #6D5DFB, #46A8F7); }
+.btn2 { background: linear-gradient(135deg, #FF6CAB, #7366FF); }
+.btn3 { background: linear-gradient(135deg, #FFA857, #FF5E62); }
+.btn4 { background: linear-gradient(135deg, #4ECDC4, #556270); }
+.btn5 { background: linear-gradient(135deg, #F857A6, #FF5858); }
+.btn6 { background: linear-gradient(135deg, #43E97B, #38F9D7); }
 
-.btn1 { 
-    background: linear-gradient(135deg, #DCC8E3, #C9B2D9); 
-}  /* Lila pastel */
-.btn2 { 
-    background: linear-gradient(135deg, #F7DCC4, #F4CDB3); 
-}  /* Durazno pastel */
-.btn3 { 
-    background: linear-gradient(135deg, #BEE4DD, #A6D9D0); 
-}  /* Verde/Aqua pastel */
-.btn4 { 
-    background: linear-gradient(135deg, #C9B2D9, #F7DCC4); 
-}  /* Lila → Durazno */
-.btn5 { 
-    background: linear-gradient(135deg, #A6D9D0, #DCC8E3); 
-}  /* Aqua → Lavanda */
-.btn6 { 
-    background: linear-gradient(135deg, #F4CDB3, #BEE4DD); 
-}  /* Melocotón → Menta */
+button:focus { outline: none; }
 </style>
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
     # TARJETAS POR MÓDULOS
     # ---------------------------------------
- st.write("")
+    st.write("")
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
@@ -149,6 +136,3 @@ def mostrar_menu():
             st.session_state.clear()
             st.rerun()
 
-        if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
-            st.session_state.clear()
-            st.rerun()
