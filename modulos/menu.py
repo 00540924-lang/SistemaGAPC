@@ -95,12 +95,26 @@ def mostrar_menu():
 
 /* Degradados individuales */
 <style>
-.btn1 { background: linear-gradient(135deg, #C8D9FF, #A7C5FF); }  /* Azul pastel */
-.btn2 { background: linear-gradient(135deg, #FFD3E0, #E3C6FF); }  /* Rosa-lila pastel */
-.btn3 { background: linear-gradient(135deg, #FFE6C7, #FFD1B5); }  /* Melocotón pastel */
-.btn4 { background: linear-gradient(135deg, #CFF5E7, #B2E4DA); }  /* Aqua pastel */
-.btn5 { background: linear-gradient(135deg, #FAD0D8, #F7BFCF); }  /* Rosa suave pastel */
-.btn6 { background: linear-gradient(135deg, #D4F8C4, #B9EAB2); }  /* Verde pastel */
+/* Paleta basada en tu imagen GAPC */
+
+.btn1 { 
+    background: linear-gradient(135deg, #DCC8E3, #C9B2D9); 
+}  /* Lila pastel */
+.btn2 { 
+    background: linear-gradient(135deg, #F7DCC4, #F4CDB3); 
+}  /* Durazno pastel */
+.btn3 { 
+    background: linear-gradient(135deg, #BEE4DD, #A6D9D0); 
+}  /* Verde/Aqua pastel */
+.btn4 { 
+    background: linear-gradient(135deg, #C9B2D9, #F7DCC4); 
+}  /* Lila → Durazno */
+.btn5 { 
+    background: linear-gradient(135deg, #A6D9D0, #DCC8E3); 
+}  /* Aqua → Lavanda */
+.btn6 { 
+    background: linear-gradient(135deg, #F4CDB3, #BEE4DD); 
+}  /* Melocotón → Menta */
 </style>
 """, unsafe_allow_html=True)
 
