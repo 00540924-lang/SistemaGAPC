@@ -22,7 +22,6 @@ def registrar_miembros():
             )
             cursor = conexion.cursor()
 
-            # Solo 3 campos porque la tabla ya no tiene 'Rol'
             sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             datos = (nombre, dui, telefono)
             cursor.execute(sql, datos)
@@ -36,6 +35,31 @@ def registrar_miembros():
             st.error(f"Error MySQL: {e}")
         except Exception as e:
             st.error(f"Error general: {e}")
+
+    # ------------------ LISTA DE MIEMBROS ------------------
+    st.markdown("### 📋 Miembros registrados")
+    try:
+        conexion = mysql.connector.connect(
+            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
+            user="uiazxdhtd3r8o7uv",
+            password="uGjZ9MXWemv7vPsjOdA5",
+            database="bzn5gsi7ken7lufcglbg"
+        )
+        cursor = conexion.cursor()
+        cursor.execute("SELECT id_miembros, Nombre, DUI, Telefono FROM Miembros")
+        resultados = cursor.fetchall()
+
+        if resultados:
+            st.table(resultados)
+        else:
+            st.info("No hay miembros registrados aún.")
+
+        cursor.close()
+        conexion.close()
+    except mysql.connector.Error as e:
+        st.error(f"Error MySQL: {e}")
+    except Exception as e:
+        st.error(f"Error general: {e}")
 
     # ------------------ BOTÓN REGRESAR ------------------
     st.write("")  # espaciado
