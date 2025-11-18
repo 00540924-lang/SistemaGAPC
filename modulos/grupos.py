@@ -71,7 +71,7 @@ def pagina_grupos():
     # ---------------------------------------------
     cursor.execute("""
         SELECT M.id_miembro, M.nombre
-        FROM GrupoMiembros GM
+        FROM Grupomiembros GM
         JOIN Miembros M ON GM.id_miembro = M.id_miembro
         WHERE GM.id_grupo = %s
     """, (grupo_seleccionado,))
@@ -88,7 +88,7 @@ def pagina_grupos():
             with col2:
                 if st.button("❌", key=f"del_{m['id_miembro']}"):
                     cursor.execute(
-                        "DELETE FROM GrupoMiembros WHERE id_grupo = %s AND id_miembro = %s",
+                        "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
                         (grupo_seleccionado, m["id_miembro"])
                     )
                     conn.commit()
@@ -121,7 +121,7 @@ def pagina_grupos():
         if st.button("Agregar al grupo"):
             for id_miembro in nuevos:
                 cursor.execute(
-                    "INSERT INTO GrupoMiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                     (grupo_seleccionado, id_miembro)
                 )
             conn.commit()
