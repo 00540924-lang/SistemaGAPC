@@ -1,14 +1,20 @@
 import mysql.connector
 import streamlit as st
 
-def registrar_grupo():
+def pagina_grupos():
     st.header("Registrar Grupo")
 
     nombre = st.text_input("Nombre del Grupo")
     descripcion = st.text_area("Descripción del Grupo")
 
     # Obtener lista de miembros
-    conn = mysql.connector.connect(...)
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="tu_basedatos"
+    )
+
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id_miembro, nombre FROM Miembros")
     lista_miembros = cursor.fetchall()
@@ -35,3 +41,6 @@ def registrar_grupo():
 
         conn.commit()
         st.success("Grupo registrado correctamente")
+
+        cursor.close()
+        conn.close()
