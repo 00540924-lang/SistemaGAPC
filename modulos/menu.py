@@ -69,26 +69,19 @@ def mostrar_menu():
     # CSS PARA HACER BOTONES → TARJETAS
     # ---------------------------------------
     st.markdown("""
-    <style>
-    .stButton>button {
-        background: linear-gradient(135deg, #7B4397, #DC2430) !important;
-        color:white !important;
-        border-radius:18px !important;
-        height:150px !important;
-        width:150px !important;
-        font-size:18px !important;
-        font-weight:700 !important;
-        padding: 18px !important;
-        margin: 10px !important;
-        box-shadow:0 6px 18px rgba(0,0,0,0.12);
-        transition:0.2s;
-    }
-    .stButton>button:hover {
-        transform: scale(1.05);
-        box-shadow:0 12px 30px rgba(0,0,0,0.20);
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+button[kind="secondary"] {
+    background: linear-gradient(135deg, #7B4397, #DC2430) !important;
+    color: white !important;
+    border-radius: 20px !important;
+    height: 150px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    padding: 20px !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+</style>
+""", unsafe_allow_html=True)
 
     # ---------------------------------------
     # TARJETAS
