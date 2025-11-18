@@ -69,7 +69,6 @@ def pagina_grupos():
         return
 
     st.write("### ⚙️ Opciones del grupo")
-
     grupo_id = st.selectbox(
         "Selecciona un grupo",
         options=[g["id_grupo"] for g in grupos],
@@ -128,45 +127,52 @@ def pagina_grupos():
     """, (grupo_id,))
     miembros = cursor.fetchall()
 
-    if miembros:
+    # capturar parámetros URL
+    params = st.experimental_get_query_params()
+    miembro_eliminar = params.get("delete_member", [None])[0]
 
-        for m in miembros:
+    # eliminar si se solicitó
+    if miembro_eliminar:
+        cursor.execute(
+            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
+            (grupo_id, miembro_eliminar)
+        )
+        conn.commit()
+        st.success("Miembro eliminado.")
+        st.experimental_set_query_params()
+        st.rerun()
 
-            # Tarjeta con nombre y botón alineado a la derecha
-            st.markdown(
-                f"""
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    background: #F5F4FB;
-                    border-radius: 12px;
-                    border-left: 5px solid #6C63FF;
-                    padding: 12px 18px;
-                    margin-bottom: 6px;
-                    font-size: 16px;
-                ">
-                    <span>✔️ {m['nombre']}</span>
-                    <span style="margin-left: 10px;"></span>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+    # mostrar miembros
+    for m in miembros:
 
-            # Botón X (posición real, Streamlit lo coloca a la derecha del contenedor)
-            if st.button("✖️", key=f"del_{grupo_id}_{m['id_miembro']}"):
-                cursor.execute(
-                    "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-                    (grupo_id, m["id_miembro"])
-                )
-                conn.commit()
-                st.success(f"{m['nombre']} eliminado.")
-                cursor.close()
-                conn.close()
-                st.rerun()
+        st.markdown(
+            f"""
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #F5F4FB;
+                border-left: 5px solid #6C63FF;
+                border-radius: 12px;
+                padding: 12px 18px;
+                margin-bottom: 6px;
+                font-size: 16px;
+            ">
+                <span>✔️ {m['nombre']}</span>
 
-    else:
-        st.info("Este grupo no tiene miembros.")
+                <a href="?delete_member={m['id_miembro']}"
+                   style="
+                       color: red;
+                       font-size: 22px;
+                       text-decoration: none;
+                       font-weight: bold;
+                   ">
+                   ✖️
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.write("---")
 
