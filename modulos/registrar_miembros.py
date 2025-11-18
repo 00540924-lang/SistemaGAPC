@@ -9,7 +9,6 @@ def registrar_miembros():
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
         telefono = st.text_input("Telefono")
-        rol = st.text_input("Rol")
         enviar = st.form_submit_button("Registrar")
 
     # ------------------ PROCESAR FORMULARIO ------------------
@@ -24,8 +23,8 @@ def registrar_miembros():
             st.success("Conexión exitosa ✅")
             cursor = conexion.cursor()
 
-            sql = "INSERT INTO miembros (Nombre, DUI, Telefono, Rol) VALUES (%s, %s, %s, %s)"
-            datos = (nombre, dui, telefono, rol)
+            sql = "INSERT INTO miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s, %s)"
+            datos = (nombre, dui, telefono)
             cursor.execute(sql, datos)
             conexion.commit()
             st.success("Miembro registrado exitosamente ✔️")
