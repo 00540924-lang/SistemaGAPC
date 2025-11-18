@@ -102,9 +102,6 @@ def mostrar_menu():
 .btn5 { background: linear-gradient(135deg, #FAD0D8, #F7BFCF); }  /* Rosa suave pastel */
 .btn6 { background: linear-gradient(135deg, #D4F8C4, #B9EAB2); }  /* Verde pastel */
 </style>
-
-button:focus { outline: none; }
-</style>
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
