@@ -46,7 +46,7 @@ def registrar_miembros():
             database="bzn5gsi7ken7lufcglbg"
         )
         cursor = conexion.cursor()
-        cursor.execute("SELECT id_miembros, Nombre, DUI, Telefono FROM Miembros")
+        cursor.execute("SELECT Nombre, DUI, Telefono FROM Miembros")
         resultados = cursor.fetchall()
 
         if resultados:
