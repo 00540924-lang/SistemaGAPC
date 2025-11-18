@@ -111,22 +111,27 @@ div.stButton > button:hover {
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
-    # -----------------------------------------------------
-    #               GRID DE BOTONES
-    # -----------------------------------------------------
-    cols = st.columns(3)
+   # -----------------------------------------------------
+#               GRID DE BOTONES (CORREGIDO)
+# -----------------------------------------------------
+cols = st.columns(3)
 
-    for i, (texto, modulo, css_id) in enumerate(modulos):
-        with cols[i % 3]:
-            btn = st.container()
-            with btn:
-                b = st.button(texto, key=f"btn_{modulo}")
-                # Aplicar ID de CSS al contenedor
-                btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
+for i, (texto, modulo, css_id) in enumerate(modulos):
 
-                if b:
-                    st.session_state.page = modulo
-                    st.rerun()
+    with cols[i % 3]:
+
+        # El TRUCO: abrir un div ANTES del botón
+        st.markdown(f"<div id='{css_id}'>", unsafe_allow_html=True)
+
+        # El botón queda dentro del div porque Streamlit no cierra el contenedor
+        b = st.button(texto, key=f"btn_{modulo}")
+
+        # Cerramos el div
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if b:
+            st.session_state.page = modulo
+            st.rerun()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
