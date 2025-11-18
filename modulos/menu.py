@@ -40,7 +40,7 @@ def mostrar_menu():
         box-shadow: 0 10px 22px rgba(0,0,0,0.30) !important;
     }
 
-    #proyectos_btn button { background-color: #F4B400 !important; color: white !important; }
+    #proyectos_btn button { background-color: #F4B400 !important; color: #F4B400 !important; }
     #usuarios_btn button { background-color: #8E24AA !important; color: white !important; }
     #grupos_btn button { background-color: #E53935 !important; color: white !important; }
     #documentos_btn button { background-color: #1E88E5 !important; color: white !important; }
