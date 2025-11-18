@@ -13,78 +13,57 @@ def mostrar_menu():
     
 st.markdown("""
 <style>
-/* Centrar todos los botones */
-div[data-testid="stButton"] {
-    display: flex !important;
-    justify-content: center !important;
-}
-
-/* Estilo general de los botones */
-div[data-testid="stButton"] > button {
-    width: 200px !important;
-    height: 150px !important;
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    border-radius: 12px !important;
-    border: none !important;
-    color: white !important;
+button.custom-btn {
+    width: 200px;
+    height: 150px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 12px;
+    border: none;
+    color: white;
     cursor: pointer;
-    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    margin: 10px 0 !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    margin: 10px 0;
 }
 
 /* Hover general */
-div[data-testid="stButton"] > button:hover {
-    transform: scale(1.07) !important;
-    box-shadow: 0 10px 22px rgba(0,0,0,0.30) !important;
+button.custom-btn:hover {
+    transform: scale(1.07);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.3);
 }
 
-/* Colores de botones usando nth-of-type */
-div[data-testid="stButton"]:nth-of-type(1) > button { background-color: #F4B400 !important; }
-div[data-testid="stButton"]:nth-of-type(2) > button { background-color: #8E24AA !important; }
-div[data-testid="stButton"]:nth-of-type(3) > button { background-color: #E53935 !important; }
-div[data-testid="stButton"]:nth-of-type(4) > button { background-color: #1E88E5 !important; }
-div[data-testid="stButton"]:nth-of-type(5) > button { background-color: #43A047 !important; }
-div[data-testid="stButton"]:nth-of-type(6) > button { background-color: #6D4C41 !important; }
-
-/* Botón Logout más pequeño */
-div[data-testid="stButton"]:nth-of-type(7) > button {
-    width: 200px !important;
-    height: 60px !important;
-    background-color: #424242 !important;
-    border-radius: 10px !important;
+/* Colores específicos */
+button#proyectos { background-color: #F4B400; }
+button#usuarios { background-color: #8E24AA; }
+button#grupos { background-color: #E53935; }
+button#documentos { background-color: #1E88E5; }
+button#reportes { background-color: #43A047; }
+button#configuracion { background-color: #6D4C41; }
+button#logout {
+    background-color: #424242;
+    height: 60px;
+    border-radius: 10px;
 }
-div[data-testid="stButton"]:nth-of-type(7) > button:hover {
-    background-color: black !important;
-    transform: scale(1.05) !important;
-}
+button#logout:hover { background-color: black; transform: scale(1.05); }
 </style>
 """, unsafe_allow_html=True)
 
 # --------------------------
-# Botones con st.button
+# Función para crear botones HTML
 # --------------------------
-if st.button("Proyectos"):
-    st.write("Botón Proyectos clickeado")
+def html_button(label, btn_id):
+    return st.markdown(f'<button class="custom-btn" id="{btn_id}">{label}</button>', unsafe_allow_html=True)
 
-if st.button("Usuarios"):
-    st.write("Botón Usuarios clickeado")
-
-if st.button("Grupos"):
-    st.write("Botón Grupos clickeado")
-
-if st.button("Documentos"):
-    st.write("Botón Documentos clickeado")
-
-if st.button("Reportes"):
-    st.write("Botón Reportes clickeado")
-
-if st.button("Configuración"):
-    st.write("Botón Configuración clickeado")
-
-if st.button("Logout"):
-    st.write("Has cerrado sesión")
+# --------------------------
+# Botones
+# --------------------------
+html_button("Proyectos", "proyectos")
+html_button("Usuarios", "usuarios")
+html_button("Grupos", "grupos")
+html_button("Documentos", "documentos")
+html_button("Reportes", "reportes")
+html_button("Configuración", "configuracion")
+html_button("Logout", "logout")
 
     # -----------------------------------------------------
     #                    TÍTULO
