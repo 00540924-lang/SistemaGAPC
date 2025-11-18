@@ -5,15 +5,16 @@ def registrar_miembros():
 
     st.title("🧍 Registro de Miembros")
 
-    # Formulario
+    # FORMULARIO
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
         telefono = st.text_input("Teléfono")
-        rol = st.text_area("Rol")
+        rol = st.text_input("Rol dentro del GAPC")
 
-        enviar = st.form_submit_button("Registrar")
+        enviar = st.form_submit_button("Registrar miembro")
 
+    # PROCESAR FORMULARIO
     if enviar:
         try:
             conexion = mysql.connector.connect(
@@ -25,19 +26,26 @@ def registrar_miembros():
             cursor = conexion.cursor()
 
             sql = """
-                INSERT INTO miembros (nombre, correo, telefono, direccion)
+                INSERT INTO miembros (Nombre, DUI, Teléfono, Rol)
                 VALUES (%s, %s, %s, %s)
             """
-            datos = (nombre, correo, telefono, direccion)
+
+            datos = (nombre, dui, telefono, rol)
+
             cursor.execute(sql, datos)
             conexion.commit()
 
-            st.success("Miembro registrado exitosamente ✔️")
+            st.success("✔️ Miembro registrado exitosamente")
 
         except mysql.connector.Error as err:
-            st.error(f"Error: {err}")
+            st.error(f"❌ Error: {err}")
 
         finally:
             if 'conexion' in locals() and conexion.is_connected():
                 cursor.close()
                 conexion.close()
+
+    # BOTÓN PARA VOLVER AL MENÚ
+    if st.button("⬅ Volver al menú"):
+        st.session_state.page = "menu"
+        st.rerun()
