@@ -8,56 +8,84 @@ def mostrar_menu():
         return
 
     # -----------------------------------------------------
-    #      🎨 CSS - Botones con animación + colores
-    # -----------------------------------------------------
-    st.markdown("""
-    <style>
+#      🎨 CSS - Botones centrados con animación
+# -----------------------------------------------------
+st.markdown("""
+<style>
 
-    /* ESTILO GENERAL DE BOTONES DEL MENÚ */
-    div.stButton > button {
-        color: #4C3A60 !important;
-        border-radius: 12px !important;
-        padding: 20px !important;
-        font-size: 18px !important;
-        font-weight: 600 !important;
-        width: 100% !important;
-        height: 100px !important;
-        border: none !important;
-        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-    }
+ /* CONTENEDOR GENERAL PARA CENTRAR TODOS LOS BOTONES */
+ .center-buttons {
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+     gap: 25px;
+     width: 100%;
+ }
 
-    /* ANIMACIÓN */
-    div.stButton > button:hover {
-        transform: scale(1.07) !important;
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
-    }
+ /* BOTONES: estilo base */
+ div.stButton > button {
+     color: #4C3A60 !important;
+     border-radius: 12px !important;
+     padding: 20px !important;
+     font-size: 18px !important;
+     font-weight: 600 !important;
+     width: 350px !important;     /* ⬅️ TAMANO UNIFORME */
+     height: 100px !important;    /* ⬅️ TAMANO UNIFORME */
+     border: none !important;
+     transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+ }
 
-    /* 🎨 COLORES POR MÓDULO */
-    #proyectos_btn > button { background-color: #F4B400 !important; }      /* Amarillo */
-    #usuarios_btn > button { background-color: #8E24AA !important; }       /* Morado */
-    #inspecciones_btn > button { background-color: #E53935 !important; }   /* Rojo */
-    #documentos_btn > button { background-color: #1E88E5 !important; }     /* Azul */
-    #reportes_btn > button { background-color: #43A047 !important; }       /* Verde */
-    #configuracion_btn > button { background-color: #6D4C41 !important; }  /* Café */
+ /* ANIMACIÓN */
+ div.stButton > button:hover {
+     transform: scale(1.07) !important;
+     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+ }
 
-    /* BOTÓN CERRAR SESIÓN */
-    #logout_btn > button {
-        background-color: #424242 !important;
-        color: white !important;
-        border-radius: 10px !important;
-        padding: 12px 22px !important;
-        font-size: 16px !important;
-        width: 200px !important;
-        transition: transform 0.2s ease !important;
-    }
-    #logout_btn > button:hover {
-        transform: scale(1.05) !important;
-        background-color: #000000 !important;
-    }
+ /* 🎨 COLORES POR MÓDULO */
+ #proyectos_btn > button { background-color: #F4B400 !important; }
+ #usuarios_btn > button { background-color: #8E24AA !important; }
+ #inspecciones_btn > button { background-color: #E53935 !important; }
+ #documentos_btn > button { background-color: #1E88E5 !important; }
+ #reportes_btn > button { background-color: #43A047 !important; }
+ #configuracion_btn > button { background-color: #6D4C41 !important; }
 
-    </style>
-    """, unsafe_allow_html=True)
+ /* BOTÓN CERRAR SESIÓN */
+ #logout_btn > button {
+     background-color: #424242 !important;
+     color: white !important;
+     border-radius: 10px !important;
+     padding: 12px 22px !important;
+     font-size: 16px !important;
+     width: 200px !important;
+     transition: transform 0.2s ease !important;
+ }
+ #logout_btn > button:hover {
+     transform: scale(1.05) !important;
+     background-color: #000000 !important;
+ }
+
+</style>
+""", unsafe_allow_html=True)
+
+# -----------------------------------------------------
+#      🚀 BOTONES CENTRADOS
+# -----------------------------------------------------
+
+st.markdown('<div class="center-buttons">', unsafe_allow_html=True)
+
+st.button("Proyectos", key="proyectos_btn")
+st.button("Usuarios", key="usuarios_btn")
+st.button("Inspecciones", key="inspecciones_btn")
+st.button("Documentos", key="documentos_btn")
+st.button("Reportes", key="reportes_btn")
+st.button("Configuración", key="configuracion_btn")
+
+# Botón cerrar sesión
+st.button("Cerrar sesión", key="logout_btn")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #                    TÍTULO
