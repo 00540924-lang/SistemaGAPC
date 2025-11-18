@@ -28,6 +28,6 @@ if pagina == "menu":
 
 # ---- REGISTRAR MIEMBROS ----
 elif pagina == "registrar_miembros":
-    from modulos.registrar_miembros import registrar_miembros
+    from modulos.usuarios import registrar_miembros
     registrar_miembros()
 
