@@ -36,7 +36,7 @@ def registrar_miembros():
         except Exception as e:
             st.error(f"Error general: {e}")
 
-   # ------------------ LISTA DE MIEMBROS ------------------
+# ------------------ LISTA DE MIEMBROS ------------------
 st.markdown("### 📋 Miembros registrados")
 try:
     conexion = mysql.connector.connect(
@@ -51,7 +51,11 @@ try:
 
     if resultados:
         import pandas as pd
+        # Crear DataFrame con encabezados
         df = pd.DataFrame(resultados, columns=["Nombre", "DUI", "Teléfono"])
+        # Agregar columna de numeración
+        df.index = range(1, len(df) + 1)
+        df.index.name = "No."
         st.table(df)
     else:
         st.info("No hay miembros registrados aún.")
