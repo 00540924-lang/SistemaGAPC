@@ -2,30 +2,56 @@ import streamlit as st
 from modulos.login import login
 from modulos.menu import mostrar_menu
 
-# ---- LEER PARÁMETROS DE URL ----
-query_params = st.experimental_get_query_params()
-if "modulo" in query_params:
-    st.session_state["modulo"] = query_params["modulo"][0]
-else:
-    st.session_state.setdefault("modulo", None)
-
-# ---- VARIABLES DE SESIÓN ----
+# -------------------------
+# VARIABLES DE SESIÓN
+# -------------------------
 st.session_state.setdefault("sesion_iniciada", False)
+st.session_state.setdefault("page", "menu")  # Página por defecto
 
-# ---- SI NO HA INICIADO SESIÓN, MOSTRAR LOGIN ----
+
+# -------------------------
+# LOGIN
+# -------------------------
 if not st.session_state["sesion_iniciada"]:
     login()
-    st.stop()  # ⛔ Detiene la ejecución
+    st.stop()
 
-# ---- YA INICIÓ SESIÓN, MOSTRAR MENÚ ----
-mostrar_menu()
 
-# ---- CARGAR EL MÓDULO SEGÚN state ----
-modulo = st.session_state.get("modulo")
+# -------------------------
+# DESPACHADOR DE PÁGINAS
+# -------------------------
+pagina = st.session_state.get("page", "menu")
 
-if modulo == "registrar_miembros":
+# ---- MENÚ PRINCIPAL ----
+if pagina == "menu":
+    mostrar_menu()
+
+# ---- REGISTRAR MIEMBROS ----
+elif pagina == "registrar_miembros":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
 
-elif modulo:
-    cargar_pagina(modulo)
+# ---- AGREGAR AQUÍ TUS OTROS MÓDULOS ----
+elif pagina == "proyectos":
+    from modulos.proyectos import proyectos
+    proyectos()
+
+elif pagina == "usuarios":
+    from modulos.usuarios import usuarios
+    usuarios()
+
+elif pagina == "inspecciones":
+    from modulos.inspecciones import inspecciones
+    inspecciones()
+
+elif pagina == "documentos":
+    from modulos.documentos import documentos
+    documentos()
+
+elif pagina == "reportes":
+    from modulos.reportes import reportes
+    reportes()
+
+elif pagina == "configuracion":
+    from modulos.configuracion import configuracion
+    configuracion()
