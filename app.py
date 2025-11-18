@@ -3,11 +3,10 @@ from modulos.login import login
 from modulos.menu import mostrar_menu
 
 # ==========================================
-# CONFIGURACIÓN DE VARIABLES DE SESIÓN
+# VARIABLES DE SESIÓN
 # ==========================================
 st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("page", "menu")  # Página por defecto
-
+st.session_state.setdefault("page", "menu")
 
 # ==========================================
 # LOGIN
@@ -16,20 +15,32 @@ if not st.session_state["sesion_iniciada"]:
     login()
     st.stop()
 
-
 # ==========================================
-# DESPACHADOR DE PÁGINAS PRINCIPAL
+# ROUTER PRINCIPAL
 # ==========================================
-pagina = st.session_state.get("page", "menu")
+pagina = st.session_state["page"]
 
-# ---- MENÚ PRINCIPAL ----
 if pagina == "menu":
     mostrar_menu()
 
-# ---- REGISTRAR MIEMBROS ----
-elif pagina == "registrar_miembros":
+elif pagina == "usuarios":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
+
+elif pagina == "proyectos":
+    st.title("⚒ Gestión de Proyectos (Aún no implementado)")
+
+elif pagina == "inspecciones":
+    st.title("🔍 Inspecciones (Aún no implementado)")
+
+elif pagina == "documentos":
+    st.title("📄 Documentos (Aún no implementado)")
+
+elif pagina == "reportes":
+    st.title("📊 Reportes (Aún no implementado)")
+
+elif pagina == "configuracion":
+    st.title("⚙️ Configuración (Aún no implementado)")
 
 else:
     st.error("❌ Página no encontrada.")
