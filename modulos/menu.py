@@ -61,82 +61,52 @@ def mostrar_menu():
             box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
             margin: auto;
         ">
-            <b>Seleccione un módulo para continuar</b><br>
+            <b>Seleccione un módulo para continuar</b>
         </div>
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # ESTILOS CSS PARA TARJETAS
+    # CSS PARA HACER BOTONES → TARJETAS
     # ---------------------------------------
     st.markdown("""
     <style>
-    .cards-row { 
-        display:flex; 
-        justify-content:center; 
-        gap:20px; 
-        flex-wrap:wrap; 
-        margin-top:15px; 
-    }
-    .card {
-        width:150px; 
-        height:150px; 
-        border-radius:16px; 
-        padding:18px;
-        background: linear-gradient(135deg, #7B4397, #DC2430);
-        color:white; 
-        display:flex; 
-        flex-direction:column; 
-        justify-content:center; 
-        align-items:center;
-        font-weight:700; 
-        font-size:50px; 
-        text-align:center; 
+    .stButton>button {
+        background: linear-gradient(135deg, #7B4397, #DC2430) !important;
+        color:white !important;
+        border-radius:18px !important;
+        height:150px !important;
+        width:150px !important;
+        font-size:18px !important;
+        font-weight:700 !important;
+        padding: 18px !important;
+        margin: 10px !important;
         box-shadow:0 6px 18px rgba(0,0,0,0.12);
-        transition: transform 0.18s ease, box-shadow 0.18s ease; 
-        cursor:pointer;
+        transition:0.2s;
     }
-    .card:hover { 
-        transform:translateY(-8px) scale(1.03); 
-        box-shadow:0 12px 30px rgba(0,0,0,0.20); 
-    }
-    .card-icon {
-        font-size:55px;
-        margin-bottom:8px;
-    }
-    .card-sub { 
-        font-size:15px; 
-        font-weight:600; 
-        opacity:0.95; 
-    }
-    a {
-        text-decoration:none;
+    .stButton>button:hover {
+        transform: scale(1.05);
+        box-shadow:0 12px 30px rgba(0,0,0,0.20);
     }
     </style>
     """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # GENERAR TARJETAS CON ENLACES <a>
+    # TARJETAS
     # ---------------------------------------
-    html_cards = "<div class='cards-row'>"
+    st.write("")  # Espacio
 
-    for icono, texto, modulo in modulos:
-        # CORRECCIÓN: Se envuelve el DIV de la tarjeta dentro del tag <a>
-        # para que se apliquen los estilos CSS y funcione el enlace.
-        html_cards += f"""
-            <a href='?modulo={modulo}'>
-                <div class='card'>
-                    <div class='card-icon'>{icono}</div>
-                    <div class='card-sub'>{texto}</div>
-                </div>
-            </a>
-        """
+    cols = st.columns(3)
 
-    html_cards += "</div>"
-    st.markdown(html_cards, unsafe_allow_html=True)
+    for i, (icono, texto, modulo) in enumerate(modulos):
+        with cols[i % 3]:
+            if st.button(f"{icono}\n{texto}", key=f"btn_{modulo}"):
+                st.session_state["modulo"] = modulo
+                st.rerun()
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
+    st.write("")
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
