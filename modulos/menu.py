@@ -76,6 +76,24 @@ def mostrar_menu():
 </style>
 """, unsafe_allow_html=True)
 
+     # Tarjeta encabezado
+    st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
+            padding: 3px;
+            border-radius: 12px;
+            color: #4C3A60;
+            font-size: 18px;
+            text-align: center;
+            width: 80%;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+            margin: auto;
+        ">
+            <b>Seleccione un módulo para continuar</b>
+        </div>
+        """, unsafe_allow_html=True)
+
+
     # ---------------------------------------
     # GRID DE BOTONES
     # ---------------------------------------
