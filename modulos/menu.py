@@ -17,7 +17,11 @@ def mostrar_menu():
     st.markdown("""
     <style>
     
-    /* Nota: Los botones de Streamlit se identifican por sus 'keys' en el DOM */
+    /* 🔴 CORRECCIÓN CLAVE PARA LA UNIFORMIDAD DE ANCHO */
+    /* Aseguramos que el contenedor principal del botón ocupe el 100% de la columna */
+    div[data-testid="stButton"] {
+        width: 100%;
+    }
 
     /* ESTILO GENERAL DE BOTONES DEL MENÚ */
     div.stButton > button {
@@ -39,6 +43,10 @@ def mostrar_menu():
         justify-content: center;
         align-items: center;
         text-align: center;
+        
+        /* Aseguramos que el texto largo se ajuste dentro del botón */
+        white-space: normal !important; 
+        word-break: break-word;
     }
 
     /* ANIMACIÓN */
