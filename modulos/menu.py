@@ -5,10 +5,14 @@ def mostrar_menu():
 
     if not rol:
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
+        # Opcionalmente, puedes redirigir al login si no hay rol
+        st.session_state.page = "login"
+        st.rerun()
+        st.stop()
         return
 
     # -----------------------------------------------------
-    #       🎨 CSS - Botones con animación + colores
+    #       🎨 CSS - Botones con animación + colores (Corregido)
     # -----------------------------------------------------
     st.markdown("""
 <style>
@@ -128,14 +132,14 @@ div.stButton > button:hover {
             b = st.button(texto, key=f"btn_{modulo}")
 
             # 2. Inyectamos el DIV vacío con el ID que el CSS agresivo buscará.
-            # Este es el "hook" que usa el selector :has().
             st.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
 
-            # 3. Lógica de navegación
+            # 3. Lógica de navegación - CORRECCIÓN DE ERROR DUPLICATE KEY
             if b:
                 st.session_state.page = modulo
                 st.rerun()
-
+                st.stop() # Detiene la ejecución actual para evitar el error
+    
     # -----------------------------------------------------
     #                   BOTÓN CERRAR SESIÓN 
     # -----------------------------------------------------
@@ -150,20 +154,23 @@ div.stButton > button:hover {
         st.session_state.clear()
         st.session_state.page = "login" 
         st.rerun()
+        st.stop() # Detiene la ejecución actual para evitar el error
 
 # -----------------------------------------------------
 #                       EJEMPLO DE USO (para pruebas)
 # -----------------------------------------------------
+# La ejecución del script inicia aquí (app.py)
 
+# Inicialización de la sesión
 if 'page' not in st.session_state:
-    st.session_state.page = 'menu'
+    st.session_state.page = 'login'
 if 'rol' not in st.session_state:
-    # Puedes cambiar 'institucional' para probar otros roles: 'promotor', 'miembro'
-    st.session_state.rol = 'institucional' 
+    st.session_state.rol = None 
 
 # Lógica de renderizado de páginas
 if st.session_state.page == 'menu':
     mostrar_menu()
+    
 elif st.session_state.page == 'login':
     st.title("Página de Login Simulada")
     st.markdown("Selecciona un rol para iniciar la sesión:")
@@ -171,21 +178,22 @@ elif st.session_state.page == 'login':
     col_inst, col_prom, col_miem = st.columns(3)
     
     with col_inst:
-        if st.button("Institucional"):
+        if st.button("Simular Login Institucional", key="login_inst"):
             st.session_state.rol = 'institucional'
             st.session_state.page = 'menu'
             st.rerun()
     with col_prom:
-        if st.button("Promotor"):
+        if st.button("Simular Login Promotor", key="login_prom"):
             st.session_state.rol = 'promotor'
             st.session_state.page = 'menu'
             st.rerun()
     with col_miem:
-        if st.button("Miembro"):
+        if st.button("Simular Login Miembro", key="login_miem"):
             st.session_state.rol = 'miembro'
             st.session_state.page = 'menu'
             st.rerun()
 else:
+    # Simulación de la página del módulo seleccionado
     st.header(f"Estás en el módulo: {st.session_state.page.replace('_', ' ').title()}")
     if st.button("← Volver al Menú Principal"):
         st.session_state.page = 'menu'
