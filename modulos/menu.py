@@ -127,41 +127,40 @@ def mostrar_menu():
 # TARJETAS DE LOS MÓDULOS (VERSIÓN 100% FUNCIONAL)
 # =============================================================
 
-cols = st.columns(3)
+# ===============================
+# TARJETAS DE MÓDULOS
+# ===============================
 
-# Variable oculta que recibe el módulo clicado desde JS
+# Detectar si se hizo clic vía ?mod=
 clicked_mod = st.experimental_get_query_params().get("mod", [None])[0]
 
-# Si viene un módulo desde JS → navegar
+# Si llega un módulo desde JS → navegar
 if clicked_mod:
     st.session_state["pagina"] = clicked_mod
-    st.experimental_set_query_params()  # limpiar URL
+    st.experimental_set_query_params()
     st.rerun()
 
-# Generar botones visuales
+cols = st.columns(3)
+
 for i, (icono, texto, modulo) in enumerate(modulos):
+
+    unique_id = f"mod_{modulo}"
     clase_color = f"btn-glass btn{i+1}"
+
     with cols[i % 3]:
 
-        unique_id = f"mod_{modulo}"
-
-        # Botón HTML
-        st.markdown(
-            f"""
+        st.markdown(f"""
             <button class="{clase_color}" id="{unique_id}">
-                <span class="icono-grande">{icono}</span>
+                <span class="icono-grande">{icono}</span><br>
                 {texto}
             </button>
 
             <script>
-                // Captura clic y lo pasa a Streamlit
                 document.getElementById("{unique_id}").onclick = function() {{
                     window.location.href = "?mod={modulo}";
                 }};
             </script>
-            """,
-            unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
