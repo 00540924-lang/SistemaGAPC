@@ -4,6 +4,7 @@ import mysql.connector
 def registrar_miembros():
     st.title("🧍 Registro de Miembros")
 
+    # ------------------ FORMULARIO ------------------
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
@@ -11,6 +12,7 @@ def registrar_miembros():
         rol = st.text_input("Rol")
         enviar = st.form_submit_button("Registrar")
 
+    # ------------------ PROCESAR FORMULARIO ------------------
     if enviar:
         try:
             conexion = mysql.connector.connect(
@@ -35,3 +37,9 @@ def registrar_miembros():
             st.error(f"Error MySQL: {e}")
         except Exception as e:
             st.error(f"Error general: {e}")
+
+    # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")  # espaciado
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
