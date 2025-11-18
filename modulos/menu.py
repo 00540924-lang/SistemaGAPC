@@ -2,14 +2,10 @@ import streamlit as st
 
 def mostrar_menu():
     rol = st.session_state.get("rol", None)
-
     if not rol:
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         st.stop()
 
-    # ---------------------------------------
-    # CONFIGURAR MÓDULOS SEGÚN ROL
-    # ---------------------------------------
     if rol == "institucional":
         modulos = [
             ("📁", "Gestión de Proyectos", "proyectos"),
@@ -19,23 +15,20 @@ def mostrar_menu():
             ("📊", "Reportes", "reportes"),
             ("⚙️", "Configuración", "configuracion"),
         ]
-
     elif rol == "promotor":
         modulos = [
             ("📁", "Gestión de Proyectos", "proyectos"),
             ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
         ]
-
     elif rol == "miembro":
         modulos = [
             ("📄", "Gestión Documental", "documentos"),
         ]
 
-    # ---------------------------------------
-    # TÍTULO Y CSS ORIGINAL
-    # ---------------------------------------
+    # Título
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
+    # CSS de botones originales
     st.markdown("""
     <style>
     .btn-glass {
@@ -75,45 +68,32 @@ def mostrar_menu():
     </style>
     """, unsafe_allow_html=True)
 
-    # ---------------------------------------
-    # GRID DE BOTONES
-    # ---------------------------------------
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"
 
         with cols[i % 3]:
-            # Botón Streamlit invisible
-            boton_streamlit = st.button("", key=f"real_{modulo}")
-
-            # Tarjeta HTML con tu CSS original
+            # Div HTML como tarjeta clickeable
             st.markdown(f"""
-                <button class="{clase_color}" id="btn_{modulo}">
-                    <span class="icono-grande">{icono}</span>
-                    {texto}
-                </button>
-
-                <script>
+            <div class="{clase_color}" id="btn_{modulo}">
+                <span class="icono-grande">{icono}</span>
+                {texto}
+            </div>
+            <script>
                 const btn = document.getElementById("btn_{modulo}");
-                btn.addEventListener("click", function(){{
-                    const streamlitBtn = window.parent.document.querySelector('button[kind="secondary"][data-testid="stButton"]#real_{modulo}');
-                    if(streamlitBtn) {{
-                        streamlitBtn.click();
-                    }}
-                }});
-                </script>
+                btn.style.cursor = "pointer";
+                btn.onclick = () => {{
+                    const streamlitEvent = new Event("streamlit:custom");
+                    window.parent.document.dispatchEvent(streamlitEvent);
+                    window.parent.postMessage({{isStreamlitMessage: true, type: "SET_SESSION_STATE", data: {{page: "{modulo}"}}}}, "*");
+                }}
+            </script>
             """, unsafe_allow_html=True)
 
-            # Si se presionó el botón, cambiar la página
-            if boton_streamlit:
-                st.session_state.page = modulo
-                st.rerun()
-
-    # ---------------------------------------
-    # BOTÓN CERRAR SESIÓN
-    # ---------------------------------------
+    # Botón cerrar sesión
     st.write("")
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
         st.rerun()
+
