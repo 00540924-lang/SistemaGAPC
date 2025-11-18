@@ -8,14 +8,12 @@ from modulos.menu import mostrar_menu
 st.session_state.setdefault("sesion_iniciada", False)
 st.session_state.setdefault("page", "menu")  # Página por defecto
 
-
 # ==========================================
 # LOGIN
 # ==========================================
 if not st.session_state["sesion_iniciada"]:
     login()
     st.stop()
-
 
 # ==========================================
 # DESPACHADOR DE PÁGINAS PRINCIPAL
@@ -31,10 +29,15 @@ elif pagina == "proyectos":
     from modulos.proyectos import vista_proyectos
     vista_proyectos()
 
-# ---- GESTIÓN DE USUARIOS ----
-elif pagina == "usuarios":
-    from modulos.usuarios import vista_usuarios
-    vista_usuarios()
+# ---- GESTIÓN DE USUARIOS (MIEMBROS) ----
+elif pagina == "registrar_miembros":
+    from modulos.registrar_miembros import registrar_miembros
+    registrar_miembros()
+
+# ---- GRUPOS ----
+elif pagina == "grupos":
+    from modulos.grupos import pagina_grupos
+    pagina_grupos()
 
 # ---- INSPECCIONES ----
 elif pagina == "inspecciones":
@@ -56,11 +59,5 @@ elif pagina == "configuracion":
     from modulos.configuracion import vista_configuracion
     vista_configuracion()
 
-# ---- REGISTRAR MIEMBROS (TU PANTALLA) ----
-elif pagina == "registrar_miembros":
-    from modulos.registrar_miembros import registrar_miembros
-    registrar_miembros()
-
 else:
     st.error("❌ Página no encontrada.")
-
