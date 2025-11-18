@@ -15,7 +15,7 @@ def mostrar_menu():
 
     /* ESTILO GENERAL DE BOTONES DEL MENÚ */
     div.stButton > button {
-        color: white !important;
+        color: #4C3A60 !important;
         border-radius: 12px !important;
         padding: 20px !important;
         font-size: 18px !important;
