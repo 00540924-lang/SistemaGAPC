@@ -94,12 +94,14 @@ def mostrar_menu():
 }
 
 /* Degradados individuales */
-.btn1 { background: linear-gradient(135deg, #6D5DFB, #46A8F7); }
-.btn2 { background: linear-gradient(135deg, #FF6CAB, #7366FF); }
-.btn3 { background: linear-gradient(135deg, #FFA857, #FF5E62); }
-.btn4 { background: linear-gradient(135deg, #4ECDC4, #556270); }
-.btn5 { background: linear-gradient(135deg, #F857A6, #FF5858); }
-.btn6 { background: linear-gradient(135deg, #43E97B, #38F9D7); }
+<style>
+.btn1 { background: linear-gradient(135deg, #C8D9FF, #A7C5FF); }  /* Azul pastel */
+.btn2 { background: linear-gradient(135deg, #FFD3E0, #E3C6FF); }  /* Rosa-lila pastel */
+.btn3 { background: linear-gradient(135deg, #FFE6C7, #FFD1B5); }  /* Melocotón pastel */
+.btn4 { background: linear-gradient(135deg, #CFF5E7, #B2E4DA); }  /* Aqua pastel */
+.btn5 { background: linear-gradient(135deg, #FAD0D8, #F7BFCF); }  /* Rosa suave pastel */
+.btn6 { background: linear-gradient(135deg, #D4F8C4, #B9EAB2); }  /* Verde pastel */
+</style>
 
 button:focus { outline: none; }
 </style>
