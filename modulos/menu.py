@@ -18,7 +18,7 @@ def mostrar_menu():
     }
 
     div[data-testid="stButton"] > button {
-        width: 150px !important;
+        width: 200px !important;
         height: 150px !important;
         padding: 0 !important;
         display: flex !important;
