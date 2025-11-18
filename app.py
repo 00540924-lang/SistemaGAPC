@@ -2,44 +2,65 @@ import streamlit as st
 from modulos.login import login
 from modulos.menu import mostrar_menu
 
-# -------------------------
-# VARIABLES DE SESIÓN
-# -------------------------
+# ==========================================
+# CONFIGURACIÓN DE VARIABLES DE SESIÓN
+# ==========================================
 st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("page", "menu")  # Página inicial por defecto
+st.session_state.setdefault("page", "menu")  # Página por defecto
 
 
-# -------------------------
+# ==========================================
 # LOGIN
-# -------------------------
+# ==========================================
 if not st.session_state["sesion_iniciada"]:
     login()
     st.stop()
 
 
-# -------------------------
-# DESPACHADOR DE PÁGINAS
-# -------------------------
+# ==========================================
+# DESPACHADOR DE PÁGINAS PRINCIPAL
+# ==========================================
 pagina = st.session_state.get("page", "menu")
 
 # ---- MENÚ PRINCIPAL ----
 if pagina == "menu":
     mostrar_menu()
 
-# ---- REGISTRAR MIEMBROS ----
+# ---- GESTIÓN DE PROYECTOS ----
+elif pagina == "proyectos":
+    from modulos.proyectos import vista_proyectos
+    vista_proyectos()
+
+# ---- GESTIÓN DE USUARIOS ----
+elif pagina == "usuarios":
+    from modulos.usuarios import vista_usuarios
+    vista_usuarios()
+
+# ---- INSPECCIONES ----
+elif pagina == "inspecciones":
+    from modulos.inspecciones import vista_inspecciones
+    vista_inspecciones()
+
+# ---- DOCUMENTOS ----
+elif pagina == "documentos":
+    from modulos.documentos import vista_documental
+    vista_documental()
+
+# ---- REPORTES ----
+elif pagina == "reportes":
+    from modulos.reportes import vista_reportes
+    vista_reportes()
+
+# ---- CONFIGURACIÓN ----
+elif pagina == "configuracion":
+    from modulos.configuracion import vista_configuracion
+    vista_configuracion()
+
+# ---- REGISTRAR MIEMBROS (TU PANTALLA) ----
 elif pagina == "registrar_miembros":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
 
-# ---- GESTIÓN USUARIOS ----
-elif pagina == "gestion_usuarios":
-    from modulos.gestion_usuarios import gestion_usuarios
-    gestion_usuarios()
-
-# ---- CUALQUIER OTRO MÓDULO ----
-# Puedes agregar más formularios aquí:
-# elif pagina == "inventario":
-#     from modulos.inventario import inventario
-#     inventario()
-
+else:
+    st.error("❌ Página no encontrada.")
 
