@@ -14,61 +14,61 @@ st.markdown("""
 <style>
 
 div[data-testid="stButton"] {
-    display: flex;
-    justify-content: center;
+    display: flex !important;
+    justify-content: center !important;
 }
 
 /* Tamaño fijo */
 div[data-testid="stButton"] > button {
-    width: 240px;
-    height: 90px;
-    padding: 0;
+    width: 240px !important;
+    height: 90px !important;
+    padding: 0 !important;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 18px !important;
+    font-weight: 600 !important;
 
-    border-radius: 12px;
-    border: none;
+    border-radius: 12px !important;
+    border: none !important;
 
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
 }
 
 /* Hover */
 div[data-testid="stButton"] > button:hover {
-    transform: scale(1.07);
-    box-shadow: 0 10px 22px rgba(0,0,0,0.30);
+    transform: scale(1.07) !important;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.30) !important;
 }
 
-/* Colores */
-#proyectos_btn button { background-color: #F4B400; color: white; }
-#usuarios_btn button { background-color: #8E24AA; color: white; }
-#grupos_btn button { background-color: #E53935; color: white; }
-#documentos_btn button { background-color: #1E88E5; color: white; }
-#reportes_btn button { background-color: #43A047; color: white; }
-#configuracion_btn button { background-color: #6D4C41; color: white; }
+/* Colores por ID */
+#proyectos_btn button { background-color: #F4B400 !important; color: white !important; }
+#usuarios_btn button { background-color: #8E24AA !important; color: white !important; }
+#grupos_btn button { background-color: #E53935 !important; color: white !important; }
+#documentos_btn button { background-color: #1E88E5 !important; color: white !important; }
+#reportes_btn button { background-color: #43A047 !important; color: white !important; }
+#configuracion_btn button { background-color: #6D4C41 !important; color: white !important; }
 
 /* Logout */
 #logout_btn button {
-    width: 200px;
-    height: 60px;
-    background-color: #424242;
-    color: white;
-    border-radius: 10px;
-    transition: transform 0.2s ease;
+    width: 200px !important;
+    height: 60px !important;
+    background-color: #424242 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    transition: transform 0.2s ease !important;
 }
 
 #logout_btn button:hover {
-    transform: scale(1.05);
-    background-color: black;
+    transform: scale(1.05) !important;
+    background-color: black !important;
 }
 
 </style>
