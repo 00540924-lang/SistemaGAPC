@@ -18,15 +18,6 @@ def get_connection():
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
-    # -----------------------------------------------------
-    # BOTÓN PARA REGRESAR AL MENÚ PRINCIPAL
-    # -----------------------------------------------------
-    if st.button("⬅️ Regresar al menú"):
-        st.session_state["page"] = "menu"
-        st.rerun()
-
-    st.write("---")
-
     # ---------------------------------------------
     # FORMULARIO PARA CREAR GRUPO
     # ---------------------------------------------
@@ -51,7 +42,14 @@ def pagina_grupos():
         conn.close()
 
     st.write("---")
+  # -----------------------------------------------------
+    # BOTÓN PARA REGRESAR AL MENÚ PRINCIPAL
+    # -----------------------------------------------------
+    if st.button("⬅️ Regresar al menú"):
+        st.session_state["page"] = "menu"
+        st.rerun()
 
+    st.write("---")
     # ---------------------------------------------
     # SECCIÓN: GESTIONAR MIEMBROS DE UN GRUPO
     # ---------------------------------------------
