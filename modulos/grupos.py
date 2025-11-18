@@ -67,7 +67,7 @@ def pagina_grupos():
         cursor.close()
         conn.close()
         return
-    st.write("### Opciones del grupo")
+    st.write("### ⚙️ Opciones del grupo")
     grupo_id = st.selectbox(
         "Selecciona un grupo",
         options=[g["id_grupo"] for g in grupos],
