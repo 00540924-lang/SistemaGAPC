@@ -66,50 +66,63 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # CSS PARA BOTONES → GLASSMORPHISM
+    # CSS GLASSMORPHISM + COLORES DIFERENTES
     # ---------------------------------------
     st.markdown("""
 <style>
+.btn-glass {
+    padding: 18px;
+    height: 150px;
+    width: 100%;
+    border-radius: 18px;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 18px;
 
-button[kind="secondary"] {
-    width: 180px !important;
-    height: 160px !important;
-
-    background: linear-gradient(135deg, rgba(122,72,204,0.35), rgba(255,110,127,0.30)) !important;
-    border: 1px solid rgba(255,255,255,0.35) !important;
-
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-
-    border-radius: 20px !important;
-    color: white !important;
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    padding: 20px !important;
-
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
-
-    transition: all 0.25s ease !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+    transition: 0.25s ease-in-out;
 }
 
-button[kind="secondary"]:hover {
-    transform: translateY(-8px) scale(1.05) !important;
-    border-color: rgba(255,255,255,0.75) !important;
-    box-shadow: 0 12px 35px rgba(255,110,127,0.45) !important;
+.btn-glass:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 
+/* Degradados individuales */
+.btn1 { background: linear-gradient(135deg, #6D5DFB, #46A8F7); }
+.btn2 { background: linear-gradient(135deg, #FF6CAB, #7366FF); }
+.btn3 { background: linear-gradient(135deg, #FFA857, #FF5E62); }
+.btn4 { background: linear-gradient(135deg, #4ECDC4, #556270); }
+.btn5 { background: linear-gradient(135deg, #F857A6, #FF5858); }
+.btn6 { background: linear-gradient(135deg, #43E97B, #38F9D7); }
+
+button:focus { outline: none; }
 </style>
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # GRID DE BOTONES
+    # TARJETAS POR MÓDULOS
     # ---------------------------------------
-    st.write("") 
+    st.write("")
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
+        clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
         with cols[i % 3]:
-            if st.button(f"{icono}\n{texto}", key=f"btn_{modulo}"):
+            clicked = st.markdown(
+                f"""
+                <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
+                    {icono}<br>{texto}
+                </button>
+                """,
+                unsafe_allow_html=True
+            )
+            if f"btn_{modulo}" in st.session_state:
                 st.session_state["modulo"] = modulo
                 st.rerun()
 
@@ -119,6 +132,10 @@ button[kind="secondary"]:hover {
     st.write("")
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
+        if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
+            st.session_state.clear()
+            st.rerun()
+
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
             st.rerun()
