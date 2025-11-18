@@ -68,15 +68,20 @@ def mostrar_menu():
     # ---------------------------------------
     # CSS GLASSMORPHISM + COLORES DIFERENTES
     # ---------------------------------------
+       # ---------------------------------------
+    # CSS GLASSMORPHISM + COLORES DIFERENTES + ICONO GRANDE
+    # ---------------------------------------
     st.markdown("""
 <style>
+
+/* ---- ESTILO GENERAL DEL BOTÓN ---- */
 .btn-glass {
     padding: 18px;
     height: 150px;
     width: 100%;
     border-radius: 18px;
     color: #4C3A60;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     border: none;
     cursor: pointer;
@@ -86,40 +91,40 @@ def mostrar_menu():
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 4px 18px rgba(0,0,0,0.15);
     transition: 0.25s ease-in-out;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
 }
 
+/* Hover */
 .btn-glass:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 
-/* Degradados individuales */
-<style>
-/* Paleta basada en tu imagen GAPC */
+/* ---- ICONO GRANDE ---- */
+.icono-grande {
+    font-size: 42px;   /* << AQUI AJUSTAS EL TAMAÑO DEL EMOJI */
+    line-height: 1;
+    margin-bottom: 6px;
+}
 
-.btn1 { 
-    background: linear-gradient(135deg, #DCC8E3, #C9B2D9); 
-}  /* Lila pastel */
-.btn2 { 
-    background: linear-gradient(135deg, #F7DCC4, #F4CDB3); 
-}  /* Durazno pastel */
-.btn3 { 
-    background: linear-gradient(135deg, #BEE4DD, #A6D9D0); 
-}  /* Verde/Aqua pastel */
-.btn4 { 
-    background: linear-gradient(135deg, #C9B2D9, #F7DCC4); 
-}  /* Lila → Durazno */
-.btn5 { 
-    background: linear-gradient(135deg, #A6D9D0, #DCC8E3); 
-}  /* Aqua → Lavanda */
-.btn6 { 
-    background: linear-gradient(135deg, #F4CDB3, #BEE4DD); 
-}  /* Melocotón → Menta */
+/* ---- DEGRADADOS PASTEL DEL LOGO GAPC ---- */
+.btn1 { background: linear-gradient(135deg, #DCC8E3, #C9B2D9); }  
+.btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }  
+.btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }  
+.btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }  
+.btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }  
+.btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }  
+
 </style>
 """, unsafe_allow_html=True)
 
+
     # ---------------------------------------
-    # TARJETAS POR MÓDULOS
+    # TARJETAS POR MÓDULOS (CON ICONO GRANDE)
     # ---------------------------------------
     st.write("")
     cols = st.columns(3)
@@ -127,17 +132,15 @@ def mostrar_menu():
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
         with cols[i % 3]:
-            clicked = st.markdown(
+            st.markdown(
                 f"""
                 <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
-                    {icono}<br>{texto}
+                    <span class="icono-grande">{icono}</span>
+                    {texto}
                 </button>
                 """,
                 unsafe_allow_html=True
             )
-            if f"btn_{modulo}" in st.session_state:
-                st.session_state["modulo"] = modulo
-                st.rerun()
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
