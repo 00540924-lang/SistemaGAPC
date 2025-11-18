@@ -18,11 +18,20 @@ def get_connection():
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
-    st.subheader("➕ Registrar nuevo grupo")
+    # -----------------------------------------------------
+    # BOTÓN PARA REGRESAR AL MENÚ PRINCIPAL
+    # -----------------------------------------------------
+    if st.button("⬅️ Regresar al menú"):
+        st.session_state["page"] = "menu"
+        st.rerun()
+
+    st.write("---")
 
     # ---------------------------------------------
     # FORMULARIO PARA CREAR GRUPO
     # ---------------------------------------------
+    st.subheader("➕ Registrar nuevo grupo")
+
     nombre = st.text_input("Nombre del Grupo")
     distrito = st.text_input("Distrito")
     inicio_ciclo = st.date_input("Inicio del Ciclo")
@@ -63,6 +72,24 @@ def pagina_grupos():
         options=[g["id_grupo"] for g in grupos],
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
     )
+
+    # --------------------------------------------------------
+    # BOTÓN PARA ELIMINAR EL GRUPO COMPLETO
+    # --------------------------------------------------------
+    st.write("### Opciones del grupo seleccionado")
+
+    if st.button("🗑️ Eliminar grupo"):
+        if st.confirm("¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer."):
+            
+            # Primero eliminamos los miembros relacionados
+            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_seleccionado,))
+
+            # Luego eliminamos el grupo
+            cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_seleccionado,))
+            conn.commit()
+
+            st.success("Grupo eliminado correctamente.")
+            st.rerun()
 
     st.write("### Miembros del grupo")
 
@@ -109,6 +136,7 @@ def pagina_grupos():
 
     ids_actuales = [m["id_miembro"] for m in miembros_grupo]
 
+    # Filtrar miembros NO presentes en el grupo
     miembros_disponibles = [m for m in todos_miembros if m["id_miembro"] not in ids_actuales]
 
     if miembros_disponibles:
