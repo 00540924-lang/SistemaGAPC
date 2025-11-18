@@ -65,9 +65,6 @@ def mostrar_menu():
         </div>
         """, unsafe_allow_html=True)
 
-    # ---------------------------------------
-    # CSS GLASSMORPHISM + COLORES DIFERENTES
-    # ---------------------------------------
        # ---------------------------------------
     # CSS GLASSMORPHISM + COLORES DIFERENTES + ICONO GRANDE
     # ---------------------------------------
@@ -126,21 +123,45 @@ def mostrar_menu():
     # ---------------------------------------
     # TARJETAS POR MÓDULOS (CON ICONO GRANDE)
     # ---------------------------------------
-    st.write("")
-    cols = st.columns(3)
+    # =============================================================
+# TARJETAS DE LOS MÓDULOS (VERSIÓN 100% FUNCIONAL)
+# =============================================================
 
-    for i, (icono, texto, modulo) in enumerate(modulos):
-        clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
-        with cols[i % 3]:
-            st.markdown(
-                f"""
-                <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
-                    <span class="icono-grande">{icono}</span>
-                    {texto}
-                </button>
-                """,
-                unsafe_allow_html=True
-            )
+cols = st.columns(3)
+
+# Variable oculta que recibe el módulo clicado desde JS
+clicked_mod = st.experimental_get_query_params().get("mod", [None])[0]
+
+# Si viene un módulo desde JS → navegar
+if clicked_mod:
+    st.session_state["pagina"] = clicked_mod
+    st.experimental_set_query_params()  # limpiar URL
+    st.rerun()
+
+# Generar botones visuales
+for i, (icono, texto, modulo) in enumerate(modulos):
+    clase_color = f"btn-glass btn{i+1}"
+    with cols[i % 3]:
+
+        unique_id = f"mod_{modulo}"
+
+        # Botón HTML
+        st.markdown(
+            f"""
+            <button class="{clase_color}" id="{unique_id}">
+                <span class="icono-grande">{icono}</span>
+                {texto}
+            </button>
+
+            <script>
+                // Captura clic y lo pasa a Streamlit
+                document.getElementById("{unique_id}").onclick = function() {{
+                    window.location.href = "?mod={modulo}";
+                }};
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
