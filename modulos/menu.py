@@ -1,47 +1,117 @@
 import streamlit as st
-from modulos.login import login
-from modulos.menu import mostrar_menu
 
-# ------------------------------
-# VARIABLES DE SESIÓN
-# ------------------------------
-st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("page", "menu")
+def mostrar_menu():
 
-# ------------------------------
-# LOGIN
-# ------------------------------
-if not st.session_state["sesion_iniciada"]:
-    login()
-    st.stop()
+    rol = st.session_state.get("rol", None)
 
-# ------------------------------
-# ROUTER
-# ------------------------------
-page = st.session_state["page"]
+    if not rol:
+        st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
+        st.stop()
 
-if page == "menu":
-    mostrar_menu()
+    # ---------------------------------------
+    # CONFIGURAR MÓDULOS SEGÚN ROL
+    # ---------------------------------------
+    if rol == "institucional":
+        modulos = [
+            ("📁", "Gestión de Proyectos", "proyectos"),
+            ("👥", "Gestión de Usuarios", "registrar_miembros"),  # ⚡ Aquí se conecta con registrar_miembros
+            ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
+            ("📄", "Gestión Documental", "documentos"),
+            ("📊", "Reportes", "reportes"),
+            ("⚙️", "Configuración", "configuracion"),
+        ]
 
-elif page == "usuarios":
-    from modulos.registrar_miembros import registrar_miembros
-    registrar_miembros()
+    elif rol == "promotor":
+        modulos = [
+            ("📁", "Gestión de Proyectos", "proyectos"),
+            ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
+        ]
 
-elif page == "proyectos":
-    st.title("⚒ Gestión de Proyectos (Aún no implementado)")
+    elif rol == "miembro":
+        modulos = [
+            ("📄", "Gestión Documental", "documentos"),
+        ]
 
-elif page == "inspecciones":
-    st.title("🔍 Inspecciones (Aún no implementado)")
+    # ---------------------------------------
+    # TÍTULO Y CSS
+    # ---------------------------------------
+    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-elif page == "documentos":
-    st.title("📄 Documentos (Aún no implementado)")
+    st.markdown("""
+<style>
+.btn-glass {
+    padding: 18px;
+    height: 150px;
+    width: 100%;
+    border-radius: 18px;
+    color: #4C3A60;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 18px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+    transition: 0.25s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+.btn-glass:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.20);
+}
+.icono-grande {
+    font-size: 42px;
+    margin-bottom: 6px;
+}
+.btn1 { background: linear-gradient(135deg, #AEDFF7, #C9B2D9); }
+.btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }
+.btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }
+.btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }
+.btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
+.btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
+</style>
+""", unsafe_allow_html=True)
 
-elif page == "reportes":
-    st.title("📊 Reportes (Aún no implementado)")
+    # ---------------------------------------
+    # GRID DE BOTONES
+    # ---------------------------------------
+    cols = st.columns(3)
 
-elif page == "configuracion":
-    st.title("⚙️ Configuración (Aún no implementado)")
+    for i, (icono, texto, modulo) in enumerate(modulos):
+        clase_color = f"btn-glass btn{i+1}"
 
-else:
-    st.error("❌ Página no encontrada.")
+        with cols[i % 3]:
+            # Botón Streamlit invisible
+            boton_streamlit = st.button("", key=f"real_{modulo}")
+
+            # Botón HTML
+            st.markdown(f"""
+                <button class="{clase_color}" id="btn_{modulo}">
+                    <span class="icono-grande">{icono}</span>
+                    {texto}
+                </button>
+                <script>
+                const btn = window.parent.document.getElementById("btn_{modulo}");
+                btn.addEventListener("click", function(){{
+                    document.querySelector('button[data-testid="stButton"][key="real_{modulo}"]').click();
+                }});
+                </script>
+            """, unsafe_allow_html=True)
+
+            # Si se presionó el botón, cambiar la página
+            if boton_streamlit:
+                st.session_state.page = modulo
+                st.rerun()
+
+    # ---------------------------------------
+    # BOTÓN CERRAR SESIÓN
+    # ---------------------------------------
+    st.write("")  # Espaciado
+    if st.button("🔒 Cerrar sesión"):
+        st.session_state.clear()
+        st.rerun()
 
