@@ -32,6 +32,7 @@ def mostrar_menu():
     st.markdown("<h1 style='text-align:center; color:#4C3A60;'>Menú Principal – GAPC</h1>",
                 unsafe_allow_html=True)
 
+    # ===== CSS =====
     st.markdown("""
     <style>
 
@@ -43,8 +44,6 @@ def mostrar_menu():
         color: #4C3A60;
         font-size: 16px;
         font-weight: 700;
-        border: none;
-        margin-bottom: 18px;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         box-shadow: 0 4px 18px rgba(0,0,0,0.15);
@@ -53,8 +52,8 @@ def mostrar_menu():
         flex-direction: column;
         justify-content: center;
         text-align: center;
-        text-decoration: none;
         cursor: pointer;
+        margin-bottom: 18px;
     }
 
     .btn-glass:hover {
@@ -79,49 +78,35 @@ def mostrar_menu():
 
     cols = st.columns(3)
 
-    # ==========================================
-    # TARJETAS CLICKEABLES QUE SÍ DISPARAN PYTHON
-    # ==========================================
+    # ======================================
+    # TARJETAS STREAMLIT 100% FUNCIONALES
+    # ======================================
     for i, (icono, texto, modulo) in enumerate(modulos):
-        clase_color = f"btn-glass btn{i+1}"
+
+        clase = f"btn-glass btn{i+1}"
+        btn_id = f"btn_{modulo}"
 
         with cols[i % 3]:
 
-            # FORMULARIO HTML OCULTO (Streamlit SÍ lo procesa)
+            # Botón invisible
+            clicked = st.button(" ", key=btn_id, label_visibility="collapsed")
+
+            if clicked:
+                st.session_state["page"] = modulo
+                st.rerun()
+
+            # Tarjeta HTML que activa el botón invisible
             st.markdown(
                 f"""
-                <form action="" method="post">
-                    <input type="hidden" name="mod_seleccionado" value="{modulo}">
-                    <button type="submit" style="all: unset; width:100%;">
-                        <div class="{clase_color}">
-                            <span class="icono-grande">{icono}</span>
-                            {texto}
-                        </div>
-                    </button>
-                </form>
+                <div class="{clase}" onclick="document.getElementById('{btn_id}').click();">
+                    <span class="icono-grande">{icono}</span>
+                    <p>{texto}</p>
+                </div>
                 """,
                 unsafe_allow_html=True
             )
 
-    # ===== Leer POST del formulario =====
-    if "mod_seleccionado" in st.session_state:
-        mod = st.session_state["mod_seleccionado"]
-        st.session_state["modulo_actual"] = mod
-        st.rerun()
-
-    # ===== Detectar acción POST =====
-    import streamlit.web.server.websocket_headers as wh
-    post_params = wh._get_websocket_headers().get("x-streamlit-post", "")
-
-    if post_params:
-        pairs = post_params.split("&")
-        for p in pairs:
-            if p.startswith("mod_seleccionado="):
-                mod = p.replace("mod_seleccionado=", "")
-                st.session_state["modulo_actual"] = mod
-                st.rerun()
-
-    # Botón cerrar sesión
+    # BOTÓN CERRAR SESIÓN
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
         st.rerun()
