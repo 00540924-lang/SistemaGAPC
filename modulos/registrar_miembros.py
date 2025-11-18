@@ -24,7 +24,7 @@ def registrar_miembros():
             cursor = conexion.cursor()
 
             # Solo 3 campos porque la tabla ya no tiene 'Rol'
-            sql = "INSERT INTO miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
+            sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             datos = (nombre, dui, telefono)
             cursor.execute(sql, datos)
             conexion.commit()
