@@ -121,10 +121,10 @@ def mostrar_menu():
     # ---------------------------------------
     # TARJETAS POR MÓDULOS
     # ---------------------------------------
-    st.write("")
+ st.write("")
     cols = st.columns(3)
 
-     for i, (icono, texto, modulo) in enumerate(modulos):
+    for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
         with cols[i % 3]:
             clicked = st.markdown(
