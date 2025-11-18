@@ -2,9 +2,6 @@ import streamlit as st
 
 def mostrar_menu():
 
-    # ---------------------------------------
-    # LEER ROL DEL USUARIO DESDE EL LOGIN
-    # ---------------------------------------
     rol = st.session_state.get("rol", None)
 
     if not rol:
@@ -35,43 +32,14 @@ def mostrar_menu():
             ("📄", "Gestión Documental", "documentos"),
         ]
 
-    else:
-        st.error("❌ Rol no reconocido.")
-        st.stop()
-
     # ---------------------------------------
-    # TÍTULO
+    # TÍTULO Y CSS
     # ---------------------------------------
-    st.markdown("""
-        <h1 style='text-align:center; color:#4C3A60; font-size: 36px; margin-bottom:4px'>
-            Menú Principal – GAPC
-        </h1>
-        """, unsafe_allow_html=True)
+    st.markdown("""<h1 style='text-align:center;'>Menú Principal – GAPC</h1>""",
+                unsafe_allow_html=True)
 
-    # Tarjeta encabezado
-    st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #B7A2C8, #F7C9A4);
-            padding: 3px;
-            border-radius: 12px;
-            color: #4C3A60;
-            font-size: 18px;
-            text-align: center;
-            width: 80%;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
-            margin: auto;
-        ">
-            <b>Seleccione un módulo para continuar</b>
-        </div>
-        """, unsafe_allow_html=True)
-
-       # ---------------------------------------
-    # CSS GLASSMORPHISM + COLORES DIFERENTES + ICONO GRANDE
-    # ---------------------------------------
     st.markdown("""
 <style>
-
-/* ---- ESTILO GENERAL DEL BOTÓN ---- */
 .btn-glass {
     padding: 18px;
     height: 150px;
@@ -83,55 +51,45 @@ def mostrar_menu():
     border: none;
     cursor: pointer;
     margin-bottom: 18px;
-
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 4px 18px rgba(0,0,0,0.15);
     transition: 0.25s ease-in-out;
-
     display: flex;
     flex-direction: column;
     justify-content: center;
     text-align: center;
 }
-
-/* Hover */
 .btn-glass:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
-
-/* ---- ICONO GRANDE ---- */
 .icono-grande {
-    font-size: 42px;   /* << AQUI AJUSTAS EL TAMAÑO DEL EMOJI */
-    line-height: 1;
+    font-size: 42px;
     margin-bottom: 6px;
 }
-
-/* ---- DEGRADADOS PASTEL DEL LOGO GAPC ---- */
-.btn1 { background: linear-gradient(135deg, #AEDFF7, #C9B2D9); }  
-.btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }  
-.btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }  
-.btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }  
-.btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }  
-.btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }  
-
+.btn1 { background: linear-gradient(135deg, #AEDFF7, #C9B2D9); }
+.btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }
+.btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }
+.btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }
+.btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
+.btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
 </style>
 """, unsafe_allow_html=True)
 
-
     # ---------------------------------------
-    # TARJETAS POR MÓDULOS (CON ICONO GRANDE)
+    # GRID DE BOTONES
     # ---------------------------------------
-    st.write("")
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
-        clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
+        clase_color = f"btn-glass btn{i+1}"
+
         with cols[i % 3]:
+            # --- 1) Dibujamos el botón HTML ---
             st.markdown(
                 f"""
-                <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
+                <button class="{clase_color}" id="btn_{modulo}">
                     <span class="icono-grande">{icono}</span>
                     {texto}
                 </button>
@@ -139,12 +97,26 @@ def mostrar_menu():
                 unsafe_allow_html=True
             )
 
+            # --- 2) Botón Streamlit invisible ---
+            if st.button("", key=f"real_{modulo}"):
+                st.session_state.page = modulo
+                st.rerun()
+
+            # --- 3) Activamos click del HTML al botón real ---
+            st.markdown(
+                f"""
+                <script>
+                document.getElementById("btn_{modulo}").addEventListener("click", function(){{
+                    document.querySelector('button[data-testid="baseButton-real_{modulo}"]').click();
+                }});
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
+
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
-    st.write("")
-    col1, col2, col3 = st.columns([1, 3, 1])
-    with col2:
-        if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
-            st.session_state.clear()
-            st.rerun()
+    if st.button("🔒 Cerrar sesión"):
+        st.session_state.clear()
+        st.rerun()
