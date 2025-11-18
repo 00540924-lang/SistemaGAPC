@@ -66,36 +66,40 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # CSS PARA BOTONES → GLASSMORPHISM
+    # CSS – Estilo Apple Minimalista
     # ---------------------------------------
     st.markdown("""
 <style>
 
 button[kind="secondary"] {
-    width: 180px !important;
-    height: 160px !important;
+    width: 165px !important;
+    height: 155px !important;
 
-    background: linear-gradient(135deg, rgba(122,72,204,0.35), rgba(255,110,127,0.30)) !important;
-    border: 1px solid rgba(255,255,255,0.35) !important;
-
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-
+    background-color: #ffffff !important;
     border-radius: 20px !important;
-    color: white !important;
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    padding: 20px !important;
 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+    border: 1px solid #e5e5e5 !important;
 
-    transition: all 0.25s ease !important;
+    color: #4C3A60 !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+
+    padding: 18px !important;
+
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08) !important;
+
+    transition: all 0.2s ease !important;
 }
 
 button[kind="secondary"]:hover {
-    transform: translateY(-8px) scale(1.05) !important;
-    border-color: rgba(255,255,255,0.75) !important;
-    box-shadow: 0 12px 35px rgba(255,110,127,0.45) !important;
+    transform: translateY(-6px) scale(1.04) !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.12) !important;
+    background-color: #fafafa !important;
+}
+
+button[kind="secondary"]:active {
+    transform: scale(0.98) !important;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.10) !important;
 }
 
 </style>
@@ -104,7 +108,7 @@ button[kind="secondary"]:hover {
     # ---------------------------------------
     # GRID DE BOTONES
     # ---------------------------------------
-    st.write("") 
+    st.write("")
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
