@@ -7,112 +7,121 @@ def mostrar_menu():
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-    # ----------------------------
-    # CSS PARA BOTONES ANIMADOS
-    # ----------------------------
+    # -----------------------------------------------------
+    #      🎨 CSS - Botones con animación + colores
+    # -----------------------------------------------------
     st.markdown("""
     <style>
-    .menu-btn > button {
-        background-color: #ffffff !important;
-        color: #333 !important;
+
+    /* ESTILO GENERAL DE BOTONES DEL MENÚ */
+    div.stButton > button {
+        color: white !important;
         border-radius: 12px !important;
         padding: 20px !important;
         font-size: 18px !important;
         font-weight: 600 !important;
-        border: 1px solid #e0e0e0 !important;
         width: 100% !important;
         height: 110px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
-        transition: all 0.25s ease-in-out !important;
+        border: none !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
     }
-    .menu-btn > button:hover {
-        transform: scale(1.05) !important;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
-        border-color: #bbbbbb !important;
+
+    /* ANIMACIÓN */
+    div.stButton > button:hover {
+        transform: scale(1.07) !important;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
     }
-    .logout-btn > button {
-        background-color: #d9534f !important;
+
+    /* 🎨 COLORES POR MÓDULO */
+    #proyectos_btn > button { background-color: #F4B400 !important; }      /* Amarillo */
+    #usuarios_btn > button { background-color: #8E24AA !important; }       /* Morado */
+    #inspecciones_btn > button { background-color: #E53935 !important; }   /* Rojo */
+    #documentos_btn > button { background-color: #1E88E5 !important; }     /* Azul */
+    #reportes_btn > button { background-color: #43A047 !important; }       /* Verde */
+    #configuracion_btn > button { background-color: #6D4C41 !important; }  /* Café */
+
+    /* BOTÓN CERRAR SESIÓN */
+    #logout_btn > button {
+        background-color: #424242 !important;
         color: white !important;
         border-radius: 10px !important;
-        padding: 12px 20px !important;
+        padding: 12px 22px !important;
         font-size: 16px !important;
         width: 200px !important;
-        transition: all .2s ease !important;
+        transition: transform 0.2s ease !important;
     }
-    .logout-btn > button:hover {
-        background-color: #c9302c !important;
-        transform: scale(1.03) !important;
+    #logout_btn > button:hover {
+        transform: scale(1.05) !important;
+        background-color: #000000 !important;
     }
+
     </style>
     """, unsafe_allow_html=True)
 
-    # ----------------------------
-    # TÍTULO
-    # ----------------------------
+    # -----------------------------------------------------
+    #                    TÍTULO
+    # -----------------------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # ----------------------------
-    # LISTA BASE DE MÓDULOS
-    # ----------------------------
+    # -----------------------------------------------------
+    #                   MÓDULOS BASE
+    # -----------------------------------------------------
     modulos_base = [
-        ("📁 Gestión de Proyectos", "proyectos"),
-        ("👥 Gestión de Usuarios", "registrar_miembros"),
-        ("📝 Inspecciones y Evaluaciones", "inspecciones"),
-        ("📄 Gestión Documental", "documentos"),
-        ("📊 Reportes", "reportes"),
-        ("⚙️ Configuración", "configuracion"),
+        ("📁 Gestión de Proyectos", "proyectos", "proyectos_btn"),
+        ("👥 Gestión de Usuarios", "registrar_miembros", "usuarios_btn"),
+        ("📝 Inspecciones y Evaluaciones", "inspecciones", "inspecciones_btn"),
+        ("📄 Gestión Documental", "documentos", "documentos_btn"),
+        ("📊 Reportes", "reportes", "reportes_btn"),
+        ("⚙️ Configuración", "configuracion", "configuracion_btn"),
     ]
 
-    # ----------------------------
-    # LÓGICA DE ROLES
-    # ----------------------------
+    # -----------------------------------------------------
+    #               FILTRO POR ROL
+    # -----------------------------------------------------
     if rol == "institucional":
         modulos = modulos_base
 
     elif rol == "promotor":
         modulos = [
-            m for m in modulos_base
-            if m[1] in ["proyectos", "inspecciones"]
+            m for m in modulos_base if m[1] in ["proyectos", "inspecciones"]
         ]
 
     elif rol == "miembro":
         modulos = [
-            m for m in modulos_base
-            if m[1] == "documentos"
+            m for m in modulos_base if m[1] == "documentos"
         ]
 
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
-    # ----------------------------
-    # GRID DE BOTONES
-    # ----------------------------
+    # -----------------------------------------------------
+    #               GRID DE BOTONES
+    # -----------------------------------------------------
     cols = st.columns(3)
 
-    for i, (texto, modulo) in enumerate(modulos):
+    for i, (texto, modulo, css_id) in enumerate(modulos):
         with cols[i % 3]:
-            with st.container():
-                btn = st.button(
-                    texto,
-                    key=f"btn_{modulo}",
-                    use_container_width=True,
-                    type="secondary"
-                )
-                # Aplicamos clase CSS al botón
-                st.markdown("<div class='menu-btn'></div>", unsafe_allow_html=True)
+            btn = st.container()
+            with btn:
+                b = st.button(texto, key=f"btn_{modulo}")
+                # Aplicar ID de CSS al contenedor
+                btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
 
-                if btn:
+                if b:
                     st.session_state.page = modulo
                     st.rerun()
 
-    # ----------------------------
-    # BOTÓN DE CERRAR SESIÓN
-    # ----------------------------
+    # -----------------------------------------------------
+    #               BOTÓN CERRAR SESIÓN
+    # -----------------------------------------------------
     st.write("---")
-    with st.container():
+
+    logout_container = st.container()
+    with logout_container:
         logout = st.button("🔒 Cerrar sesión", key="logout")
-        st.markdown("<div class='logout-btn'></div>", unsafe_allow_html=True)
+        logout_container.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
 
         if logout:
             st.session_state.clear()
