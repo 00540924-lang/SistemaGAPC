@@ -7,7 +7,7 @@ def registrar_miembros():
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
-        telefono = st.text_input("Teléfono")
+        telefono = st.text_input("Telefono")
         rol = st.text_input("Rol")
         enviar = st.form_submit_button("Registrar")
 
