@@ -66,11 +66,15 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
+    # CSS GLASSMORPHISM + COLORES DIFERENTES
+    # ---------------------------------------
+       # ---------------------------------------
     # CSS GLASSMORPHISM + COLORES DIFERENTES + ICONO GRANDE
     # ---------------------------------------
     st.markdown("""
 <style>
 
+/* ---- ESTILO GENERAL DEL BOTÓN ---- */
 .btn-glass {
     padding: 18px;
     height: 150px;
@@ -94,18 +98,21 @@ def mostrar_menu():
     text-align: center;
 }
 
+/* Hover */
 .btn-glass:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(0,0,0,0.20);
 }
 
+/* ---- ICONO GRANDE ---- */
 .icono-grande {
-    font-size: 42px;
+    font-size: 42px;   /* << AQUI AJUSTAS EL TAMAÑO DEL EMOJI */
     line-height: 1;
     margin-bottom: 6px;
 }
 
-.btn1 { background: linear-gradient(135deg, #DCC8E3, #C9B2D9); }  
+/* ---- DEGRADADOS PASTEL DEL LOGO GAPC ---- */
+.btn1 { background: linear-gradient(135deg, #FFC0CB, #C9B2D9); }  
 .btn2 { background: linear-gradient(135deg, #F7DCC4, #F4CDB3); }  
 .btn3 { background: linear-gradient(135deg, #BEE4DD, #A6D9D0); }  
 .btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }  
@@ -115,8 +122,9 @@ def mostrar_menu():
 </style>
 """, unsafe_allow_html=True)
 
+
     # ---------------------------------------
-    # TARJETAS POR MÓDULOS (CON ICONO GRANDE Y ACCIÓN)
+    # TARJETAS POR MÓDULOS (CON ICONO GRANDE)
     # ---------------------------------------
     st.write("")
     cols = st.columns(3)
@@ -124,21 +132,15 @@ def mostrar_menu():
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"  # btn1, btn2...
         with cols[i % 3]:
-            # Si es "Gestión de Usuarios", asignar acción
-            if texto == "Gestión de Usuarios":
-                if st.button(f"{icono}  {texto}", key=f"btn_{modulo}"):
-                    st.session_state["modulo"] = "usuarios"
-                    st.experimental_rerun()
-            else:
-                st.markdown(
-                    f"""
-                    <button class="{clase_color}">
-                        <span class="icono-grande">{icono}</span>
-                        {texto}
-                    </button>
-                    """,
-                    unsafe_allow_html=True
-                )
+            st.markdown(
+                f"""
+                <button class="{clase_color}" onclick="window.location.href='/?mod={modulo}'">
+                    <span class="icono-grande">{icono}</span>
+                    {texto}
+                </button>
+                """,
+                unsafe_allow_html=True
+            )
 
     # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
@@ -148,4 +150,4 @@ def mostrar_menu():
     with col2:
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
-            st.experimental_rerun()
+            st.rerun()
