@@ -13,6 +13,7 @@ def mostrar_menu():
     st.markdown("""
 <style>
 
+/* --- 1. Estilos Base --- */
 /* Estilo para centrar el div.stButton dentro de la columna */
 div.stButton {
     display: flex !important;
@@ -21,21 +22,21 @@ div.stButton {
 
 /* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 180px !important;
-    height: 100px !important;
+    width: 180px !important;    /* ← tamaño fijo horizontal */
+    height: 100px !important;    /* ← tamaño fijo vertical */
     padding: 0 !important;
 
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    white-space: nowrap !important;     /* No permite que el texto salte de línea */
+    overflow: hidden !important;        /* Evita que el texto desborde */
+    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
 
     font-size: 18px !important;
     font-weight: 600 !important;
-    color: white !important; /* Blanco para fondos oscuros */
+    color: white !important; /* Texto blanco (para la mayoría de los fondos oscuros) */
 
     border-radius: 12px !important;
     border: none !important;
@@ -50,19 +51,26 @@ div.stButton > button:hover {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
-/* Colores personalizados - Apuntando al contenedor div.stButton por el ID inyectado */
-/* ¡CORRECCIÓN! El color del texto es fundamental para el botón AMARILLO */
-#proyectos_btn > button { 
-    background-color: #F4B400 !important; 
-    color: #4C3A60 !important; /* Texto oscuro para contrastar con el amarillo */
-} 
-#usuarios_btn > button { background-color: #8E24AA !important; }
-#grupos_btn > button { background-color: #E53935 !important; }
-#documentos_btn > button { background-color: #1E88E5 !important; }
-#reportes_btn > button { background-color: #43A047 !important; }
-#configuracion_btn > button { background-color: #6D4C41 !important; }
+/* --- 2. Colores Personalizados (Selector Agresivo con :has()) --- */
+/* Este selector busca el contenedor del botón (div.stButton) que contiene el div con el ID inyectado. */
 
-/* Logout */
+/* Gestión de Proyectos (Amarillo, requiere texto oscuro) */
+[data-testid*="column"] > div > div:nth-child(1) > div.stButton:has(div#proyectos_btn) > button { 
+    background-color: #F4B400 !important; 
+    color: #4C3A60 !important; 
+}
+/* Gestión de Usuarios */
+[data-testid*="column"] > div > div:nth-child(1) > div.stButton:has(div#usuarios_btn) > button { background-color: #8E24AA !important; }
+/* Grupos */
+[data-testid*="column"] > div > div:nth-child(1) > div.stButton:has(div#grupos_btn) > button { background-color: #E53935 !important; }
+/* Gestión Documental */
+[data-testid*="column"] > div > div:nth-child(1) > div.stButton:has(div#documentos_btn) > button { background-color: #1E88E5 !important; }
+/* Reportes */
+[data-testid*="column"] > div > div:nth-child(1) > div.stButton:has(div#reportes_btn) > button { background-color: #43A047 !important; }
+/* Configuración */
+[data-testid*="column"] > div > div:nth-child(1) > div.stButton:has(div#configuracion_btn) > button { background-color: #6D4C41 !important; }
+
+/* --- 3. Logout --- */
 #logout_btn > button {
     width: 200px !important;
     height: 60px !important;
@@ -110,30 +118,18 @@ div.stButton > button:hover {
         return
 
     # -----------------------------------------------------
-    #                       GRID DE BOTONES (Solución robusta para colores)
+    #                   GRID DE BOTONES 
     # -----------------------------------------------------
     cols = st.columns(3)
 
     for i, (texto, modulo, css_id) in enumerate(modulos):
-        key = f"btn_{modulo}"
         with cols[i % 3]:
             # 1. Creamos el botón
-            b = st.button(texto, key=key)
+            b = st.button(texto, key=f"btn_{modulo}")
 
-            # 2. Inyectamos JavaScript para encontrar el botón y poner el ID en su contenedor.
-            # Este script es más fiable que buscar por data-testid
-            st.markdown(f"""
-                <script>
-                    const key = "{key}";
-                    // Busca el elemento del botón por su clave Streamlit
-                    let buttonElement = window.parent.document.querySelector('[data-testid="stButton-{key}"]');
-                    
-                    if (buttonElement) {{
-                        // Asigna el ID al contenedor padre (div.stButton)
-                        buttonElement.parentElement.id = "{css_id}";
-                    }}
-                </script>
-            """, unsafe_allow_html=True)
+            # 2. Inyectamos el DIV vacío con el ID que el CSS agresivo buscará.
+            # Este es el "hook" que usa el selector :has().
+            st.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
 
             # 3. Lógica de navegación
             if b:
@@ -147,15 +143,8 @@ div.stButton > button:hover {
 
     logout = st.button("🔒 Cerrar sesión", key="logout")
     
-    # Inyectamos JavaScript para el botón de cerrar sesión
-    st.markdown(f"""
-        <script>
-            let logout_button = window.parent.document.querySelector('[data-testid="stButton-logout"]');
-            if (logout_button) {{
-                logout_button.parentElement.id = "logout_btn";
-            }}
-        </script>
-    """, unsafe_allow_html=True)
+    # Inyectamos el DIV para el botón de cerrar sesión
+    st.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
 
     if logout:
         st.session_state.clear()
@@ -169,17 +158,33 @@ div.stButton > button:hover {
 if 'page' not in st.session_state:
     st.session_state.page = 'menu'
 if 'rol' not in st.session_state:
-    st.session_state.rol = 'institucional'
+    # Puedes cambiar 'institucional' para probar otros roles: 'promotor', 'miembro'
+    st.session_state.rol = 'institucional' 
 
 # Lógica de renderizado de páginas
 if st.session_state.page == 'menu':
     mostrar_menu()
 elif st.session_state.page == 'login':
     st.title("Página de Login Simulada")
-    if st.button("Simular Inicio de Sesión como Institucional"):
-        st.session_state.rol = 'institucional'
-        st.session_state.page = 'menu'
-        st.rerun()
+    st.markdown("Selecciona un rol para iniciar la sesión:")
+    
+    col_inst, col_prom, col_miem = st.columns(3)
+    
+    with col_inst:
+        if st.button("Institucional"):
+            st.session_state.rol = 'institucional'
+            st.session_state.page = 'menu'
+            st.rerun()
+    with col_prom:
+        if st.button("Promotor"):
+            st.session_state.rol = 'promotor'
+            st.session_state.page = 'menu'
+            st.rerun()
+    with col_miem:
+        if st.button("Miembro"):
+            st.session_state.rol = 'miembro'
+            st.session_state.page = 'menu'
+            st.rerun()
 else:
     st.header(f"Estás en el módulo: {st.session_state.page.replace('_', ' ').title()}")
     if st.button("← Volver al Menú Principal"):
