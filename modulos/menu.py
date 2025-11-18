@@ -17,12 +17,6 @@ def mostrar_menu():
     st.markdown("""
     <style>
     
-    /* 🔴 CORRECCIÓN CLAVE PARA LA UNIFORMIDAD DE ANCHO */
-    /* Aseguramos que el contenedor principal del botón ocupe el 100% de la columna */
-    div[data-testid="stButton"] {
-        width: 100%;
-    }
-
     /* ESTILO GENERAL DE BOTONES DEL MENÚ */
     div.stButton > button {
         color: #4C3A60 !important;
@@ -32,7 +26,7 @@ def mostrar_menu():
         font-weight: 600 !important;
         
         /* LA CLAVE PARA EL MISMO TAMAÑO ES ESTABLECER AMBOS: */
-        width: 100% !important; /* Ocupa todo el ancho de la columna */
+        width: 100% !important; /* Ocupa todo el ancho de la columna (ahora forzada) */
         height: 110px !important; /* Altura fija para todos */
         
         border: none !important;
@@ -145,12 +139,12 @@ def mostrar_menu():
     # -----------------------------------------------------
     #                   GRID DE BOTONES
     # -----------------------------------------------------
-    cols = st.columns(3)
+    # 🔴 CAMBIO CLAVE: Definir explícitamente el ancho de las 3 columnas
+    cols = st.columns([1, 1, 1])
 
     for i, (texto, modulo) in enumerate(modulos):
         with cols[i % 3]:
             # El botón ahora usa el 'modulo' para su key.
-            # El CSS de arriba lo selecciona por ese key (e.g., key="btn_proyectos")
             if st.button(texto, key=f"btn_{modulo}"):
                 st.session_state.page = modulo
                 st.rerun()
@@ -160,7 +154,7 @@ def mostrar_menu():
     # -----------------------------------------------------
     st.write("---")
     
-    # Se utiliza una columna para centrar el botón de cerrar sesión
+    # 🔴 CAMBIO CLAVE: Definir explícitamente el ancho de las columnas para centrar el botón
     col_center, col_btn, col_end = st.columns([1, 0.5, 1])
 
     with col_btn:
