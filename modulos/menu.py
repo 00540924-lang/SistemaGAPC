@@ -66,40 +66,47 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # CSS – Estilo Apple Minimalista
+    # CSS — TARJETAS NEUMÓRFICAS PREMIUM
     # ---------------------------------------
     st.markdown("""
 <style>
 
 button[kind="secondary"] {
-    width: 165px !important;
-    height: 155px !important;
+    width: 170px !important;
+    height: 170px !important;
 
-    background-color: #ffffff !important;
-    border-radius: 20px !important;
+    background: #e3e3e3 !important;
 
-    border: 1px solid #e5e5e5 !important;
+    border-radius: 25px !important;
+    border: none !important;
 
+    font-size: 20px !important;
+    font-weight: 700 !important;
     color: #4C3A60 !important;
-    font-size: 18px !important;
-    font-weight: 600 !important;
 
-    padding: 18px !important;
+    padding: 20px !important;
 
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08) !important;
+    box-shadow:
+        8px 8px 16px rgba(0,0,0,0.18),
+        -8px -8px 16px rgba(255,255,255,0.8) !important;
 
-    transition: all 0.2s ease !important;
+    transition: all 0.22s ease-in-out !important;
 }
 
 button[kind="secondary"]:hover {
-    transform: translateY(-6px) scale(1.04) !important;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.12) !important;
-    background-color: #fafafa !important;
+    transform: translateY(-8px) scale(1.04) !important;
+
+    box-shadow:
+        12px 12px 22px rgba(0,0,0,0.22),
+        -10px -10px 20px rgba(255,255,255,0.9) !important;
 }
 
 button[kind="secondary"]:active {
-    transform: scale(0.98) !important;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.10) !important;
+    transform: scale(0.97) !important;
+
+    box-shadow:
+        inset 5px 5px 12px rgba(0,0,0,0.25),
+        inset -5px -5px 12px rgba(255,255,255,0.7) !important;
 }
 
 </style>
@@ -126,4 +133,3 @@ button[kind="secondary"]:active {
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
             st.rerun()
-
