@@ -14,7 +14,7 @@ def mostrar_menu():
     if rol == "institucional":
         modulos = [
             ("📁", "Gestión de Proyectos", "proyectos"),
-            ("👥", "Gestión de Usuarios", "registrar_miembros"),  # ⚡ Aquí se conecta con registrar_miembros
+            ("👥", "Gestión de Usuarios", "registrar_miembros"),
             ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
             ("📄", "Gestión Documental", "documentos"),
             ("📊", "Reportes", "reportes"),
@@ -73,6 +73,11 @@ def mostrar_menu():
 .btn4 { background: linear-gradient(135deg, #C9B2D9, #F7DCC4); }
 .btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
 .btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
+
+/* OCULTAR BOTONES STREAMLIT INVISIBLES */
+button[data-testid="stButton"][key^="real_"] {
+    display: none;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -85,7 +90,7 @@ def mostrar_menu():
         clase_color = f"btn-glass btn{i+1}"
 
         with cols[i % 3]:
-            # Botón Streamlit invisible
+            # Botón Streamlit invisible (se mantiene pero está oculto con CSS)
             boton_streamlit = st.button("", key=f"real_{modulo}")
 
             # Botón HTML
