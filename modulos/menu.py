@@ -66,28 +66,45 @@ def mostrar_menu():
         """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # CSS PARA HACER BOTONES → TARJETAS
+    # CSS PARA BOTONES → GLASSMORPHISM
     # ---------------------------------------
     st.markdown("""
 <style>
+
 button[kind="secondary"] {
-    background: linear-gradient(135deg, #7B4397, #DC2430) !important;
-    color: white !important;
+    width: 180px !important;
+    height: 160px !important;
+
+    background: linear-gradient(135deg, rgba(122,72,204,0.35), rgba(255,110,127,0.30)) !important;
+    border: 1px solid rgba(255,255,255,0.35) !important;
+
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+
     border-radius: 20px !important;
-    height: 150px !important;
-    font-size: 18px !important;
+    color: white !important;
+    font-size: 20px !important;
     font-weight: 700 !important;
     padding: 20px !important;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+
+    transition: all 0.25s ease !important;
 }
+
+button[kind="secondary"]:hover {
+    transform: translateY(-8px) scale(1.05) !important;
+    border-color: rgba(255,255,255,0.75) !important;
+    box-shadow: 0 12px 35px rgba(255,110,127,0.45) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # TARJETAS
+    # GRID DE BOTONES
     # ---------------------------------------
-    st.write("")  # Espacio
-
+    st.write("") 
     cols = st.columns(3)
 
     for i, (icono, texto, modulo) in enumerate(modulos):
@@ -105,3 +122,4 @@ button[kind="secondary"] {
         if st.button("🔒 Cerrar sesión", key="cerrar_sesion_btn"):
             st.session_state.clear()
             st.rerun()
+
