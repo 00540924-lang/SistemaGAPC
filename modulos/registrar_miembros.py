@@ -51,11 +51,36 @@ def registrar_miembros():
         resultados = cursor.fetchall()
 
         if resultados:
-            # Crear DataFrame con encabezados y numeración
+            # Crear DataFrame con numeración
             df = pd.DataFrame(resultados, columns=["Nombre", "DUI", "Teléfono"])
             df.index = range(1, len(df) + 1)
             df.index.name = "No."
-            st.table(df)
+
+            # Convertir a HTML con estilos
+            html = df.to_html(classes="miembros-table", border=0)
+            st.markdown(
+                f"""
+                <style>
+                    .miembros-table th {{
+                        text-align: center;
+                        background-color: #f0f0f0;
+                        padding: 8px;
+                    }}
+                    .miembros-table td {{
+                        text-align: center;
+                        padding: 8px;
+                    }}
+                    .miembros-table {{
+                        width: 80%;
+                        margin-left: auto;
+                        margin-right: auto;
+                        border-collapse: collapse;
+                    }}
+                </style>
+                {html}
+                """,
+                unsafe_allow_html=True
+            )
         else:
             st.info("No hay miembros registrados aún.")
 
