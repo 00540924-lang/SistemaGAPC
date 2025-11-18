@@ -21,7 +21,7 @@ def pagina_grupos():
     # -----------------------------------------------------
     # BOTÓN PARA REGRESAR AL MENÚ PRINCIPAL
     # -----------------------------------------------------
-    if st.button("⬅️ Regresar al menú"):
+    if st.button("⬅️ Regresar al menú", key="btn_regresar_menu"):
         st.session_state["page"] = "menu"
         st.rerun()
 
@@ -32,23 +32,25 @@ def pagina_grupos():
     # ---------------------------------------------
     st.subheader("➕ Registrar nuevo grupo")
 
-    nombre = st.text_input("Nombre del Grupo")
-    distrito = st.text_input("Distrito")
-    inicio_ciclo = st.date_input("Inicio del Ciclo")
+    nombre = st.text_input("Nombre del Grupo", key="input_nombre_grupo")
+    distrito = st.text_input("Distrito", key="input_distrito")
+    inicio_ciclo = st.date_input("Inicio del Ciclo", key="input_inicio_ciclo")
 
-    if st.button("Guardar grupo"):
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "INSERT INTO Grupos (nombre_grupo, distrito, inicio_ciclo) VALUES (%s, %s, %s)",
-            (nombre, distrito, inicio_ciclo)
-        )
-        conn.commit()
-        st.success("Grupo registrado correctamente")
-
-        cursor.close()
-        conn.close()
+    if st.button("Guardar grupo", key="btn_guardar_grupo"):
+        if not nombre.strip():
+            st.error("El nombre del grupo es obligatorio.")
+        else:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO Grupos (nombre_grupo, distrito, inicio_ciclo) VALUES (%s, %s, %s)",
+                (nombre, distrito, inicio_ciclo)
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            st.success("Grupo registrado correctamente")
+            st.experimental_rerun()
 
     st.write("---")
 
@@ -64,31 +66,57 @@ def pagina_grupos():
     grupos = cursor.fetchall()
 
     if not grupos:
+        cursor.close()
+        conn.close()
         st.info("No hay grupos registrados aún.")
         return
 
     grupo_seleccionado = st.selectbox(
         "Selecciona un grupo",
         options=[g["id_grupo"] for g in grupos],
-        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
+        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
+        key="select_grupo"
     )
 
     # --------------------------------------------------------
-    # BOTÓN PARA ELIMINAR EL GRUPO COMPLETO
+    # BOTÓN PARA INICIAR EL PROCESO DE ELIMINAR EL GRUPO COMPLETO
     # --------------------------------------------------------
+    st.write("### Opciones del grupo seleccionado")
 
-    if st.button("🗑️ Eliminar grupo"):
-        if st.confirm("¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer."):
-            
-            # Primero eliminamos los miembros relacionados
-            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_seleccionado,))
+    # Botón inicial de eliminación (pone flag en session_state)
+    if st.button("🗑️ Eliminar grupo", key=f"btn_iniciar_eliminar_{grupo_seleccionado}"):
+        st.session_state["confirmar_eliminar"] = True
+        st.session_state["grupo_a_eliminar"] = grupo_seleccionado
 
-            # Luego eliminamos el grupo
-            cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_seleccionado,))
-            conn.commit()
+    # Si el flag está puesto, mostramos confirmación con botones
+    if st.session_state.get("confirmar_eliminar", False):
+        st.warning("⚠️ ¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer.")
 
-            st.success("Grupo eliminado correctamente.")
-            st.rerun()
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("Sí, eliminar (confirmar)", key=f"btn_confirmar_eliminar_{st.session_state.get('grupo_a_eliminar')}"):
+                grupo_id_eliminar = st.session_state.get("grupo_a_eliminar")
+                try:
+                    # eliminar miembros relacionados primero
+                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_id_eliminar,))
+                    # luego eliminar grupo
+                    cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_id_eliminar,))
+                    conn.commit()
+                    st.success("Grupo eliminado correctamente.")
+                except Exception as e:
+                    st.error(f"Error al eliminar el grupo: {e}")
+                finally:
+                    st.session_state["confirmar_eliminar"] = False
+                    st.session_state.pop("grupo_a_eliminar", None)
+                    cursor.close()
+                    conn.close()
+                    st.experimental_rerun()
+
+        with col_no:
+            if st.button("Cancelar", key=f"btn_cancelar_eliminar_{st.session_state.get('grupo_a_eliminar')}"):
+                st.session_state["confirmar_eliminar"] = False
+                st.session_state.pop("grupo_a_eliminar", None)
+                st.info("Eliminación cancelada.")
 
     st.write("### Miembros del grupo")
 
@@ -112,14 +140,19 @@ def pagina_grupos():
             with col1:
                 st.write(f"✔️ {m['nombre']}")
             with col2:
-                if st.button("❌", key=f"del_{m['id_miembro']}"):
-                    cursor.execute(
-                        "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-                        (grupo_seleccionado, m["id_miembro"])
-                    )
-                    conn.commit()
-                    st.success(f"{m['nombre']} eliminado del grupo.")
-                    st.rerun()
+                if st.button("❌", key=f"del_{grupo_seleccionado}_{m['id_miembro']}"):
+                    try:
+                        cursor.execute(
+                            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
+                            (grupo_seleccionado, m["id_miembro"])
+                        )
+                        conn.commit()
+                        st.success(f"{m['nombre']} eliminado del grupo.")
+                        cursor.close()
+                        conn.close()
+                        st.experimental_rerun()
+                    except Exception as e:
+                        st.error(f"Error al eliminar miembro: {e}")
     else:
         st.info("Este grupo aún no tiene miembros.")
 
@@ -142,21 +175,26 @@ def pagina_grupos():
         nuevos = st.multiselect(
             "Selecciona miembros para agregar",
             options=[m["id_miembro"] for m in miembros_disponibles],
-            format_func=lambda x: next(m["nombre"] for m in miembros_disponibles if m["id_miembro"] == x)
+            format_func=lambda x: next(m["nombre"] for m in miembros_disponibles if m["id_miembro"] == x),
+            key=f"multiselect_agregar_{grupo_seleccionado}"
         )
 
-        if st.button("Agregar al grupo"):
-            for id_miembro in nuevos:
-                cursor.execute(
-                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
-                    (grupo_seleccionado, id_miembro)
-                )
-            conn.commit()
-            st.success("Miembros agregados correctamente.")
-            st.rerun()
+        if st.button("Agregar al grupo", key=f"btn_agregar_{grupo_seleccionado}"):
+            try:
+                for id_miembro in nuevos:
+                    cursor.execute(
+                        "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                        (grupo_seleccionado, id_miembro)
+                    )
+                conn.commit()
+                st.success("Miembros agregados correctamente.")
+                cursor.close()
+                conn.close()
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"Error al agregar miembros: {e}")
     else:
         st.info("Todos los miembros ya están en este grupo.")
 
     cursor.close()
     conn.close()
-
