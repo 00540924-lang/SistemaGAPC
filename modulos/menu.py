@@ -10,8 +10,6 @@ def mostrar_menu():
     # -----------------------------------------------------
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
-import streamlit as st
-
 # CSS para botones con animación y colores
 st.markdown("""
 <style>
