@@ -49,7 +49,7 @@ def mostrar_menu():
 
     #logout_btn button {
         width: 200px !important;
-        height: 60px !important;
+        height: 600px !important;
         background-color: #424242 !important;
         color: white !important;
         border-radius: 10px !important;
