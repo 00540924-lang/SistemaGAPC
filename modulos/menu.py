@@ -8,7 +8,7 @@ def mostrar_menu():
         st.stop()
 
     # ---------------------------------------
-    # CONFIGURAR MÓDULOS SEGÚN ROL (Mantenemos la definición de modulos)
+    # CONFIGURAR MÓDULOS SEGÚN ROL
     # ---------------------------------------
     if rol == "institucional":
         modulos = [
@@ -36,10 +36,9 @@ def mostrar_menu():
     # ---------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # El CSS sigue igual. Asegúrate de que este bloque esté completo y al inicio.
+    # El CSS es vital para el diseño y para ocultar el botón Streamlit nativo
     st.markdown("""
 <style>
-/* Estilos para el botón HTML visible (tarjeta) */
 .btn-glass {
     padding: 18px;
     height: 150px;
@@ -75,13 +74,12 @@ def mostrar_menu():
 .btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
 .btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
 
-/* Oculta el botón real de Streamlit que genera el "recuadro blanco" */
+/* Oculta completamente el botón Streamlit nativo que genera el recuadro blanco */
 .stButton > button {
-    display: none !important; /* Usamos !important para asegurar que se oculte */
+    display: none !important; 
 }
 
 .custom-menu-card {
-    /* Mantenemos el contenedor si es necesario para el layout, pero no para la lógica JS */
     position: relative;
     margin-bottom: 18px; 
 }
@@ -93,7 +91,7 @@ def mostrar_menu():
     # ---------------------------------------
     cols = st.columns(3)
     
-    # 🚨 String para almacenar todo el JS que se inyectará al final
+    # String para almacenar todo el JS que se inyectará al final
     js_final_script = "<script>"
 
     for i, (icono, texto, modulo) in enumerate(modulos):
@@ -101,11 +99,11 @@ def mostrar_menu():
 
         with cols[i % 3]:
             # 1. Botón Streamlit (invisible) que ejecuta la lógica
-            # Es vital que exista para que Streamlit detecte el clic.
+            # Es VITAL para la funcionalidad.
             boton_streamlit = st.button(" ", key=f"real_{modulo}")
 
             # 2. Botón HTML (visible, la tarjeta)
-            # Solo inyectamos el HTML de la tarjeta, sin el script.
+            # Inyectamos solo el HTML de la tarjeta, con su ID para el JS.
             st.markdown(f"""
                 <div class="custom-menu-card">
                     <button class="{clase_color}" id="btn_{modulo}">
@@ -115,12 +113,15 @@ def mostrar_menu():
                 </div>
             """, unsafe_allow_html=True)
 
-            # 3. Añadimos el código JavaScript necesario para este botón a la cadena js_final_script
-            # El JS ahora es una sola línea por botón para ser más robusto.
+            # 3. Añadimos el código JavaScript de conexión a la cadena js_final_script
+            # Este código busca el botón HTML y el botón Streamlit invisible por sus IDs/Keys
             js_final_script += f"""
                 const btnHtml_{modulo} = window.parent.document.getElementById("btn_{modulo}");
-                const stBtnHidden_{modulo} = window.parent.document.querySelector('button[data-testid="stButton"][key="real_{modulo}"]');
+                // Se busca el botón Streamlit invisible por su 'key'
+                const stBtnHidden_{modulo} = window.parent.document.querySelector('[data-testid="stButton"] button[key="real_{modulo}"]');
+                
                 if (btnHtml_{modulo} && stBtnHidden_{modulo}) {{
+                    // Si ambos existen, adjuntamos el evento de clic
                     btnHtml_{modulo}.addEventListener("click", () => stBtnHidden_{modulo}.click());
                 }}
             """
@@ -134,7 +135,7 @@ def mostrar_menu():
     # INYECCIÓN FINAL DE JAVASCRIPT
     # ---------------------------------------
     js_final_script += "</script>"
-    # 🚨 Inyectamos el script completo fuera de las columnas
+    # Inyectamos el script completo DESPUÉS de todas las columnas.
     st.markdown(js_final_script, unsafe_allow_html=True)
 
     # ---------------------------------------
