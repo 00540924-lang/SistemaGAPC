@@ -58,7 +58,6 @@ def pagina_grupos():
         st.info("No hay grupos registrados aún.")
         return
 
-    # Seleccionar un grupo
     grupo_seleccionado = st.selectbox(
         "Selecciona un grupo",
         options=[g["id_grupo"] for g in grupos],
@@ -66,7 +65,7 @@ def pagina_grupos():
     )
 
     st.write("### Miembros del grupo")
-    
+
     # ---------------------------------------------
     # OBTENER MIEMBROS DEL GRUPO
     # ---------------------------------------------
@@ -78,29 +77,39 @@ def pagina_grupos():
     """, (grupo_seleccionado,))
     miembros_grupo = cursor.fetchall()
 
+    # ------------------------------------------------------------
+    # LISTADO DE MIEMBROS + BOTÓN PARA ELIMINAR
+    # ------------------------------------------------------------
     if miembros_grupo:
         for m in miembros_grupo:
-            st.write(f"✔️ {m['nombre']}")
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"✔️ {m['nombre']}")
+            with col2:
+                if st.button("❌", key=f"del_{m['id_miembro']}"):
+                    cursor.execute(
+                        "DELETE FROM GrupoMiembros WHERE id_grupo = %s AND id_miembro = %s",
+                        (grupo_seleccionado, m["id_miembro"])
+                    )
+                    conn.commit()
+                    st.success(f"{m['nombre']} eliminado del grupo.")
+                    st.rerun()
     else:
         st.info("Este grupo aún no tiene miembros.")
 
     st.write("---")
 
     # ---------------------------------------------
-    # AGREGAR MIEMBROS A ESTE GRUPO
+    # AGREGAR MIEMBROS AL GRUPO
     # ---------------------------------------------
     st.write("### ➕ Agregar miembros al grupo")
 
-    # Obtener todos los miembros
     cursor.execute("SELECT id_miembro, nombre FROM Miembros")
     todos_miembros = cursor.fetchall()
 
-    # Filtrar solo miembros que NO están en el grupo
     ids_actuales = [m["id_miembro"] for m in miembros_grupo]
 
-    miembros_disponibles = [
-        m for m in todos_miembros if m["id_miembro"] not in ids_actuales
-    ]
+    miembros_disponibles = [m for m in todos_miembros if m["id_miembro"] not in ids_actuales]
 
     if miembros_disponibles:
         nuevos = st.multiselect(
@@ -117,7 +126,7 @@ def pagina_grupos():
                 )
             conn.commit()
             st.success("Miembros agregados correctamente.")
-            st.rerun()  # Recarga la página para mostrar los nuevos miembros
+            st.rerun()
     else:
         st.info("Todos los miembros ya están en este grupo.")
 
