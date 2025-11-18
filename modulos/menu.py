@@ -15,13 +15,13 @@ def mostrar_menu():
 
     /* ESTILO GENERAL DE BOTONES DEL MENÚ */
     div.stButton > button {
-        color: white !important;
+        color: #4C3A60 !important;
         border-radius: 12px !important;
         padding: 20px !important;
         font-size: 18px !important;
         font-weight: 600 !important;
         width: 100% !important;
-        height: 110px !important;
+        height: 100px !important;
         border: none !important;
         transition: transform 0.25s ease, box-shadow 0.25s ease !important;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
