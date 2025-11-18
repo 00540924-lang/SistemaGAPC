@@ -2,8 +2,14 @@ import streamlit as st
 
 def mostrar_menu():
     rol = st.session_state.get("rol", None)
-    # ... (código para definir 'modulos' sigue igual) ...
 
+    if not rol:
+        st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
+        st.stop()
+
+    # ---------------------------------------
+    # CONFIGURAR MÓDULOS SEGÚN ROL (Mantenemos la definición de modulos)
+    # ---------------------------------------
     if rol == "institucional":
         modulos = [
             ("📁", "Gestión de Proyectos", "proyectos"),
@@ -13,15 +19,24 @@ def mostrar_menu():
             ("📊", "Reportes", "reportes"),
             ("⚙️", "Configuración", "configuracion"),
         ]
-    # ... (otros roles) ...
+
+    elif rol == "promotor":
+        modulos = [
+            ("📁", "Gestión de Proyectos", "proyectos"),
+            ("🧾", "Inspecciones y Evaluaciones", "inspecciones"),
+        ]
+
+    elif rol == "miembro":
+        modulos = [
+            ("📄", "Gestión Documental", "documentos"),
+        ]
 
     # ---------------------------------------
     # TÍTULO Y CSS
     # ---------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # 🚨 CSS: Aseguramos la visibilidad de los botones de Streamlit para poder
-    # manipularlos, pero el botón HTML será la interfaz visible.
+    # El CSS sigue igual. Asegúrate de que este bloque esté completo y al inicio.
     st.markdown("""
 <style>
 /* Estilos para el botón HTML visible (tarjeta) */
@@ -60,37 +75,37 @@ def mostrar_menu():
 .btn5 { background: linear-gradient(135deg, #A6D9D0, #DCC8E3); }
 .btn6 { background: linear-gradient(135deg, #F4CDB3, #BEE4DD); }
 
-/* Nuevo CSS: Oculta el botón real de Streamlit que genera el "recuadro blanco" */
-/* Lo hacemos invisible y lo posicionamos para que no interfiera visualmente */
+/* Oculta el botón real de Streamlit que genera el "recuadro blanco" */
 .stButton > button {
-    display: none; /* Oculta completamente el botón Streamlit nativo */
+    display: none !important; /* Usamos !important para asegurar que se oculte */
 }
 
-/* IMPORTANTE: Necesitamos un contenedor para nuestro botón HTML personalizado */
-/* y asegurarnos que el HTML se muestre correctamente */
 .custom-menu-card {
+    /* Mantenemos el contenedor si es necesario para el layout, pero no para la lógica JS */
     position: relative;
-    margin-bottom: 18px; /* Espacio para separar las filas */
+    margin-bottom: 18px; 
 }
-
 </style>
 """, unsafe_allow_html=True)
 
     # ---------------------------------------
-    # GRID DE BOTONES
+    # GRID DE BOTONES Y GENERACIÓN DE HTML
     # ---------------------------------------
     cols = st.columns(3)
+    
+    # 🚨 String para almacenar todo el JS que se inyectará al final
+    js_final_script = "<script>"
 
     for i, (icono, texto, modulo) in enumerate(modulos):
         clase_color = f"btn-glass btn{i+1}"
 
         with cols[i % 3]:
             # 1. Botón Streamlit (invisible) que ejecuta la lógica
-            # NOTA: Usamos un label vacío y no HTML
-            boton_streamlit = st.button(" ", key=f"real_{modulo}") # Label simple
+            # Es vital que exista para que Streamlit detecte el clic.
+            boton_streamlit = st.button(" ", key=f"real_{modulo}")
 
             # 2. Botón HTML (visible, la tarjeta)
-            # Lo inyectamos antes del botón de Streamlit, o simplemente no importa el orden
+            # Solo inyectamos el HTML de la tarjeta, sin el script.
             st.markdown(f"""
                 <div class="custom-menu-card">
                     <button class="{clase_color}" id="btn_{modulo}">
@@ -98,23 +113,17 @@ def mostrar_menu():
                         {texto}
                     </button>
                 </div>
-                <script>
-                // 3. JavaScript para conectar el clic de la tarjeta HTML al botón invisible de Streamlit
-                const btnHtml = window.parent.document.getElementById("btn_{modulo}");
-                
-                // Buscamos el contenedor del botón Streamlit invisible. Esto varía según la versión.
-                // Usaremos un selector más específico para que no interfiera con otros botones.
-                const stBtnHidden = window.parent.document.querySelector('button[data-testid="stButton"][key="real_{modulo}"]');
-
-                if (btnHtml) {{
-                    btnHtml.addEventListener("click", function(){{
-                        if (stBtnHidden) {{
-                            stBtnHidden.click(); // Dispara el clic del botón Streamlit
-                        }}
-                    }});
-                }}
-                </script>
             """, unsafe_allow_html=True)
+
+            # 3. Añadimos el código JavaScript necesario para este botón a la cadena js_final_script
+            # El JS ahora es una sola línea por botón para ser más robusto.
+            js_final_script += f"""
+                const btnHtml_{modulo} = window.parent.document.getElementById("btn_{modulo}");
+                const stBtnHidden_{modulo} = window.parent.document.querySelector('button[data-testid="stButton"][key="real_{modulo}"]');
+                if (btnHtml_{modulo} && stBtnHidden_{modulo}) {{
+                    btnHtml_{modulo}.addEventListener("click", () => stBtnHidden_{modulo}.click());
+                }}
+            """
 
             # 4. Si se presionó el botón Streamlit invisible, cambiar la página
             if boton_streamlit:
@@ -122,10 +131,16 @@ def mostrar_menu():
                 st.rerun()
 
     # ---------------------------------------
+    # INYECCIÓN FINAL DE JAVASCRIPT
+    # ---------------------------------------
+    js_final_script += "</script>"
+    # 🚨 Inyectamos el script completo fuera de las columnas
+    st.markdown(js_final_script, unsafe_allow_html=True)
+
+    # ---------------------------------------
     # BOTÓN CERRAR SESIÓN
     # ---------------------------------------
-    st.write("")  # Espaciado
-    # st.button() estándar (no necesita el truco HTML)
+    st.write("") 
     if st.button("🔒 Cerrar sesión"):
         st.session_state.clear()
         st.rerun()
