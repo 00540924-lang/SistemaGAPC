@@ -130,10 +130,13 @@ def pagina_grupos():
 
     if miembros:
         for m in miembros:
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([8, 0.4])   # ← AQUÍ ESTÁ LA CORRECCIÓN
+
             with col1:
                 st.write(f"✔️ {m['nombre']}")
+
             with col2:
+                st.write("")  # para alinear el botón
                 if st.button("❌", key=f"del_{grupo_id}_{m['id_miembro']}"):
                     cursor.execute(
                         "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
