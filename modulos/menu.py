@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 
 def mostrar_menu():
     rol = st.session_state.get("rol", None)
@@ -76,6 +76,14 @@ div.stButton > button:hover {
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
+    #           NOMBRE DEL USUARIO Y GRUPO
+    # -----------------------------------------------------
+    if "usuario" in st.session_state:
+        st.markdown(f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>", unsafe_allow_html=True)
+    if "nombre_grupo" in st.session_state and st.session_state['nombre_grupo']:
+        st.markdown(f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------
     #                   MÓDULOS BASE
     # -----------------------------------------------------
     modulos_base = [
@@ -112,7 +120,7 @@ div.stButton > button:hover {
                 btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
                 if b:
                     st.session_state.page = modulo
-                    st.rerun()  # <-- Se usa st.rerun() para que funcione con un solo clic
+                    st.rerun()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
@@ -124,4 +132,4 @@ div.stButton > button:hover {
         logout_container.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
         if logout:
             st.session_state.clear()
-            st.rerun()  # <-- También recarga la app inmediatamente
+            st.rerun()
