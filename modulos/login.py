@@ -14,8 +14,9 @@ def limpiar_rol(rol):
     rol = "".join(c for c in rol if not unicodedata.category(c).startswith('C'))
     return rol
 
+
 def verificar_usuario(usuario, contraseña):
-    """Verifica usuario y contraseña y obtiene su grupo"""
+    """Verifica usuario, contraseña y obtiene su grupo"""
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
@@ -23,20 +24,24 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
+
+        # CORRECCIÓN IMPORTANTE:
+        # id_administrador DEBE coincidir con id_miembro de Grupomiembros,
+        # porque un administrador es también un miembro.
         query = """
             SELECT a.`Usuario`, a.`Rol`, g.`id_grupo`, g.`nombre_grupo`
             FROM `Administradores` a
-            LEFT JOIN `Grupomiembros` gm ON a.`id_administrador` = gm.`id_miembro`
-            LEFT JOIN `Grupos` g ON gm.`id_grupo` = g.`id_grupo`
+            LEFT JOIN `Grupomiembros` gm ON gm.`id_miembro` = a.`id_administrador`
+            LEFT JOIN `Grupos` g ON g.`id_grupo` = gm.`id_grupo`
             WHERE a.`Usuario` = %s AND a.`Contraseña` = %s
         """
+
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
 
         if not result:
             return None
 
-        # Acceder por índice
         usuario_nombre = result[0]
         rol = limpiar_rol(result[1])
         id_grupo = result[2]
@@ -54,6 +59,7 @@ def verificar_usuario(usuario, contraseña):
             con.close()
         except:
             pass
+
 
 # ==========================
 # Función principal login
@@ -83,19 +89,21 @@ def login():
         datos = verificar_usuario(usuario, contraseña)
 
         if datos:
+            # Guardamos TODA la información de la sesión
             st.session_state["usuario"] = datos["usuario"]
             st.session_state["rol"] = datos["rol"]
-            st.session_state["id_grupo"] = datos["id_grupo"]          # Guardar grupo
-            st.session_state["nombre_grupo"] = datos["nombre_grupo"]  # Opcional
+            st.session_state["id_grupo"] = datos["id_grupo"]
+            st.session_state["nombre_grupo"] = datos["nombre_grupo"]
             st.session_state["sesion_iniciada"] = True
 
             st.rerun()
+
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
+
 
 # ==========================
 # Ejecutar login directo
 # ==========================
 if __name__ == "__main__":
     login()
-
