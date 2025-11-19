@@ -4,12 +4,13 @@ from modulos.config.conexion import obtener_conexion
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
- # ------------------ BOTÓN REGRESAR ------------------
+    # ------------------ BOTÓN REGRESAR ------------------
     st.write("")  # espaciado
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
-        st.rerun()
+        st.experimental_rerun()
     st.write("---")
+
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
     nombre = st.text_input("Nombre del Grupo", key="nombre_grupo")
@@ -31,7 +32,8 @@ def pagina_grupos():
                 )
                 conn.commit()
                 st.success("Grupo creado correctamente.")
-                st.stop()
+                # Recargar la página para actualizar la lista de grupos
+                st.experimental_rerun()
             except Exception as e:
                 st.error(f"Error al crear grupo: {e}")
             finally:
@@ -106,8 +108,7 @@ def pagina_grupos():
                 )
                 conn.commit()
                 st.success(f"{nombre} registrado correctamente en el grupo.")
-
-                st.stop()
+                st.experimental_rerun()
             except Exception as e:
                 st.error(f"Error: {e}")
             finally:
@@ -147,7 +148,7 @@ def pagina_grupos():
                             )
                             conn.commit()
                             st.success(f"{m['nombre']} eliminado del grupo.")
-                            st.stop()
+                            st.experimental_rerun()
             else:
                 st.info("Este grupo no tiene miembros.")
 
