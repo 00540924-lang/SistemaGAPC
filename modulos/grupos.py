@@ -1,6 +1,5 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
-import time  # Para temporizar los mensajes
 
 def pagina_grupos():
     st.title("Gestión de Grupos")
@@ -70,15 +69,12 @@ def pagina_grupos():
             try:
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
-                # Insertar miembro
                 cursor.execute(
                     "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                     (nombre, dui, telefono)
                 )
                 conn.commit()
                 miembro_id = cursor.lastrowid
-
-                # Asignar al grupo seleccionado
                 cursor.execute(
                     "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                     (grupo_asignado, miembro_id)
@@ -130,11 +126,8 @@ def pagina_grupos():
                             (grupo_seleccionado, m["id_miembro"])
                         )
                         conn.commit()
-                        placeholder = st.empty()
-                        placeholder.success(f"{m['nombre']} eliminado del grupo.")
+                        st.success(f"{m['nombre']} eliminado del grupo.")
                         st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
-                        time.sleep(2)
-                        placeholder.empty()
                     except Exception as e:
                         st.error(f"Error: {e}")
                     finally:
@@ -171,7 +164,6 @@ def pagina_grupos():
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Sí, eliminar"):
-                    placeholder = st.empty()
                     try:
                         conn = obtener_conexion()
                         cursor = conn.cursor()
@@ -198,14 +190,9 @@ def pagina_grupos():
                         cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
                         conn.commit()
 
-                        placeholder.success("Grupo y miembros asociados eliminados correctamente.")
-                        time.sleep(2)
-                        placeholder.empty()
-
+                        st.success("Grupo y miembros asociados eliminados correctamente.")
                     except Exception as e:
-                        placeholder.error(f"Error al eliminar el grupo: {e}")
-                        time.sleep(2)
-                        placeholder.empty()
+                        st.error(f"Error al eliminar el grupo: {e}")
                     finally:
                         cursor.close()
                         conn.close()
