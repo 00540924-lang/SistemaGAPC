@@ -156,12 +156,30 @@ def pagina_grupos():
         try:
             conn = obtener_conexion()
             cursor = conn.cursor()
-            # Eliminar miembros asociados al grupo
+
+            # 1️⃣ Obtener miembros asociados solo a este grupo
+            cursor.execute("""
+                SELECT M.id_miembro
+                FROM Miembros M
+                JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
+                WHERE GM.id_grupo = %s
+            """, (grupo_eliminar,))
+            miembros_del_grupo = [m[0] for m in cursor.fetchall()]
+
+            # 2️⃣ Eliminar relaciones del grupo en Grupomiembros
             cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_eliminar,))
-            # Eliminar el grupo
+
+            # 3️⃣ Eliminar miembros que ya no pertenecen a ningún grupo
+            for miembro_id in miembros_del_grupo:
+                cursor.execute("SELECT COUNT(*) FROM Grupomiembros WHERE id_miembro = %s", (miembro_id,))
+                if cursor.fetchone()[0] == 0:
+                    cursor.execute("DELETE FROM Miembros WHERE id_miembro = %s", (miembro_id,))
+
+            # 4️⃣ Eliminar el grupo
             cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_eliminar,))
             conn.commit()
-            st.success("Grupo eliminado correctamente.")
+
+            st.success("Grupo y miembros asociados eliminados correctamente.")
             st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
         except Exception as e:
             st.error(f"Error al eliminar el grupo: {e}")
