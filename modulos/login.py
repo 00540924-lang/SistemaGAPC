@@ -76,7 +76,7 @@ def login():
             st.session_state["sesion_iniciada"] = True
 
             st.success(f"Bienvenido {datos['usuario']} 👋 (Rol: {datos['rol']})")
-            st.experimental_rerun()  # recarga la app para ir al menú principal
+            st.rerun()  # ✅ CORREGIDO: reemplazado experimental_rerun()
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
