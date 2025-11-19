@@ -113,11 +113,37 @@ def pagina_grupos():
                 st.session_state.pop("grupo_a_eliminar", None)
                 st.info("Operación cancelada.")
 
-    # =========================================
-    # LISTAR MIEMBROS DEL GRUPO
-    # =========================================
-    st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
+   # ------------------ FORMULARIO ------------------
+with st.form("form_miembro"):
+    nombre = st.text_input("Nombre completo")
+    dui = st.text_input("DUI")
+    telefono = st.text_input("Telefono")
+    enviar = st.form_submit_button("Registrar")
 
+if enviar:
+    try:
+        conn = obtener_conexion()  # tu función de conexión
+        cursor = conn.cursor(dictionary=True)
+        # Aquí tu lógica de inserción
+        cursor.execute(
+            "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
+            (nombre, dui, telefono)
+        )
+        conn.commit()
+        st.success(f"{nombre} registrado correctamente.")
+    except Exception as e:
+        st.error(f"Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+        st.experimental_rerun()  # recarga la página para ver cambios
+
+# =========================================
+# LISTAR MIEMBROS DEL GRUPO
+# =========================================
+try:
+    conn = obtener_conexion()
+    cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT M.id_miembro, M.nombre
         FROM Grupomiembros GM
@@ -126,6 +152,7 @@ def pagina_grupos():
     """, (grupo_id,))
     miembros = cursor.fetchall()
 
+    st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
     if miembros:
         for m in miembros:
             col1, col2 = st.columns([4, 1])
@@ -139,21 +166,12 @@ def pagina_grupos():
                     )
                     conn.commit()
                     st.success(f"{m['nombre']} eliminado.")
-                    cursor.close()
-                    conn.close()
-                    st.rerun()
+                    st.experimental_rerun()
     else:
         st.info("Este grupo no tiene miembros.")
 
-    st.write("---")
-
-   # ------------------ FORMULARIO ------------------
-    with st.form("form_miembro"):
-        nombre = st.text_input("Nombre completo")
-        dui = st.text_input("DUI")
-        telefono = st.text_input("Telefono")
-        enviar = st.form_submit_button("Registrar")
-
+finally:
     cursor.close()
     conn.close()
 
+st.write("---")
