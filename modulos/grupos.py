@@ -75,10 +75,15 @@ def pagina_grupos():
         # ✅ Checkbox para marcar si es administrador
         es_admin = st.checkbox("Este miembro también será administrador")
 
-        # Solo aparece si se marca el checkbox
+        # Solo aparece si es administrador
         if es_admin:
-            usuario_admin = st.text_input("Usuario para login (admin)")
-            contraseña_admin = st.text_input("Contraseña para login (admin)", type="password")
+            usuario_admin = st.text_input("Usuario (administrador)")
+            contraseña_admin = st.text_input("Contraseña (administrador)", type="password")
+            rol_admin = st.selectbox(
+                "Rol del administrador",
+                options=["institucional", "promotor", "miembro"],
+                index=0
+            )
 
         enviar = st.form_submit_button("Registrar miembro")
         if enviar:
@@ -114,12 +119,11 @@ def pagina_grupos():
                         else:
                             cursor.execute(
                                 "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
-                                (usuario_admin, contraseña_admin, "institucional")
+                                (usuario_admin, contraseña_admin, rol_admin)
                             )
                             conn.commit()
                             id_adm = cursor.lastrowid
 
-                            # Actualizar Miembros con id_administrador
                             cursor.execute(
                                 "UPDATE Miembros SET id_administrador=%s WHERE id_miembro=%s",
                                 (id_adm, miembro_id)
