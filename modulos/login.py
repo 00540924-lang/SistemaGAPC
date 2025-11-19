@@ -1,10 +1,13 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 import unicodedata
-import hashlib  # 🔹 Import necesario para SHA256
+import hashlib
 
-
+# ==========================
+# Funciones auxiliares
+# ==========================
 def limpiar_rol(rol):
+    """Normaliza y limpia el rol"""
     if rol is None:
         return ""
     rol = unicodedata.normalize('NFKD', str(rol)).encode('ASCII', 'ignore').decode()
@@ -12,8 +15,8 @@ def limpiar_rol(rol):
     rol = "".join(c for c in rol if not unicodedata.category(c).startswith('C'))
     return rol
 
-
 def verificar_usuario(usuario, contraseña):
+    """Verifica usuario y contraseña en la base de datos usando SHA256"""
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
@@ -21,16 +24,15 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
-        
-        # 🔹 Encriptamos la contraseña ingresada con SHA256
-        hash_contraseña = hashlib.sha256(contraseña.encode()).hexdigest()
-        
+        # Encriptar contraseña ingresada
+        hash_password = hashlib.sha256(contraseña.encode()).hexdigest()
+
         query = """
             SELECT Usuario, Rol 
             FROM Administradores 
             WHERE Usuario = %s AND Contraseña = %s
         """
-        cursor.execute(query, (usuario, hash_contraseña))
+        cursor.execute(query, (usuario, hash_password))
         result = cursor.fetchone()
 
         if not result:
@@ -45,7 +47,9 @@ def verificar_usuario(usuario, contraseña):
         except:
             pass
 
-
+# ==========================
+# Función principal login
+# ==========================
 def login():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -54,14 +58,11 @@ def login():
         except:
             pass
 
-    st.markdown(
-        """
+    st.markdown("""
         <h2 style='text-align: center; margin-top: -30px; color:#4C3A60;'>
             Sistema de Gestión – GAPC
         </h2>
-        """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
     usuario = st.text_input("Usuario", key="login_usuario_input")
     contraseña = st.text_input("Contraseña", type="password", key="login_contraseña_input")
@@ -78,12 +79,13 @@ def login():
             st.session_state["rol"] = datos["rol"]
             st.session_state["sesion_iniciada"] = True
 
-            # 🔹 Reemplazamos st.rerun() por st.stop() para compatibilidad moderna
-            st.stop()
-
+            st.success(f"Bienvenido {datos['usuario']} 👋 (Rol: {datos['rol']})")
+            st.experimental_rerun()  # recarga la app para ir al menú principal
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
-
+# ==========================
+# Ejecutar login directo
+# ==========================
 if __name__ == "__main__":
     login()
