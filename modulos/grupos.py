@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 from modulos.config.conexion import obtener_conexion
 
 def pagina_grupos():
@@ -18,8 +19,11 @@ def pagina_grupos():
     inicio_ciclo = st.date_input("Inicio del Ciclo", key="inicio_ciclo")
 
     if st.button("Guardar grupo"):
+        mensaje = st.empty()  # Placeholder para el mensaje
         if not nombre.strip():
-            st.error("El nombre del grupo es obligatorio.")
+            mensaje.error("El nombre del grupo es obligatorio.")
+            time.sleep(3)
+            mensaje.empty()
         else:
             try:
                 conn = obtener_conexion()
@@ -29,9 +33,13 @@ def pagina_grupos():
                     (nombre, distrito, inicio_ciclo)
                 )
                 conn.commit()
-                st.success("Grupo creado correctamente.")
+                mensaje.success("Grupo creado correctamente.")
+                time.sleep(3)
+                mensaje.empty()
             except Exception as e:
-                st.error(f"Error al crear grupo: {e}")
+                mensaje.error(f"Error al crear grupo: {e}")
+                time.sleep(3)
+                mensaje.empty()
             finally:
                 cursor.close()
                 conn.close()
@@ -65,8 +73,11 @@ def pagina_grupos():
         )
         enviar = st.form_submit_button("Registrar miembro")
         if enviar:
+            mensaje = st.empty()
             if not nombre_m.strip():
-                st.error("El nombre del miembro es obligatorio.")
+                mensaje.error("El nombre del miembro es obligatorio.")
+                time.sleep(3)
+                mensaje.empty()
             else:
                 try:
                     conn = obtener_conexion()
@@ -82,9 +93,13 @@ def pagina_grupos():
                         (grupo_asignado, miembro_id)
                     )
                     conn.commit()
-                    st.success(f"{nombre_m} registrado correctamente en el grupo.")
+                    mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
+                    time.sleep(3)
+                    mensaje.empty()
                 except Exception as e:
-                    st.error(f"Error al registrar miembro: {e}")
+                    mensaje.error(f"Error al registrar miembro: {e}")
+                    time.sleep(3)
+                    mensaje.empty()
                 finally:
                     cursor.close()
                     conn.close()
@@ -121,6 +136,7 @@ def pagina_grupos():
                 st.write(f"✔️ {m['nombre']}")
             with col2:
                 if st.button("❌", key=f"del_{grupo_seleccionado}_{m['id_miembro']}"):
+                    mensaje = st.empty()
                     try:
                         conn = obtener_conexion()
                         cursor = conn.cursor()
@@ -129,7 +145,9 @@ def pagina_grupos():
                             (grupo_seleccionado, m['id_miembro'])
                         )
                         conn.commit()
-                        st.success(f"{m['nombre']} eliminado del grupo.")
+                        mensaje.success(f"{m['nombre']} eliminado del grupo.")
+                        time.sleep(3)
+                        mensaje.empty()
                     finally:
                         cursor.close()
                         conn.close()
@@ -150,6 +168,7 @@ def pagina_grupos():
     )
 
     if st.button("Eliminar grupo seleccionado"):
+        mensaje = st.empty()
         try:
             conn = obtener_conexion()
             cursor = conn.cursor()
@@ -160,7 +179,9 @@ def pagina_grupos():
             """)
             cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
             conn.commit()
-            st.success("Grupo y miembros asociados eliminados correctamente.")
+            mensaje.success("Grupo y miembros asociados eliminados correctamente.")
+            time.sleep(3)
+            mensaje.empty()
         finally:
             cursor.close()
             conn.close()
