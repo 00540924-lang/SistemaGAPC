@@ -22,7 +22,7 @@ pagina = st.session_state.get("page", "menu")
 
 # ---- MENÚ PRINCIPAL ----
 if pagina == "menu":
-    mostrar_menu()
+    mostrar_menu()  # Aquí el botón "Credenciales" debe cambiar page a "credenciales"
 
 # ---- GESTIÓN DE PROYECTOS ----
 elif pagina == "proyectos":
@@ -58,6 +58,11 @@ elif pagina == "reportes":
 elif pagina == "configuracion":
     from modulos.configuracion import vista_configuracion
     vista_configuracion()
+
+# ---- CREDENCIALES ----
+elif pagina == "credenciales":
+    from modulos.credenciales import pagina_credenciales
+    pagina_credenciales()
 
 else:
     st.error("❌ Página no encontrada.")
