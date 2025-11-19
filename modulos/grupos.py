@@ -127,7 +127,7 @@ def pagina_grupos():
 
     if miembros:
         for m in miembros:
-            col1, col2 = st.columns([4,1])
+            col1, col2 = st.columns([4, 1])
             with col1:
                 st.write(f"✔️ {m['nombre']}")
             with col2:
@@ -159,13 +159,10 @@ def pagina_grupos():
         key="grupo_eliminar"
     )
 
+    # Placeholder para confirmación
     confirm_placeholder = st.empty()
 
-    # Botón para iniciar confirmación
-    if st.button("Eliminar grupo seleccionado"):
-        st.session_state["confirmar_eliminar"] = True
-        st.session_state["grupo_a_eliminar"] = grupo_eliminar
-
+    # Mostrar confirmación solo si confirmación activa
     if st.session_state["confirmar_eliminar"]:
         with confirm_placeholder.container():
             st.warning(
@@ -177,14 +174,11 @@ def pagina_grupos():
                     try:
                         conn = obtener_conexion()
                         cursor = conn.cursor()
-                        # Eliminar relaciones
                         cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
-                        # Eliminar miembros huérfanos
                         cursor.execute("""
                             DELETE FROM Miembros
                             WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
                         """)
-                        # Eliminar grupo
                         cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
                         conn.commit()
                         st.success("Grupo y miembros asociados eliminados correctamente.")
@@ -195,7 +189,6 @@ def pagina_grupos():
                         st.session_state["confirmar_eliminar"] = False
                         st.session_state["grupo_a_eliminar"] = None
                         confirm_placeholder.empty()
-
             with col2:
                 if st.button("Cancelar"):
                     st.info("Operación cancelada.")
@@ -203,8 +196,12 @@ def pagina_grupos():
                     st.session_state["grupo_a_eliminar"] = None
                     confirm_placeholder.empty()
 
+    # Botón para iniciar confirmación fuera del placeholder
+    if st.button("Eliminar grupo seleccionado") and not st.session_state["confirmar_eliminar"]:
+        st.session_state["confirmar_eliminar"] = True
+        st.session_state["grupo_a_eliminar"] = grupo_eliminar
+
     # ================= RECARGAR LA APP SI ES NECESARIO =================
     if st.session_state.get("actualizar", False):
         st.session_state["actualizar"] = False
         st.experimental_rerun()
-
