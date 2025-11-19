@@ -76,7 +76,8 @@ def pagina_grupos():
             with col1:
                 st.write(f"✔️ {m['nombre']}")
             with col2:
-                if st.button("❌", key=f"del_{grupo_seleccionado}_{m['id_miembro']}"):
+                btn_key = f"del_{grupo_seleccionado}_{m['id_miembro']}"
+                if st.button("❌", key=btn_key):
                     try:
                         conn = obtener_conexion()
                         cursor = conn.cursor()
@@ -85,7 +86,8 @@ def pagina_grupos():
                             (grupo_seleccionado, m["id_miembro"])
                         )
                         conn.commit()
-                        st.experimental_rerun()  # Esto recarga la app con la lista actualizada
+                        st.session_state["actualizar"] = True  # Flag para recargar la lista
+                        st.success(f"{m['nombre']} eliminado del grupo.")
                     finally:
                         cursor.close()
                         conn.close()
@@ -125,14 +127,21 @@ def pagina_grupos():
                     cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_id,))
                     cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_id,))
                     conn.commit()
+
                     st.success("Grupo eliminado correctamente.")
+                    st.session_state["actualizar"] = True  # Flag para refrescar datos
                 finally:
                     cursor.close()
                     conn.close()
                     st.session_state["confirmar_eliminar"] = False
-                    st.experimental_rerun()  # Recarga la app con la lista actualizada
 
         with col2:
             if st.button("Cancelar"):
                 st.session_state["confirmar_eliminar"] = False
                 st.info("Operación cancelada.")
+
+    # ================= RECARGAR AUTOMÁTICAMENTE SI HUBO CAMBIOS =================
+    if st.session_state.get("actualizar", False):
+        st.session_state["actualizar"] = False
+        st.experimental_rerun()  # Esto se hace solo al final, no dentro de botones anidados
+
