@@ -1,15 +1,24 @@
 import streamlit as st
 
 def mostrar_menu():
+
     rol = st.session_state.get("rol", None)
 
     if not rol:
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-    # -----------------------------------------------------
-    #      🎨 CSS - Botones con animación + colores
-    # -----------------------------------------------------
+    # ======================================================
+    # ⚡️ EVITAR PARPADEO (REDIRECCIÓN ANTES DEL MENÚ)
+    # ======================================================
+    if "go_to_page" in st.session_state:
+        page = st.session_state.pop("go_to_page")
+        st.session_state.page = page
+        st.rerun()
+
+    # ======================================================
+    # 🎨 CSS
+    # ======================================================
     st.markdown("""
 <style>
 div.stButton {
@@ -46,7 +55,7 @@ div.stButton > button:hover {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
-/* Colores personalizados */
+/* Colores */
 #proyectos_btn > button { background-color: #F4B400 !important; }
 #usuarios_btn > button { background-color: #8E24AA !important; }
 #grupos_btn > button { background-color: #E53935 !important; }
@@ -61,7 +70,6 @@ div.stButton > button:hover {
     background-color: #424242 !important;
     color: white !important;
     border-radius: 10px !important;
-    transition: transform 0.2s ease !important;
 }
 #logout_btn > button:hover {
     transform: scale(1.05) !important;
@@ -70,26 +78,26 @@ div.stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-    # -----------------------------------------------------
-    #                    TÍTULO
-    # -----------------------------------------------------
+    # ======================================================
+    # 🏷️ TÍTULO
+    # ======================================================
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # -----------------------------------------------------
-    #                   MÓDULOS BASE
-    # -----------------------------------------------------
+    # ======================================================
+    # 📌 MÓDULOS DEFINIDOS
+    # ======================================================
     modulos_base = [
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "inspecciones_btn"),
+        ("📝 Grupos", "grupos", "grupos_btn"),
         ("📜 Reglamento", "reglamento", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
     ]
 
-    # -----------------------------------------------------
-    #               FILTRO POR ROL
-    # -----------------------------------------------------
+    # ======================================================
+    # 🎚️ FILTRO POR ROL
+    # ======================================================
     if rol == "institucional":
         modulos = modulos_base
     elif rol == "promotor":
@@ -100,27 +108,25 @@ div.stButton > button:hover {
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
-    # -----------------------------------------------------
-    #               GRID DE BOTONES
-    # -----------------------------------------------------
+    # ======================================================
+    # 🔲 GRID DE MÓDULOS
+    # ======================================================
     cols = st.columns(3)
     for i, (texto, modulo, css_id) in enumerate(modulos):
         with cols[i % 3]:
-            btn = st.container()
-            with btn:
-                b = st.button(texto, key=f"btn_{modulo}")
-                btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
-                if b:
-                    st.session_state.page = modulo
-                    st.rerun()  # <-- Se usa st.rerun() para que funcione con un solo clic
+            button_clicked = st.button(texto, key=f"btn_{modulo}")
+            st.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
+            if button_clicked:
+                st.session_state["go_to_page"] = modulo
+                st.rerun()
 
-    # -----------------------------------------------------
-    #               BOTÓN CERRAR SESIÓN
-    # -----------------------------------------------------
+    # ======================================================
+    # 🔒 CERRAR SESIÓN
+    # ======================================================
     st.write("---")
-    logout_container = st.container()
-    with logout_container:
-        logout = st.button("🔒 Cerrar sesión", key="logout")
-        logout_container.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
-        if logout:
-            st.session_state.clear()
+    logout = st.button("🔒 Cerrar sesión", key="logout")
+    st.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
+
+    if logout:
+        st.session_state.clear()
+        st.rerun()
