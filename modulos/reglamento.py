@@ -50,7 +50,21 @@ def mostrar_reglamento():
         fecha_formacion = st.date_input("Fecha de formación", get_val("fecha_formacion", datetime.date.today()))
 
         st.subheader("Reuniones")
-        dia_reunion = st.text_input("Día de reunión", get_val("dia_reunion"))
+        # -------------------------------  
+# 🗓️ Días de reunión (multiselección)
+# -------------------------------
+dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+# Si ya hay días guardados → convertirlos a lista
+dias_guardados = []
+if get_val("dia_reunion"):
+    dias_guardados = [d.strip() for d in get_val("dia_reunion").split(",")]
+
+dias_reunion = st.multiselect(
+    "Día(s) de reunión",
+    options=dias_semana,
+    default=dias_guardados
+)
         hora_reunion = st.text_input("Hora de reunión", get_val("hora_reunion"))
         lugar_reunion = st.text_input("Lugar", get_val("lugar_reunion"))
         frecuencia_reunion = st.text_input("Frecuencia", get_val("frecuencia_reunion"))
