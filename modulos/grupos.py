@@ -5,9 +5,10 @@ def pagina_grupos():
     st.title("Gestión de Grupos")
 
     # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")  # espaciado
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
-        return
+        st.rerun()
     st.write("---")
 
     # ================= FORMULARIO NUEVO GRUPO =================
