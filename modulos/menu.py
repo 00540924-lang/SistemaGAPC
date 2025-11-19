@@ -86,7 +86,7 @@ div.stButton > button:hover {
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
         ("📝 Grupos", "grupos", "inspecciones_btn"),
-        ("📄 Gestión Documental", "documentos", "documentos_btn"),
+        ("📄". "Reglamento", "documentos", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
     ]
