@@ -126,7 +126,7 @@ div.stButton > button:hover {
 
                 if b:
                     st.session_state.page = modulo
-                    st.rerun()
+                    st.stop()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
@@ -140,4 +140,5 @@ div.stButton > button:hover {
 
         if logout:
             st.session_state.clear()
-            st.rerun()
+            st.stop()
+
