@@ -34,6 +34,7 @@ def pagina_grupos():
             finally:
                 cursor.close()
                 conn.close()
+        st.experimental_rerun()
 
     st.write("---")
 
@@ -49,7 +50,49 @@ def pagina_grupos():
         st.info("No hay grupos registrados aún.")
         return
 
-    # ================= LISTAR MIEMBROS DEL GRUPO =================
+    # ================= FORMULARIO NUEVO MIEMBRO =================
+    st.subheader("➕ Registrar nuevo miembro")
+    with st.form("form_miembro"):
+        nombre_m = st.text_input("Nombre completo", key="nombre_miembro")
+        dui = st.text_input("DUI", key="dui")
+        telefono = st.text_input("Teléfono", key="telefono")
+        grupo_asignado = st.selectbox(
+            "Asignar al grupo",
+            options=[g["id_grupo"] for g in grupos],
+            format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
+        )
+        enviar = st.form_submit_button("Registrar miembro")
+        if enviar:
+            if not nombre_m.strip():
+                st.error("El nombre del miembro es obligatorio.")
+            else:
+                try:
+                    conn = obtener_conexion()
+                    cursor = conn.cursor(dictionary=True)
+                    # Insertar miembro
+                    cursor.execute(
+                        "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
+                        (nombre_m, dui, telefono)
+                    )
+                    conn.commit()
+                    miembro_id = cursor.lastrowid
+                    # Asignar al grupo
+                    cursor.execute(
+                        "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                        (grupo_asignado, miembro_id)
+                    )
+                    conn.commit()
+                    st.success(f"{nombre_m} registrado correctamente en el grupo.")
+                except Exception as e:
+                    st.error(f"Error al registrar miembro: {e}")
+                finally:
+                    cursor.close()
+                    conn.close()
+                st.experimental_rerun()
+
+    st.write("---")
+
+    # ================= LISTAR MIEMBROS DEL GRUPO SELECCIONADO =================
     st.subheader("🧑‍🤝‍🧑 Miembros por Grupo")
     grupo_seleccionado = st.selectbox(
         "Selecciona un grupo para ver sus miembros",
@@ -72,25 +115,24 @@ def pagina_grupos():
 
     if miembros:
         for m in miembros:
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([4,1])
             with col1:
                 st.write(f"✔️ {m['nombre']}")
             with col2:
-                btn_key = f"del_{grupo_seleccionado}_{m['id_miembro']}"
-                if st.button("❌", key=btn_key):
+                if st.button("❌", key=f"del_{grupo_seleccionado}_{m['id_miembro']}"):
                     try:
                         conn = obtener_conexion()
                         cursor = conn.cursor()
                         cursor.execute(
-                            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-                            (grupo_seleccionado, m["id_miembro"])
+                            "DELETE FROM Grupomiembros WHERE id_grupo=%s AND id_miembro=%s",
+                            (grupo_seleccionado, m['id_miembro'])
                         )
                         conn.commit()
-                        st.session_state["actualizar"] = True  # Flag para recargar la lista
                         st.success(f"{m['nombre']} eliminado del grupo.")
                     finally:
                         cursor.close()
                         conn.close()
+                    st.experimental_rerun()
     else:
         st.info("Este grupo no tiene miembros.")
 
@@ -121,27 +163,19 @@ def pagina_grupos():
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor()
-                    grupo_id = grupo_eliminar
-
                     # Eliminar relaciones
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_id,))
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_id,))
+                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (grupo_eliminar,))
+                    # Eliminar grupo
+                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
                     conn.commit()
-
                     st.success("Grupo eliminado correctamente.")
-                    st.session_state["actualizar"] = True  # Flag para refrescar datos
                 finally:
                     cursor.close()
                     conn.close()
                     st.session_state["confirmar_eliminar"] = False
+                st.experimental_rerun()
 
         with col2:
             if st.button("Cancelar"):
-                st.session_state["confirmar_eliminar"] = False
                 st.info("Operación cancelada.")
-
-    # ================= RECARGAR AUTOMÁTICAMENTE SI HUBO CAMBIOS =================
-    if st.session_state.get("actualizar", False):
-        st.session_state["actualizar"] = False
-        st.experimental_rerun()  # Esto se hace solo al final, no dentro de botones anidados
-
+                st.session_state["confirmar_eliminar"] = False
