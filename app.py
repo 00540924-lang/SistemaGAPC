@@ -22,7 +22,7 @@ pagina = st.session_state.get("page", "menu")
 
 # ---- MENÚ PRINCIPAL ----
 if pagina == "menu":
-    mostrar_menu()  # Aquí el botón "Credenciales" debe cambiar page a "credenciales"
+    mostrar_menu()  # Aquí el botón "Credenciales" debe cambiar st.session_state["page"] = "credenciales"
 
 # ---- GESTIÓN DE PROYECTOS ----
 elif pagina == "proyectos":
