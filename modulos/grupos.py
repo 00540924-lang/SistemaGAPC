@@ -19,7 +19,7 @@ def pagina_grupos():
     inicio_ciclo = st.date_input("Inicio del Ciclo", key="inicio_ciclo")
 
     if st.button("Guardar grupo"):
-        mensaje = st.empty()  # Placeholder para el mensaje
+        mensaje = st.empty()
         if not nombre.strip():
             mensaje.error("El nombre del grupo es obligatorio.")
             time.sleep(3)
@@ -71,6 +71,15 @@ def pagina_grupos():
             options=[g["id_grupo"] for g in grupos],
             format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
         )
+
+        # ✅ Checkbox para marcar si es administrador
+        es_admin = st.checkbox("Este miembro también será administrador")
+
+        # Solo aparece si se marca el checkbox
+        if es_admin:
+            usuario_admin = st.text_input("Usuario para login (admin)")
+            contraseña_admin = st.text_input("Contraseña para login (admin)", type="password")
+
         enviar = st.form_submit_button("Registrar miembro")
         if enviar:
             mensaje = st.empty()
@@ -82,21 +91,46 @@ def pagina_grupos():
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor(dictionary=True)
+
+                    # ---------------- Insertar miembro ----------------
                     cursor.execute(
                         "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                         (nombre_m, dui, telefono)
                     )
                     conn.commit()
                     miembro_id = cursor.lastrowid
+
+                    # ---------------- Crear relación con grupo ----------------
                     cursor.execute(
                         "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                         (grupo_asignado, miembro_id)
                     )
                     conn.commit()
+
+                    # ---------------- Si es administrador ----------------
+                    if es_admin:
+                        if not usuario_admin or not contraseña_admin:
+                            mensaje.warning("Debe ingresar usuario y contraseña para administrador.")
+                        else:
+                            cursor.execute(
+                                "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
+                                (usuario_admin, contraseña_admin, "institucional")
+                            )
+                            conn.commit()
+                            id_adm = cursor.lastrowid
+
+                            # Actualizar Miembros con id_administrador
+                            cursor.execute(
+                                "UPDATE Miembros SET id_administrador=%s WHERE id_miembro=%s",
+                                (id_adm, miembro_id)
+                            )
+                            conn.commit()
+
                     mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
                     time.sleep(3)
                     mensaje.empty()
                 except Exception as e:
+                    conn.rollback()
                     mensaje.error(f"Error al registrar miembro: {e}")
                     time.sleep(3)
                     mensaje.empty()
