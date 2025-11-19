@@ -15,18 +15,20 @@ def limpiar_rol(rol):
     return rol
 
 def verificar_usuario(usuario, contraseña):
-    """Verifica usuario y contraseña en la base de datos en texto plano"""
+    """Verifica usuario y contraseña y obtiene su grupo"""
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
         return None
 
     try:
-        cursor = con.cursor()
+        cursor = con.cursor(dictionary=True)
         query = """
-            SELECT Usuario, Rol 
-            FROM Administradores 
-            WHERE Usuario = %s AND Contraseña = %s
+            SELECT a.Usuario, a.Rol, g.id_grupo, g.nombre_grupo
+            FROM Administradores a
+            LEFT JOIN GrupoMiembros gm ON a.id_usuario = gm.id_usuario
+            LEFT JOIN Grupos g ON gm.id_grupo = g.id_grupo
+            WHERE a.Usuario = %s AND a.Contraseña = %s
         """
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
@@ -34,8 +36,13 @@ def verificar_usuario(usuario, contraseña):
         if not result:
             return None
 
-        rol_limpio = limpiar_rol(result[1])
-        return {"usuario": result[0], "rol": rol_limpio}
+        rol_limpio = limpiar_rol(result["Rol"])
+        return {
+            "usuario": result["Usuario"],
+            "rol": rol_limpio,
+            "id_grupo": result["id_grupo"],
+            "nombre_grupo": result["nombre_grupo"]
+        }
 
     finally:
         try:
@@ -73,9 +80,11 @@ def login():
         if datos:
             st.session_state["usuario"] = datos["usuario"]
             st.session_state["rol"] = datos["rol"]
+            st.session_state["id_grupo"] = datos["id_grupo"]  # ✅ Nuevo: guardar grupo
+            st.session_state["nombre_grupo"] = datos["nombre_grupo"]  # Opcional
             st.session_state["sesion_iniciada"] = True
 
-            st.rerun()  # ✅ CORREGIDO: reemplazado experimental_rerun()
+            st.rerun()
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
