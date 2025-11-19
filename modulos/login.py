@@ -26,7 +26,7 @@ def verificar_usuario(usuario, contraseña):
         query = """
             SELECT a.`Usuario`, a.`Rol`, g.`id_grupo`, g.`nombre_grupo`
             FROM `Administradores` a
-            LEFT JOIN `GrupoMiembros` gm ON a.`id_administrador` = gm.`id_usuario`
+            LEFT JOIN `Grupomiembros` gm ON a.`id_administrador` = gm.`id_miembro`
             LEFT JOIN `Grupos` g ON gm.`id_grupo` = g.`id_grupo`
             WHERE a.`Usuario` = %s AND a.`Contraseña` = %s
         """
@@ -85,7 +85,7 @@ def login():
         if datos:
             st.session_state["usuario"] = datos["usuario"]
             st.session_state["rol"] = datos["rol"]
-            st.session_state["id_grupo"] = datos["id_grupo"]      # Guardar grupo
+            st.session_state["id_grupo"] = datos["id_grupo"]          # Guardar grupo
             st.session_state["nombre_grupo"] = datos["nombre_grupo"]  # Opcional
             st.session_state["sesion_iniciada"] = True
 
