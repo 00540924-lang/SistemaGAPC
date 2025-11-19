@@ -10,14 +10,6 @@ def pagina_grupos():
         return
     st.write("---")
 
-    # ================= FLAGS =================
-    st.session_state.setdefault("actualizar", False)
-
-    # ================= RECARGAR LA APP SI ES NECESARIO =================
-    if st.session_state.get("actualizar", False):
-        st.session_state["actualizar"] = False
-        st.experimental_rerun()
-
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
     nombre = st.text_input("Nombre del Grupo", key="nombre_grupo")
@@ -37,7 +29,6 @@ def pagina_grupos():
                 )
                 conn.commit()
                 st.success("Grupo creado correctamente.")
-                st.session_state["actualizar"] = True
             except Exception as e:
                 st.error(f"Error al crear grupo: {e}")
             finally:
@@ -91,7 +82,6 @@ def pagina_grupos():
                     )
                     conn.commit()
                     st.success(f"{nombre_m} registrado correctamente en el grupo.")
-                    st.session_state["actualizar"] = True
                 except Exception as e:
                     st.error(f"Error al registrar miembro: {e}")
                 finally:
@@ -139,7 +129,6 @@ def pagina_grupos():
                         )
                         conn.commit()
                         st.success(f"{m['nombre']} eliminado del grupo.")
-                        st.session_state["actualizar"] = True
                     finally:
                         cursor.close()
                         conn.close()
@@ -163,18 +152,14 @@ def pagina_grupos():
         try:
             conn = obtener_conexion()
             cursor = conn.cursor()
-            # Eliminar relaciones del grupo
             cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (grupo_eliminar,))
-            # Eliminar miembros huérfanos
             cursor.execute("""
                 DELETE FROM Miembros
                 WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
             """)
-            # Eliminar el grupo
             cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
             conn.commit()
             st.success("Grupo y miembros asociados eliminados correctamente.")
-            st.session_state["actualizar"] = True
         finally:
             cursor.close()
             conn.close()
