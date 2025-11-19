@@ -30,7 +30,7 @@ def pagina_credenciales():
 
     usuario = st.text_input("Usuario")
     contraseña = st.text_input("Contraseña", type="password")
-    rol = st.selectbox("Rol", options=["institucional", "promotor", "miembro"])
+    rol = st.selectbox("Rol", options=["Institucional", "Promotor", "Miembro"])
 
     # Opcional: seleccionar grupo al que pertenece el admin
     try:
