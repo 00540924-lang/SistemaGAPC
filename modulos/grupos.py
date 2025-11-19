@@ -6,7 +6,7 @@ def pagina_grupos():
     st.title("Gestión de Grupos")
 
     # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # espaciado
+    st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
@@ -62,85 +62,92 @@ def pagina_grupos():
 
     # ================= FORMULARIO NUEVO MIEMBRO =================
     st.subheader("➕ Registrar nuevo miembro")
-    with st.form("form_miembro"):
-        nombre_m = st.text_input("Nombre completo", key="nombre_miembro")
-        dui = st.text_input("DUI", key="dui")
-        telefono = st.text_input("Teléfono", key="telefono")
-        grupo_asignado = st.selectbox(
-            "Asignar al grupo",
-            options=[g["id_grupo"] for g in grupos],
-            format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
+
+    # Campos normales fuera de form
+    nombre_m = st.text_input("Nombre completo")
+    dui = st.text_input("DUI")
+    telefono = st.text_input("Teléfono")
+
+    grupo_asignado = st.selectbox(
+        "Asignar al grupo",
+        options=[g["id_grupo"] for g in grupos],
+        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
+    )
+
+    # Checkbox que aparece en tiempo real
+    es_admin = st.checkbox("Este miembro también será administrador")
+
+    # Campos del admin dinámicos
+    if es_admin:
+        usuario_admin = st.text_input("Usuario (administrador)")
+        contraseña_admin = st.text_input("Contraseña (administrador)", type="password")
+        rol_admin = st.selectbox(
+            "Rol del administrador",
+            options=["institucional", "promotor", "miembro"],
+            index=0
         )
+    else:
+        usuario_admin = None
+        contraseña_admin = None
+        rol_admin = None
 
-        # ✅ Checkbox para marcar si es administrador
-        es_admin = st.checkbox("Este miembro también será administrador")
+    # Botón para registrar miembro (único submit)
+    if st.button("Registrar miembro"):
+        mensaje = st.empty()
+        if not nombre_m.strip():
+            mensaje.error("El nombre del miembro es obligatorio.")
+            time.sleep(3)
+            mensaje.empty()
+        else:
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor(dictionary=True)
 
-        # Solo aparece si es administrador
-        if es_admin:
-            usuario_admin = st.text_input("Usuario (administrador)")
-            contraseña_admin = st.text_input("Contraseña (administrador)", type="password")
-            rol_admin = st.selectbox(
-                "Rol del administrador",
-                options=["Institucional", "Promotor", "Miembro"],
-                index=0
-            )
+                # Insertar miembro
+                cursor.execute(
+                    "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
+                    (nombre_m, dui, telefono)
+                )
+                conn.commit()
+                miembro_id = cursor.lastrowid
 
-        enviar = st.form_submit_button("Registrar miembro")
-        if enviar:
-            mensaje = st.empty()
-            if not nombre_m.strip():
-                mensaje.error("El nombre del miembro es obligatorio.")
+                # Crear relación con grupo
+                cursor.execute(
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    (grupo_asignado, miembro_id)
+                )
+                conn.commit()
+
+                # Si es administrador
+                if es_admin:
+                    if not usuario_admin or not contraseña_admin:
+                        mensaje.warning("Debe ingresar usuario y contraseña para administrador.")
+                    else:
+                        cursor.execute(
+                            "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
+                            (usuario_admin, contraseña_admin, rol_admin)
+                        )
+                        conn.commit()
+                        id_adm = cursor.lastrowid
+
+                        cursor.execute(
+                            "UPDATE Miembros SET id_administrador=%s WHERE id_miembro=%s",
+                            (id_adm, miembro_id)
+                        )
+                        conn.commit()
+
+                mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
                 time.sleep(3)
                 mensaje.empty()
-            else:
-                try:
-                    conn = obtener_conexion()
-                    cursor = conn.cursor(dictionary=True)
 
-                    # ---------------- Insertar miembro ----------------
-                    cursor.execute(
-                        "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
-                        (nombre_m, dui, telefono)
-                    )
-                    conn.commit()
-                    miembro_id = cursor.lastrowid
-
-                    # ---------------- Crear relación con grupo ----------------
-                    cursor.execute(
-                        "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
-                        (grupo_asignado, miembro_id)
-                    )
-                    conn.commit()
-
-                    # ---------------- Si es administrador ----------------
-                    if es_admin:
-                        if not usuario_admin or not contraseña_admin:
-                            mensaje.warning("Debe ingresar usuario y contraseña para administrador.")
-                        else:
-                            cursor.execute(
-                                "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
-                                (usuario_admin, contraseña_admin, rol_admin)
-                            )
-                            conn.commit()
-                            id_adm = cursor.lastrowid
-
-                            cursor.execute(
-                                "UPDATE Miembros SET id_administrador=%s WHERE id_miembro=%s",
-                                (id_adm, miembro_id)
-                            )
-                            conn.commit()
-
-                    mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
-                    time.sleep(3)
-                    mensaje.empty()
-                except Exception as e:
-                    conn.rollback()
-                    mensaje.error(f"Error al registrar miembro: {e}")
-                    time.sleep(3)
-                    mensaje.empty()
-                finally:
-                    cursor.close()
-                    conn.close()
+            except Exception as e:
+                conn.rollback()
+                mensaje.error(f"Error al registrar miembro: {e}")
+                time.sleep(3)
+                mensaje.empty()
+            finally:
+                cursor.close()
+                conn.close()
 
     st.write("---")
 
@@ -194,7 +201,7 @@ def pagina_grupos():
 
     st.write("---")
 
-    # ================= ELIMINAR UN GRUPO =================
+    # ================= ELIMINAR GRUPO =================
     st.subheader("🗑️ Eliminar un grupo completo")
     st.warning("⚠️ Al eliminar un grupo, también se eliminarán los miembros que solo pertenecen a este grupo. Hazlo con cuidado.")
 
