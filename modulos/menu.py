@@ -8,6 +8,12 @@ def mostrar_menu():
         return
 
     # -----------------------------------------------------
+    # Resetear flag de botón presionado si existe
+    # -----------------------------------------------------
+    if st.session_state.get("boton_presionado"):
+        st.session_state.pop("boton_presionado")
+
+    # -----------------------------------------------------
     #      🎨 CSS - Botones con animación + colores
     # -----------------------------------------------------
     st.markdown("""
@@ -18,7 +24,6 @@ div.stButton {
     justify-content: center !important;
 }
 
-/* Estilo base de TODOS los botones */
 div.stButton > button {
     width: 240px !important;
     height: 90px !important;
@@ -43,13 +48,11 @@ div.stButton > button {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
 }
 
-/* Hover */
 div.stButton > button:hover {
     transform: scale(1.07) !important;
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
-/* Colores personalizados */
 #proyectos_btn > button { background-color: #F4B400 !important; }
 #usuarios_btn > button { background-color: #8E24AA !important; }
 #grupos_btn > button { background-color: #E53935 !important; }
@@ -57,7 +60,6 @@ div.stButton > button:hover {
 #reportes_btn > button { background-color: #43A047 !important; }
 #configuracion_btn > button { background-color: #6D4C41 !important; }
 
-/* Logout */
 #logout_btn > button {
     width: 200px !important;
     height: 60px !important;
@@ -86,7 +88,7 @@ div.stButton > button:hover {
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
         ("📝 Grupos", "grupos", "inspecciones_btn"),
-        ("📄 Reglamento", "documentos", "documentos_btn"),  # <-- corregido
+        ("📄 Reglamento", "documentos", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
     ]
@@ -96,17 +98,10 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     if rol == "institucional":
         modulos = modulos_base
-
     elif rol == "promotor":
-        modulos = [
-            m for m in modulos_base if m[1] in ["proyectos", "inspecciones"]
-        ]
-
+        modulos = [m for m in modulos_base if m[1] in ["proyectos", "inspecciones"]]
     elif rol == "miembro":
-        modulos = [
-            m for m in modulos_base if m[1] == "documentos"
-        ]
-
+        modulos = [m for m in modulos_base if m[1] == "documentos"]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
@@ -125,8 +120,9 @@ div.stButton > button:hover {
                 btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
 
                 if b:
-                    st.session_state.page = modulo
-                    st.stop()  # <-- se mantiene st.stop() en vez de st.rerun()
+                    st.session_state["page"] = modulo
+                    st.session_state["boton_presionado"] = True
+                    st.experimental_rerun()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
@@ -140,4 +136,4 @@ div.stButton > button:hover {
 
         if logout:
             st.session_state.clear()
-            st.stop()  # <-- también st.stop() aquí
+            st.experimental_rerun()
