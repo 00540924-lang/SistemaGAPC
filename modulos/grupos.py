@@ -10,11 +10,13 @@ def pagina_grupos():
         return
     st.write("---")
 
-    # Inicializar flag de actualización
+    # ================= FLAGS =================
     if "actualizar" not in st.session_state:
         st.session_state["actualizar"] = False
     if "confirmar_eliminar" not in st.session_state:
         st.session_state["confirmar_eliminar"] = False
+    if "grupo_a_eliminar" not in st.session_state:
+        st.session_state["grupo_a_eliminar"] = None
 
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
@@ -153,6 +155,7 @@ def pagina_grupos():
 
     if st.button("Eliminar grupo seleccionado"):
         st.session_state["confirmar_eliminar"] = True
+        st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
     if st.session_state["confirmar_eliminar"]:
         st.warning(
@@ -165,24 +168,26 @@ def pagina_grupos():
                     conn = obtener_conexion()
                     cursor = conn.cursor()
                     # Eliminar relaciones
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (grupo_eliminar,))
+                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
                     # Eliminar grupo
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
+                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
                     conn.commit()
                     st.success("Grupo eliminado correctamente.")
                     st.session_state["actualizar"] = True
                 finally:
                     cursor.close()
                     conn.close()
+                # Limpiar confirmación
                 st.session_state["confirmar_eliminar"] = False
+                st.session_state["grupo_a_eliminar"] = None
 
         with col2:
             if st.button("Cancelar"):
                 st.info("Operación cancelada.")
                 st.session_state["confirmar_eliminar"] = False
+                st.session_state["grupo_a_eliminar"] = None
 
     # ================= RECARGAR LA APP SI ES NECESARIO =================
     if st.session_state.get("actualizar", False):
         st.session_state["actualizar"] = False
         st.experimental_rerun()
-
