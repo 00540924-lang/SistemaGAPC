@@ -154,7 +154,7 @@ def pagina_grupos():
         key="grupo_eliminar"
     )
 
-    confirm_placeholder = st.empty()  # Placeholder para el mensaje de advertencia
+    confirm_placeholder = st.empty()  # Placeholder para todo el bloque de confirmación
 
     # Botón para iniciar confirmación
     if st.button("Eliminar grupo seleccionado"):
@@ -163,59 +163,61 @@ def pagina_grupos():
 
     # Mostrar confirmación si corresponde
     if st.session_state.get("confirmar_eliminar", False):
-        confirm_placeholder.warning(
-            "⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo."
-        )
+        with confirm_placeholder.container():
+            st.warning(
+                "⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo."
+            )
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Sí, eliminar"):
-                placeholder = st.empty()
-                try:
-                    conn = obtener_conexion()
-                    cursor = conn.cursor()
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Sí, eliminar"):
+                    placeholder = st.empty()
+                    try:
+                        conn = obtener_conexion()
+                        cursor = conn.cursor()
 
-                    # Obtener miembros asociados solo a este grupo
-                    cursor.execute("""
-                        SELECT M.id_miembro
-                        FROM Miembros M
-                        JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
-                        WHERE GM.id_grupo = %s
-                    """, (st.session_state["grupo_a_eliminar"],))
-                    miembros_del_grupo = [m[0] for m in cursor.fetchall()]
+                        # Obtener miembros asociados solo a este grupo
+                        cursor.execute("""
+                            SELECT M.id_miembro
+                            FROM Miembros M
+                            JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
+                            WHERE GM.id_grupo = %s
+                        """, (st.session_state["grupo_a_eliminar"],))
+                        miembros_del_grupo = [m[0] for m in cursor.fetchall()]
 
-                    # Eliminar relaciones del grupo en Grupomiembros
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
+                        # Eliminar relaciones del grupo en Grupomiembros
+                        cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
 
-                    # Eliminar miembros que ya no pertenecen a ningún grupo
-                    for miembro_id in miembros_del_grupo:
-                        cursor.execute("SELECT COUNT(*) FROM Grupomiembros WHERE id_miembro = %s", (miembro_id,))
-                        if cursor.fetchone()[0] == 0:
-                            cursor.execute("DELETE FROM Miembros WHERE id_miembro = %s", (miembro_id,))
+                        # Eliminar miembros que ya no pertenecen a ningún grupo
+                        for miembro_id in miembros_del_grupo:
+                            cursor.execute("SELECT COUNT(*) FROM Grupomiembros WHERE id_miembro = %s", (miembro_id,))
+                            if cursor.fetchone()[0] == 0:
+                                cursor.execute("DELETE FROM Miembros WHERE id_miembro = %s", (miembro_id,))
 
-                    # Eliminar el grupo
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
-                    conn.commit()
+                        # Eliminar el grupo
+                        cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
+                        conn.commit()
 
-                    placeholder.success("Grupo y miembros asociados eliminados correctamente.")
-                    time.sleep(2)
-                    placeholder.empty()
-                    confirm_placeholder.empty()  # ❌ El mensaje de advertencia desaparece
+                        placeholder.success("Grupo y miembros asociados eliminados correctamente.")
+                        time.sleep(2)
+                        placeholder.empty()
+
+                    except Exception as e:
+                        placeholder.error(f"Error al eliminar el grupo: {e}")
+                        time.sleep(2)
+                        placeholder.empty()
+                    finally:
+                        cursor.close()
+                        conn.close()
+                        # Limpiar estado y eliminar todo el bloque de confirmación
+                        st.session_state["confirmar_eliminar"] = False
+                        st.session_state.pop("grupo_a_eliminar", None)
+                        confirm_placeholder.empty()
+                        st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
+
+            with col2:
+                if st.button("Cancelar"):
+                    st.info("Operación cancelada.")
                     st.session_state["confirmar_eliminar"] = False
                     st.session_state.pop("grupo_a_eliminar", None)
-                    st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
-
-                except Exception as e:
-                    placeholder.error(f"Error al eliminar el grupo: {e}")
-                    time.sleep(2)
-                    placeholder.empty()
-                finally:
-                    cursor.close()
-                    conn.close()
-
-        with col2:
-            if st.button("Cancelar"):
-                st.info("Operación cancelada.")
-                confirm_placeholder.empty()
-                st.session_state["confirmar_eliminar"] = False
-                st.session_state.pop("grupo_a_eliminar", None)
+                    confirm_placeholder.empty()
