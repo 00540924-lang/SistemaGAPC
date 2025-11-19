@@ -152,25 +152,29 @@ def pagina_grupos():
     st.subheader("🗑️ Eliminar un grupo completo")
     st.warning("⚠️ Al eliminar un grupo, también se eliminarán los miembros que solo pertenecen a este grupo. Hazlo con cuidado.")
 
-    for g in grupos:
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.write(f"Grupo: {g['nombre_grupo']}")
-        with col2:
-            if st.button(f"Eliminar {g['nombre_grupo']}", key=f"elim_{g['id_grupo']}"):
-                try:
-                    conn = obtener_conexion()
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (g['id_grupo'],))
-                    cursor.execute("""
-                        DELETE FROM Miembros
-                        WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
-                    """)
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (g['id_grupo'],))
-                    conn.commit()
-                    st.success(f"Grupo {g['nombre_grupo']} y miembros asociados eliminados correctamente.")
-                    st.session_state["actualizar"] = True
-                finally:
-                    cursor.close()
-                    conn.close()
+    grupo_eliminar = st.selectbox(
+        "Selecciona el grupo a eliminar",
+        options=[g["id_grupo"] for g in grupos],
+        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
+        key="grupo_eliminar"
+    )
 
+    if st.button("Eliminar grupo seleccionado"):
+        try:
+            conn = obtener_conexion()
+            cursor = conn.cursor()
+            # Eliminar relaciones del grupo
+            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (grupo_eliminar,))
+            # Eliminar miembros huérfanos
+            cursor.execute("""
+                DELETE FROM Miembros
+                WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
+            """)
+            # Eliminar el grupo
+            cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
+            conn.commit()
+            st.success("Grupo y miembros asociados eliminados correctamente.")
+            st.session_state["actualizar"] = True
+        finally:
+            cursor.close()
+            conn.close()
