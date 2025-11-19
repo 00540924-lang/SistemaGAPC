@@ -22,7 +22,7 @@ def pagina_credenciales():
     # BOTÓN PARA VOLVER AL MENÚ
     if st.button("⬅️ Regresar al menú"):
         st.session_state["page"] = "menu"
-        st.stop() 
+        st.rerun()
 
     st.write("---")
     st.subheader("➕ Registrar nueva credencial")
