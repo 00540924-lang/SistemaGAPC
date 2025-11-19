@@ -187,7 +187,11 @@ def pagina_grupos():
                 st.session_state["confirmar_eliminar"] = False
                 st.session_state["grupo_a_eliminar"] = None
 
-    # ================= RECARGAR LA APP SI ES NECESARIO =================
-    if st.session_state.get("actualizar", False):
-        st.session_state["actualizar"] = False
-        st.experimental_rerun()
+   # ================= RECARGAR LA APP SI ES NECESARIO =================
+if st.session_state.get("actualizar", False):
+    # Guardamos el flag temporalmente
+    st.session_state["actualizar"] = False
+    # Usamos st.empty() para asegurarnos de que no estamos dentro de un botón
+    placeholder = st.empty()
+    placeholder.empty()  # Solo para salir del flujo de render actual
+    st.experimental_rerun()  # Ahora sí se puede ejecutar sin errores
