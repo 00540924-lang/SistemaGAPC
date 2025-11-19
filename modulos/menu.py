@@ -15,22 +15,22 @@ def mostrar_menu():
 
 div.stButton {
     display: flex !important;
-    justify-content: center !important;  /* Evita expandirse al 100% */
+    justify-content: center !important;
 }
 
 /* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 240px !important;   /* ← tamaño fijo horizontal */
-    height: 90px !important;   /* ← tamaño fijo vertical */
+    width: 240px !important;
+    height: 90px !important;
     padding: 0 !important;
 
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 
-    white-space: nowrap !important;   /* No permite que el texto salte de línea */
-    overflow: hidden !important;      /* Evita que el texto desborde */
-    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 
     font-size: 18px !important;
     font-weight: 600 !important;
@@ -86,7 +86,7 @@ div.stButton > button:hover {
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
         ("📝 Grupos", "grupos", "inspecciones_btn"),
-        ("📄". "Reglamento", "documentos", "documentos_btn"),
+        ("📄 Reglamento", "documentos", "documentos_btn"),  # <-- corregido
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
     ]
@@ -126,7 +126,7 @@ div.stButton > button:hover {
 
                 if b:
                     st.session_state.page = modulo
-                    st.stop()
+                    st.stop()  # <-- se mantiene st.stop() en vez de st.rerun()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
@@ -140,5 +140,4 @@ div.stButton > button:hover {
 
         if logout:
             st.session_state.clear()
-            st.stop()
-
+            st.stop()  # <-- también st.stop() aquí
