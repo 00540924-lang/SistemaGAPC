@@ -29,12 +29,18 @@ def verificar_usuario(usuario, contraseña):
         # id_administrador DEBE coincidir con id_miembro de Grupomiembros,
         # porque un administrador es también un miembro.
         query = """
-            SELECT a.`Usuario`, a.`Rol`, g.`id_grupo`, g.`nombre_grupo`
-            FROM `Administradores` a
-            LEFT JOIN `Grupomiembros` gm ON gm.`id_miembro` = a.`id_administrador`
-            LEFT JOIN `Grupos` g ON g.`id_grupo` = gm.`id_grupo`
-            WHERE a.`Usuario` = %s AND a.`Contraseña` = %s
-        """
+    SELECT 
+        a.Usuario,
+        a.Rol,
+        g.id_grupo,
+        g.nombre_grupo
+    FROM Administradores a
+    JOIN Miembros m ON m.id_administrador = a.id_administrador
+    LEFT JOIN Grupomiembros gm ON gm.id_miembro = m.id_miembro
+    LEFT JOIN Grupos g ON g.id_grupo = gm.id_grupo
+    WHERE a.Usuario = %s AND a.Contraseña = %s
+"""
+
 
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
