@@ -1,6 +1,7 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 import unicodedata
+import hashlib  # 🔹 Import necesario para SHA256
 
 
 def limpiar_rol(rol):
@@ -20,12 +21,16 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
+        
+        # 🔹 Encriptamos la contraseña ingresada con SHA256
+        hash_contraseña = hashlib.sha256(contraseña.encode()).hexdigest()
+        
         query = """
             SELECT Usuario, Rol 
             FROM Administradores 
             WHERE Usuario = %s AND Contraseña = %s
         """
-        cursor.execute(query, (usuario, contraseña))
+        cursor.execute(query, (usuario, hash_contraseña))
         result = cursor.fetchone()
 
         if not result:
@@ -42,7 +47,6 @@ def verificar_usuario(usuario, contraseña):
 
 
 def login():
-
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         try:
@@ -76,8 +80,8 @@ def login():
 
             st.success(f"Bienvenido {datos['usuario']} 👋 (Rol: {datos['rol']})")
 
-            # 🚀 Nuevo método correcto
-            st.rerun()
+            # 🔹 Reemplazamos st.rerun() por st.stop() para compatibilidad moderna
+            st.stop()
 
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
@@ -85,5 +89,3 @@ def login():
 
 if __name__ == "__main__":
     login()
-
-
