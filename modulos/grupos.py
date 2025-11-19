@@ -144,54 +144,65 @@ def pagina_grupos():
 
     st.write("---")
 
-    # ================= ELIMINAR UN GRUPO =================
-    st.subheader("🗑️ Eliminar un grupo completo")
-    grupo_eliminar = st.selectbox(
-        "Selecciona un grupo para eliminar",
-        options=[g["id_grupo"] for g in grupos],
-        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
-        key="grupo_eliminar"
-    )
+  # ================= ELIMINAR UN GRUPO =================
+st.subheader("🗑️ Eliminar un grupo completo")
+grupo_eliminar = st.selectbox(
+    "Selecciona un grupo para eliminar",
+    options=[g["id_grupo"] for g in grupos],
+    format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
+    key="grupo_eliminar"
+)
 
-    if st.button("Eliminar grupo seleccionado"):
-        st.session_state["confirmar_eliminar"] = True
-        st.session_state["grupo_a_eliminar"] = grupo_eliminar
+# Placeholder para la confirmación
+confirm_placeholder = st.empty()
 
-    if st.session_state["confirmar_eliminar"]:
+# Inicializamos variable de sesión
+if "confirmar_eliminar" not in st.session_state:
+    st.session_state["confirmar_eliminar"] = False
+
+# Botón para iniciar confirmación
+if st.button("Eliminar grupo seleccionado"):
+    st.session_state["confirmar_eliminar"] = True
+
+# Mostrar confirmación
+if st.session_state["confirmar_eliminar"]:
+    with confirm_placeholder.container():
         st.warning(
             "⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo."
         )
         col1, col2 = st.columns(2)
+
         with col1:
             if st.button("Sí, eliminar"):
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor()
                     # Eliminar relaciones
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
+                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (grupo_eliminar,))
+                    # Eliminar miembros que ya no pertenezcan a ningún grupo
+                    cursor.execute("""
+                        DELETE FROM Miembros
+                        WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
+                    """)
                     # Eliminar grupo
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
+                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
                     conn.commit()
-                    st.success("Grupo eliminado correctamente.")
+                    st.success("Grupo y miembros asociados eliminados correctamente.")
+                    # Marcamos para recarga
                     st.session_state["actualizar"] = True
                 finally:
                     cursor.close()
                     conn.close()
-                # Limpiar confirmación
-                st.session_state["confirmar_eliminar"] = False
-                st.session_state["grupo_a_eliminar"] = None
+                    st.session_state["confirmar_eliminar"] = False
+                    confirm_placeholder.empty()
 
         with col2:
             if st.button("Cancelar"):
                 st.info("Operación cancelada.")
                 st.session_state["confirmar_eliminar"] = False
-                st.session_state["grupo_a_eliminar"] = None
+                confirm_placeholder.empty()
 
-   # ================= RECARGAR LA APP SI ES NECESARIO =================
+# ================= RECARGAR LA APP SI ES NECESARIO =================
 if st.session_state.get("actualizar", False):
-    # Guardamos el flag temporalmente
     st.session_state["actualizar"] = False
-    # Usamos st.empty() para asegurarnos de que no estamos dentro de un botón
-    placeholder = st.empty()
-    placeholder.empty()  # Solo para salir del flujo de render actual
-    st.experimental_rerun()  # Ahora sí se puede ejecutar sin errores
+    st.experimental_rerun()
