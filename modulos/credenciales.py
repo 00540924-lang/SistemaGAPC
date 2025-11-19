@@ -25,22 +25,27 @@ def pagina_credenciales():
         st.experimental_rerun()
 
     st.write("---")
-
     st.subheader("➕ Registrar nueva credencial")
 
+    # FORMULARIO
     usuario = st.text_input("Usuario")
     contraseña = st.text_input("Contraseña", type="password")
     rol = st.selectbox("Rol", options=["Institucional", "Promotor", "Miembro"])
 
-            # encriptar contraseña usando SHA256
+    # BOTÓN PARA GUARDAR
+    if st.button("Guardar credencial"):
+        if not usuario.strip() or not contraseña.strip():
+            st.error("Usuario y contraseña son obligatorios.")
+        else:
+            # Encriptar contraseña usando SHA256
             hash_password = hashlib.sha256(contraseña.encode()).hexdigest()
 
             try:
                 conn = get_connection()
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO Administradores (usuario, contraseña, rol, id_grupo) VALUES (%s, %s, %s, %s)",
-                    (usuario, hash_password, rol, id_grupo)
+                    "INSERT INTO Administradores (usuario, contraseña, rol) VALUES (%s, %s, %s)",
+                    (usuario, hash_password, rol)
                 )
                 conn.commit()
                 st.success("Credencial registrada correctamente.")
