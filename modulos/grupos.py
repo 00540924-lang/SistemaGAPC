@@ -1,5 +1,6 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
+import time  # Para temporizar el mensaje temporal
 
 def pagina_grupos():
     st.title("Gestión de Grupos")
@@ -102,7 +103,6 @@ def pagina_grupos():
         key="grupo_lista"
     )
 
-    # Obtener miembros del grupo seleccionado
     conn = obtener_conexion()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
@@ -130,8 +130,11 @@ def pagina_grupos():
                             (grupo_seleccionado, m["id_miembro"])
                         )
                         conn.commit()
-                        st.success(f"{m['nombre']} eliminado del grupo.")
+                        placeholder = st.empty()
+                        placeholder.success(f"{m['nombre']} eliminado del grupo.")
                         st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
+                        time.sleep(2)
+                        placeholder.empty()
                     except Exception as e:
                         st.error(f"Error: {e}")
                     finally:
@@ -161,6 +164,7 @@ def pagina_grupos():
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Sí, eliminar"):
+                placeholder = st.empty()
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor()
@@ -187,15 +191,19 @@ def pagina_grupos():
                     cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
                     conn.commit()
 
-                    st.success("Grupo y miembros asociados eliminados correctamente.")
+                    placeholder.success("Grupo y miembros asociados eliminados correctamente.")
+                    time.sleep(2)
+                    placeholder.empty()
+
                     st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
 
                 except Exception as e:
-                    st.error(f"Error al eliminar el grupo: {e}")
+                    placeholder.error(f"Error al eliminar el grupo: {e}")
+                    time.sleep(2)
+                    placeholder.empty()
                 finally:
                     cursor.close()
                     conn.close()
-                    # Limpiar variables de confirmación para que desaparezca el mensaje
                     st.session_state["confirmar_eliminar"] = False
                     st.session_state.pop("grupo_a_eliminar", None)
 
