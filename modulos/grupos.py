@@ -147,37 +147,12 @@ def pagina_grupos():
 
     st.write("---")
 
-    # =========================================
-    # AGREGAR MIEMBROS AL GRUPO
-    # =========================================
-    st.write("### ➕ Agregar miembros")
-
-    cursor.execute("SELECT id_miembro, nombre FROM Miembros")
-    todos = cursor.fetchall()
-
-    ids_actuales = [m["id_miembro"] for m in miembros]
-    disponibles = [m for m in todos if m["id_miembro"] not in ids_actuales]
-
-    if disponibles:
-        nuevos = st.multiselect(
-            "Selecciona miembros",
-            options=[m["id_miembro"] for m in disponibles],
-            format_func=lambda x: next(m["nombre"] for m in disponibles if m["id_miembro"] == x)
-        )
-
-        if st.button("Agregar al grupo"):
-            for nm in nuevos:
-                cursor.execute(
-                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
-                    (grupo_id, nm)
-                )
-            conn.commit()
-            st.success("Miembros agregados.")
-            cursor.close()
-            conn.close()
-            st.rerun()
-    else:
-        st.info("No hay más miembros disponibles.")
+   # ------------------ FORMULARIO ------------------
+    with st.form("form_miembro"):
+        nombre = st.text_input("Nombre completo")
+        dui = st.text_input("DUI")
+        telefono = st.text_input("Telefono")
+        enviar = st.form_submit_button("Registrar")
 
     cursor.close()
     conn.close()
