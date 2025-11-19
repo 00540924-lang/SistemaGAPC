@@ -22,11 +22,11 @@ def verificar_usuario(usuario, contraseña):
         return None
 
     try:
-        cursor = con.cursor(dictionary=True)
+        cursor = con.cursor()
         query = """
             SELECT a.Usuario, a.Rol, g.id_grupo, g.nombre_grupo
             FROM Administradores a
-            LEFT JOIN GrupoMiembros gm ON a.id_usuario = gm.id_usuario
+            LEFT JOIN GrupoMiembros gm ON a.id_administrador = gm.id_usuario
             LEFT JOIN Grupos g ON gm.id_grupo = g.id_grupo
             WHERE a.Usuario = %s AND a.Contraseña = %s
         """
@@ -36,12 +36,17 @@ def verificar_usuario(usuario, contraseña):
         if not result:
             return None
 
-        rol_limpio = limpiar_rol(result["Rol"])
+        # Acceder por índice
+        usuario_nombre = result[0]
+        rol = limpiar_rol(result[1])
+        id_grupo = result[2]
+        nombre_grupo = result[3]
+
         return {
-            "usuario": result["Usuario"],
-            "rol": rol_limpio,
-            "id_grupo": result["id_grupo"],
-            "nombre_grupo": result["nombre_grupo"]
+            "usuario": usuario_nombre,
+            "rol": rol,
+            "id_grupo": id_grupo,
+            "nombre_grupo": nombre_grupo
         }
 
     finally:
@@ -80,7 +85,7 @@ def login():
         if datos:
             st.session_state["usuario"] = datos["usuario"]
             st.session_state["rol"] = datos["rol"]
-            st.session_state["id_grupo"] = datos["id_grupo"]  # ✅ Nuevo: guardar grupo
+            st.session_state["id_grupo"] = datos["id_grupo"]      # Guardar grupo
             st.session_state["nombre_grupo"] = datos["nombre_grupo"]  # Opcional
             st.session_state["sesion_iniciada"] = True
 
