@@ -32,29 +32,6 @@ def pagina_credenciales():
     contraseña = st.text_input("Contraseña", type="password")
     rol = st.selectbox("Rol", options=["Institucional", "Promotor", "Miembro"])
 
-    # Opcional: seleccionar grupo al que pertenece el admin
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
-        grupos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-    except:
-        grupos = []
-
-    id_grupo = None
-    if grupos:
-        id_grupo = st.selectbox(
-            "Asignar a grupo",
-            options=[g["id_grupo"] for g in grupos],
-            format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
-        )
-
-    if st.button("Guardar credencial"):
-        if not usuario.strip() or not contraseña.strip():
-            st.error("Usuario y contraseña son obligatorios.")
-        else:
             # encriptar contraseña usando SHA256
             hash_password = hashlib.sha256(contraseña.encode()).hexdigest()
 
