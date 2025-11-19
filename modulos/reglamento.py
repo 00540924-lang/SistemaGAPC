@@ -66,7 +66,12 @@ def mostrar_reglamento():
             default=dias_guardados
         )
 
-        hora_reunion = st.text_input("Hora de reunión", get_val("hora_reunion"))
+        # 🕒 Selector de hora con AM/PM
+hora_reunion = st.time_input(
+    "Hora de reunión",
+    value=datetime.time.fromisoformat(get_val("hora_reunion")) if get_val("hora_reunion") else datetime.time(8, 0)
+)
+
         lugar_reunion = st.text_input("Lugar", get_val("lugar_reunion"))
         frecuencia_reunion = st.text_input("Frecuencia", get_val("frecuencia_reunion"))
 
