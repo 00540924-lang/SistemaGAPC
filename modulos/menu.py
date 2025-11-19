@@ -15,22 +15,21 @@ def mostrar_menu():
 
 div.stButton {
     display: flex !important;
-    justify-content: center !important;  /* Evita expandirse al 100% */
+    justify-content: center !important;
 }
 
-/* Estilo base de TODOS los botones */
 div.stButton > button {
-    width: 240px !important;   /* ← tamaño fijo horizontal */
-    height: 90px !important;   /* ← tamaño fijo vertical */
+    width: 240px !important;
+    height: 90px !important;
     padding: 0 !important;
 
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 
-    white-space: nowrap !important;   /* No permite que el texto salte de línea */
-    overflow: hidden !important;      /* Evita que el texto desborde */
-    text-overflow: ellipsis !important; /* Si el texto es largo → agrega "..." */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 
     font-size: 18px !important;
     font-weight: 600 !important;
@@ -43,13 +42,11 @@ div.stButton > button {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
 }
 
-/* Hover */
 div.stButton > button:hover {
     transform: scale(1.07) !important;
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
-/* Colores personalizados */
 #proyectos_btn > button { background-color: #F4B400 !important; }
 #usuarios_btn > button { background-color: #8E24AA !important; }
 #grupos_btn > button { background-color: #E53935 !important; }
@@ -57,7 +54,7 @@ div.stButton > button:hover {
 #reportes_btn > button { background-color: #43A047 !important; }
 #configuracion_btn > button { background-color: #6D4C41 !important; }
 
-/* Logout */
+# Logout
 #logout_btn > button {
     width: 200px !important;
     height: 60px !important;
@@ -85,7 +82,7 @@ div.stButton > button:hover {
     modulos_base = [
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "inspecciones_btn"),
+        ("📝 Grupos", "grupos", "grupos_btn"),
         ("📄 Gestión Documental", "documentos", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
@@ -121,18 +118,16 @@ div.stButton > button:hover {
             btn = st.container()
             with btn:
                 b = st.button(texto, key=f"btn_{modulo}")
-                # Aplicar ID de CSS al contenedor
                 btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
 
                 if b:
                     st.session_state.page = modulo
-                    st.rerun()
+                    st.stop()  # 🔹 reemplaza st.rerun()
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
     # -----------------------------------------------------
     st.write("---")
-
     logout_container = st.container()
     with logout_container:
         logout = st.button("🔒 Cerrar sesión", key="logout")
@@ -140,4 +135,5 @@ div.stButton > button:hover {
 
         if logout:
             st.session_state.clear()
-            st.rerun()
+            st.stop()  # 🔹 reemplaza st.rerun()
+
