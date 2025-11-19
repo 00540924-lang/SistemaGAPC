@@ -4,21 +4,20 @@ from modulos.config.conexion import obtener_conexion
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
- # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # espaciado
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
+    # ------------------ BOTÓN VOLVER AL MENÚ ------------------
+    if st.button("⬅️ Regresar al menú"):
+        st.session_state["page"] = "menu"
+        st.stop()
 
     st.write("---")
 
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
-    nombre = st.text_input("Nombre del Grupo")
-    distrito = st.text_input("Distrito")
-    inicio_ciclo = st.date_input("Inicio del Ciclo")
+    nombre = st.text_input("Nombre del Grupo", key="nombre_grupo")
+    distrito = st.text_input("Distrito", key="distrito")
+    inicio_ciclo = st.date_input("Inicio del Ciclo", key="inicio_ciclo")
 
-    if st.button("Guardar grupo"):
+    if st.button("Guardar grupo", key="guardar_grupo"):
         if not nombre.strip():
             st.error("El nombre del grupo es obligatorio.")
         else:
@@ -47,6 +46,7 @@ def pagina_grupos():
     # ================= LISTAR GRUPOS =================
     conn = None
     cursor = None
+    grupos = []
     try:
         conn = obtener_conexion()
         cursor = conn.cursor(dictionary=True)
@@ -64,34 +64,6 @@ def pagina_grupos():
             format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
         )
 
-        # ------------------ ELIMINAR GRUPO ------------------
-        if st.button("🗑️ Eliminar grupo"):
-            st.session_state["confirmar_eliminar"] = True
-            st.session_state["grupo_a_eliminar"] = grupo_id
-
-        if st.session_state.get("confirmar_eliminar", False):
-            st.warning("⚠️ ¿Seguro que deseas eliminar este grupo? Esto borrará sus miembros.")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Sí, eliminar"):
-                    gid = st.session_state["grupo_a_eliminar"]
-                    try:
-                        cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (gid,))
-                        cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (gid,))
-                        conn.commit()
-                        st.success("Grupo eliminado correctamente.")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-                    finally:
-                        st.session_state["confirmar_eliminar"] = False
-                        st.session_state.pop("grupo_a_eliminar", None)
-                        st.stop()
-            with col2:
-                if st.button("Cancelar eliminación"):
-                    st.session_state["confirmar_eliminar"] = False
-                    st.session_state.pop("grupo_a_eliminar", None)
-                    st.info("Operación cancelada.")
-
     finally:
         if cursor:
             cursor.close()
@@ -103,9 +75,15 @@ def pagina_grupos():
     # ================= FORMULARIO MIEMBROS =================
     st.subheader("➕ Registrar nuevo miembro")
     with st.form("form_miembro"):
-        nombre = st.text_input("Nombre completo")
-        dui = st.text_input("DUI")
-        telefono = st.text_input("Teléfono")
+        nombre = st.text_input("Nombre completo", key="nombre_miembro")
+        dui = st.text_input("DUI", key="dui")
+        telefono = st.text_input("Teléfono", key="telefono")
+        grupo_asignado = st.selectbox(
+            "Asignar al grupo",
+            options=[g["id_grupo"] for g in grupos],
+            format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
+            key="grupo_asignado"
+        )
         enviar = st.form_submit_button("Registrar")
 
         if enviar:
@@ -114,12 +92,22 @@ def pagina_grupos():
             try:
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
+                # Insertar miembro
                 cursor.execute(
                     "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                     (nombre, dui, telefono)
                 )
                 conn.commit()
-                st.success(f"{nombre} registrado correctamente.")
+                miembro_id = cursor.lastrowid
+
+                # Asignar al grupo seleccionado
+                cursor.execute(
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    (grupo_asignado, miembro_id)
+                )
+                conn.commit()
+                st.success(f"{nombre} registrado correctamente en el grupo.")
+
                 st.stop()
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -129,8 +117,10 @@ def pagina_grupos():
                 if conn:
                     conn.close()
 
-    # ================= LISTAR MIEMBROS DEL GRUPO =================
-    if 'grupo_id' in locals():
+    st.write("---")
+
+    # ================= LISTAR MIEMBROS DEL GRUPO SELECCIONADO =================
+    if grupo_id:
         conn = None
         cursor = None
         try:
@@ -144,7 +134,7 @@ def pagina_grupos():
             """, (grupo_id,))
             miembros = cursor.fetchall()
 
-            st.write("### 🧑‍🤝‍🧑 Miembros del grupo")
+            st.write("### 🧑‍🤝‍🧑 Miembros del grupo seleccionado")
             if miembros:
                 for m in miembros:
                     col1, col2 = st.columns([4, 1])
@@ -157,10 +147,11 @@ def pagina_grupos():
                                 (grupo_id, m["id_miembro"])
                             )
                             conn.commit()
-                            st.success(f"{m['nombre']} eliminado.")
+                            st.success(f"{m['nombre']} eliminado del grupo.")
                             st.stop()
             else:
                 st.info("Este grupo no tiene miembros.")
+
         finally:
             if cursor:
                 cursor.close()
