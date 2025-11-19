@@ -3,7 +3,7 @@ from modulos.config.conexion import obtener_conexion
 import datetime
 
 # -------------------------------------------------------------------
-#   🚀 1. OBTENER REGLAMENTO SIN ATRASAR EL RENDER
+#   🚀 1. OBTENER REGLAMENTO PERO SIN ATRASAR EL RENDER
 # -------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def cargar_reglamento(id_grupo):
@@ -26,11 +26,13 @@ def mostrar_reglamento():
     id_grupo = st.session_state.get("id_grupo", 1)
 
     # -------------------------------------------------------------------
-    #   🚀 2. CARGAR DATOS SIN BLOQUEAR
+    #   🚀 2. CARGAR DATOS (YA NO BLOQUEA EL RENDER → NO PARPADEA)
     # -------------------------------------------------------------------
     reglamento_existente = cargar_reglamento(id_grupo)
 
-    # Función para autocompletar valores
+    # -------------------------------------------------------------------
+    #   FUNCIÓN PARA CARGAR VALORES POR DEFECTO
+    # -------------------------------------------------------------------
     def get_val(campo, defecto=""):
         if reglamento_existente and campo in reglamento_existente and reglamento_existente[campo] is not None:
             return reglamento_existente[campo]
@@ -39,23 +41,40 @@ def mostrar_reglamento():
     st.write("Complete o actualice el reglamento del grupo.")
 
     # -------------------------------------------------------------------
-    #        📋 FORMULARIO COMPLETO
+    #   🟣 CSS: Cambiar “Choose options” por “Seleccione los días de reunión”
+    # -------------------------------------------------------------------
+    st.markdown("""
+    <style>
+    /* Oculta el texto "Choose options" */
+    .stMultiSelect div[data-baseweb="select"] span {
+        color: transparent !important;
+    }
+    /* Inserta el texto en español */
+    .stMultiSelect div[data-baseweb="select"] span:after {
+        content: "Seleccione los días de reunión";
+        color: #555 !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # -------------------------------------------------------------------
+    #        📋 FORMULARIO — ULTRA RÁPIDO, SIN ESPERAS
     # -------------------------------------------------------------------
     with st.form("form_reglamento"):
 
         st.subheader("Información del grupo")
         comunidad = st.text_input("Comunidad", get_val("comunidad"))
-        fecha_formacion = st.date_input("Fecha de formación",
-                                        get_val("fecha_formacion", datetime.date.today()))
+        fecha_formacion = st.date_input("Fecha de formación", get_val("fecha_formacion", datetime.date.today()))
 
         st.subheader("Reuniones")
 
-        # -------------------------------
-        # 🗓️ Días de reunión (multiselección)
-        # -------------------------------
-        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves",
-                       "Viernes", "Sábado", "Domingo"]
+        # 🗓️ Lista de días de la semana
+        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
+        # Cargar días existentes
         dias_guardados = []
         if get_val("dia_reunion"):
             dias_guardados = [d.strip() for d in get_val("dia_reunion").split(",")]
@@ -79,8 +98,7 @@ def mostrar_reglamento():
         st.subheader("Asistencia")
         multa_ausencia = st.number_input("Multa por ausencia ($)", min_value=0.0, step=0.5,
                                          value=float(get_val("multa_ausencia", 0.0)))
-        razones_sin_multa = st.text_area("Razones válidas de ausencia sin multa",
-                                         get_val("razones_sin_multa"))
+        razones_sin_multa = st.text_area("Razones válidas de ausencia sin multa", get_val("razones_sin_multa"))
         deposito_minimo = st.number_input("Depósito mínimo por reunión ($)", min_value=0.0, step=0.5,
                                           value=float(get_val("deposito_minimo", 0.0)))
 
@@ -96,10 +114,8 @@ def mostrar_reglamento():
                                              value=bool(get_val("evaluacion_monto_plazo", 0)))
 
         st.subheader("Ciclo")
-        fecha_inicio_ciclo = st.date_input("Inicio del ciclo",
-                                           get_val("fecha_inicio_ciclo", datetime.date.today()))
-        fecha_fin_ciclo = st.date_input("Fin del ciclo",
-                                        get_val("fecha_fin_ciclo", datetime.date.today()))
+        fecha_inicio_ciclo = st.date_input("Inicio del ciclo", get_val("fecha_inicio_ciclo", datetime.date.today()))
+        fecha_fin_ciclo = st.date_input("Fin del ciclo", get_val("fecha_fin_ciclo", datetime.date.today()))
 
         st.subheader("Meta social")
         meta_social = st.text_area("Meta social del grupo", get_val("meta_social"))
@@ -115,8 +131,6 @@ def mostrar_reglamento():
     if guardar:
         con = obtener_conexion()
         cursor = con.cursor()
-
-        dias_join = ", ".join(dias_reunion)  # ⚠️ AHORA SÍ ESTÁ DEFINIDO
 
         if reglamento_existente:
             query = """
@@ -134,7 +148,8 @@ def mostrar_reglamento():
 
             datos = (
                 comunidad, fecha_formacion,
-                dias_join, hora_reunion, lugar_reunion, frecuencia_reunion,
+                ", ".join(dias_reunion),
+                hora_reunion, lugar_reunion, frecuencia_reunion,
                 presidenta, secretaria, tesorera, responsable_llave,
                 multa_ausencia, razones_sin_multa, deposito_minimo,
                 interes_por_10, max_prestamo, max_plazo,
@@ -174,7 +189,8 @@ def mostrar_reglamento():
 
             datos = (
                 id_grupo, comunidad, fecha_formacion,
-                dias_join, hora_reunion, lugar_reunion, frecuencia_reunion,
+                ", ".join(dias_reunion),
+                hora_reunion, lugar_reunion, frecuencia_reunion,
                 presidenta, secretaria, tesorera, responsable_llave,
                 multa_ausencia, razones_sin_multa, deposito_minimo,
                 interes_por_10, max_prestamo, max_plazo,
@@ -190,13 +206,13 @@ def mostrar_reglamento():
         cursor.close()
         con.close()
 
-        # limpiar cache
         cargar_reglamento.clear()
         st.rerun()
 
     # -------------------------------------------------------------------
-    # ⬅️ VOLVER AL MENÚ
+    # ⬅️ BOTÓN VOLVER AL MENÚ
     # -------------------------------------------------------------------
     if st.button("⬅️ Regresar al menú"):
         st.session_state["page"] = "menu"
         st.rerun()
+
