@@ -83,7 +83,7 @@ div.stButton > button:hover {
     #                   MÓDULOS BASE
     # -----------------------------------------------------
     modulos_base = [
-        ("📁 Gestión de Proyectos", "proyectos", "proyectos_btn"),
+        ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
         ("📝 Grupos", "grupos", "inspecciones_btn"),
         ("📄 Gestión Documental", "documentos", "documentos_btn"),
