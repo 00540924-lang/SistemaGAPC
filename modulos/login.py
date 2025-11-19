@@ -24,11 +24,11 @@ def verificar_usuario(usuario, contraseña):
     try:
         cursor = con.cursor()
         query = """
-            SELECT a.Usuario, a.Rol, g.id_grupo, g.nombre_grupo
-            FROM Administradores a
-            LEFT JOIN GrupoMiembros gm ON a.id_administrador = gm.id_usuario
-            LEFT JOIN Grupos g ON gm.id_grupo = g.id_grupo
-            WHERE a.Usuario = %s AND a.Contraseña = %s
+            SELECT a.`Usuario`, a.`Rol`, g.`id_grupo`, g.`nombre_grupo`
+            FROM `Administradores` a
+            LEFT JOIN `GrupoMiembros` gm ON a.`id_administrador` = gm.`id_usuario`
+            LEFT JOIN `Grupos` g ON gm.`id_grupo` = g.`id_grupo`
+            WHERE a.`Usuario` = %s AND a.`Contraseña` = %s
         """
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
@@ -98,3 +98,4 @@ def login():
 # ==========================
 if __name__ == "__main__":
     login()
+
