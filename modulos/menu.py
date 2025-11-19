@@ -124,4 +124,3 @@ div.stButton > button:hover {
         logout_container.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
         if logout:
             st.session_state.clear()
-            st.rerun()  # <-- También recarga la app inmediatamente
