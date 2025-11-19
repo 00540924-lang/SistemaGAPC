@@ -150,39 +150,57 @@ def pagina_grupos():
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
         key="grupo_eliminar"
     )
-    confirmar = st.checkbox("⚠️ Confirmar eliminación del grupo")
 
-    if st.button("Eliminar grupo seleccionado") and confirmar:
-        try:
-            conn = obtener_conexion()
-            cursor = conn.cursor()
+    # Mensaje de confirmación interactivo
+    if st.button("Eliminar grupo seleccionado"):
+        st.session_state["confirmar_eliminar"] = True
+        st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
-            # 1️⃣ Obtener miembros asociados solo a este grupo
-            cursor.execute("""
-                SELECT M.id_miembro
-                FROM Miembros M
-                JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
-                WHERE GM.id_grupo = %s
-            """, (grupo_eliminar,))
-            miembros_del_grupo = [m[0] for m in cursor.fetchall()]
+    if st.session_state.get("confirmar_eliminar", False):
+        st.warning("⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Sí, eliminar"):
+                try:
+                    conn = obtener_conexion()
+                    cursor = conn.cursor()
 
-            # 2️⃣ Eliminar relaciones del grupo en Grupomiembros
-            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_eliminar,))
+                    # Obtener miembros asociados solo a este grupo
+                    cursor.execute("""
+                        SELECT M.id_miembro
+                        FROM Miembros M
+                        JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
+                        WHERE GM.id_grupo = %s
+                    """, (st.session_state["grupo_a_eliminar"],))
+                    miembros_del_grupo = [m[0] for m in cursor.fetchall()]
 
-            # 3️⃣ Eliminar miembros que ya no pertenecen a ningún grupo
-            for miembro_id in miembros_del_grupo:
-                cursor.execute("SELECT COUNT(*) FROM Grupomiembros WHERE id_miembro = %s", (miembro_id,))
-                if cursor.fetchone()[0] == 0:
-                    cursor.execute("DELETE FROM Miembros WHERE id_miembro = %s", (miembro_id,))
+                    # Eliminar relaciones del grupo en Grupomiembros
+                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
 
-            # 4️⃣ Eliminar el grupo
-            cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_eliminar,))
-            conn.commit()
+                    # Eliminar miembros que ya no pertenecen a ningún grupo
+                    for miembro_id in miembros_del_grupo:
+                        cursor.execute("SELECT COUNT(*) FROM Grupomiembros WHERE id_miembro = %s", (miembro_id,))
+                        if cursor.fetchone()[0] == 0:
+                            cursor.execute("DELETE FROM Miembros WHERE id_miembro = %s", (miembro_id,))
 
-            st.success("Grupo y miembros asociados eliminados correctamente.")
-            st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
-        except Exception as e:
-            st.error(f"Error al eliminar el grupo: {e}")
-        finally:
-            cursor.close()
-            conn.close()
+                    # Eliminar el grupo
+                    cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (st.session_state["grupo_a_eliminar"],))
+                    conn.commit()
+
+                    st.success("Grupo y miembros asociados eliminados correctamente.")
+                    st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
+
+                except Exception as e:
+                    st.error(f"Error al eliminar el grupo: {e}")
+                finally:
+                    cursor.close()
+                    conn.close()
+                    # Limpiar variables de confirmación para que desaparezca el mensaje
+                    st.session_state["confirmar_eliminar"] = False
+                    st.session_state.pop("grupo_a_eliminar", None)
+
+        with col2:
+            if st.button("Cancelar"):
+                st.info("Operación cancelada.")
+                st.session_state["confirmar_eliminar"] = False
+                st.session_state.pop("grupo_a_eliminar", None)
