@@ -26,7 +26,7 @@ def mostrar_reglamento():
     id_grupo = st.session_state.get("id_grupo", 1)
 
     # -------------------------------------------------------------------
-    #   🚀 2. CARGAR DATOS (YA NO BLOQUEA EL RENDER → NO PARPADEA)
+    #   🚀 2. CARGAR DATOS SIN BLOQUEAR RENDER
     # -------------------------------------------------------------------
     reglamento_existente = cargar_reglamento(id_grupo)
 
@@ -41,21 +41,12 @@ def mostrar_reglamento():
     st.write("Complete o actualice el reglamento del grupo.")
 
     # -------------------------------------------------------------------
-    #   🟣 CSS: Cambiar “Choose options” por “Seleccione los días de reunión”
+    #   🟣 CSS: OCULTAR “CHOOSE OPTIONS” SIN REEMPLAZARLO
     # -------------------------------------------------------------------
     st.markdown("""
     <style>
-    /* Oculta el texto "Choose options" */
     .stMultiSelect div[data-baseweb="select"] span {
-        color: transparent !important;
-    }
-    /* Inserta el texto en español */
-    .stMultiSelect div[data-baseweb="select"] span:after {
-        content: "Seleccione los días de reunión";
-        color: #555 !important;
-        position: absolute;
-        left: 0;
-        top: 0;
+        opacity: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -215,4 +206,3 @@ def mostrar_reglamento():
     if st.button("⬅️ Regresar al menú"):
         st.session_state["page"] = "menu"
         st.rerun()
-
