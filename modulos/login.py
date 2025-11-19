@@ -78,8 +78,6 @@ def login():
             st.session_state["rol"] = datos["rol"]
             st.session_state["sesion_iniciada"] = True
 
-            st.success(f"Bienvenido {datos['usuario']} 👋 (Rol: {datos['rol']})")
-
             # 🔹 Reemplazamos st.rerun() por st.stop() para compatibilidad moderna
             st.stop()
 
