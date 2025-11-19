@@ -4,16 +4,14 @@ import datetime
 
 def mostrar_reglamento():
 
-    st.markdown("<h2 style='text-align:center; color:#4C3A60;'>📜 Reglamento Interno del Grupo</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center; color:#4C3A60;'>📜 Reglamento Interno del Grupo</h2>", 
+                unsafe_allow_html=True)
 
     st.write("Complete o actualice el reglamento interno de su grupo.")
 
-    con = obtener_conexion()
-    cursor = con.cursor()
-
-    # ---------------------------------------
-    # FORMULARIO DEL REGLAMENTO
-    # ---------------------------------------
+    # ----------------------------------------------------------
+    # FORMULARIO SIN NINGUNA CONEXIÓN A MYSQL (NO PARPADEA)
+    # ----------------------------------------------------------
     with st.form("form_reglamento"):
 
         st.subheader("Información del grupo")
@@ -57,10 +55,12 @@ def mostrar_reglamento():
 
         enviar = st.form_submit_button("💾 Guardar Reglamento")
 
-    # ---------------------------------------
-    # GUARDAR REGLAMENTO EN LA BASE DE DATOS
-    # ---------------------------------------
+    # ----------------------------------------------------------
+    #   🚀 CONECTAR A MYSQL *SOLO SI SE PRESIONA GUARDAR*
+    # ----------------------------------------------------------
     if enviar:
+        con = obtener_conexion()
+        cursor = con.cursor()
 
         query = """
         INSERT INTO Reglamento (
@@ -86,7 +86,7 @@ def mostrar_reglamento():
         """
 
         datos = (
-            st.session_state.get("id_grupo", 1),  # <--- Por ahora usa 1
+            st.session_state.get("id_grupo", 1),  
             comunidad, fecha_formacion,
             dia_reunion, hora_reunion, lugar_reunion, frecuencia_reunion,
             presidenta, secretaria, tesorera, responsable_llave,
@@ -100,13 +100,14 @@ def mostrar_reglamento():
         cursor.execute(query, datos)
         con.commit()
 
-        st.success("✅ Reglamento guardado correctamente.")
-
         cursor.close()
         con.close()
 
-    # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # espaciado
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
+        st.success("✅ Reglamento guardado correctamente.")
+
+    # ----------------------------------------------------------
+    # BOTÓN REGRESAR AL MENÚ
+    # ----------------------------------------------------------
+    if st.button("⬅️ Regresar al menú"):
+        st.session_state["page"] = "menu"
         st.rerun()
