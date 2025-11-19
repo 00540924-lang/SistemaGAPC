@@ -22,7 +22,7 @@ def pagina_credenciales():
     # BOTÓN PARA VOLVER AL MENÚ
     if st.button("⬅️ Regresar al menú"):
         st.session_state["page"] = "menu"
-        st.experimental_rerun()  # Si da error, reemplaza con: st.experimental_rerun()
+        st.stop() 
 
     st.write("---")
     st.subheader("➕ Registrar nueva credencial")
@@ -52,7 +52,7 @@ def pagina_credenciales():
                 
                 # En vez de st.experimental_rerun(), podemos "refrescar" manualmente la app
                 st.session_state["page"] = "credenciales"  # Mantener en la misma página
-                st.experimental_rerun()
+                st.stop()
 
             except mysql.connector.IntegrityError:
                 st.error("El usuario ya existe. Elige otro.")
