@@ -1,6 +1,5 @@
 import mysql.connector
 import streamlit as st
-import hashlib
 
 # ==========================
 # CONEXIÓN A BASE DE DATOS
@@ -37,21 +36,18 @@ def pagina_credenciales():
         if not usuario.strip() or not contraseña.strip():
             st.error("Usuario y contraseña son obligatorios.")
         else:
-            # Encriptar contraseña usando SHA256
-            hash_password = hashlib.sha256(contraseña.encode()).hexdigest()
-
             try:
                 conn = get_connection()
                 cursor = conn.cursor()
                 cursor.execute(
                     "INSERT INTO Administradores (usuario, contraseña, rol) VALUES (%s, %s, %s)",
-                    (usuario, hash_password, rol)
+                    (usuario, contraseña, rol)  # <-- guardar contraseña tal cual
                 )
                 conn.commit()
                 st.success("Credencial registrada correctamente.")
                 
-                # En vez de st.experimental_rerun(), podemos "refrescar" manualmente la app
-                st.session_state["page"] = "credenciales"  # Mantener en la misma página
+                # Mantener en la misma página
+                st.session_state["page"] = "credenciales"
                 st.stop()
 
             except mysql.connector.IntegrityError:
