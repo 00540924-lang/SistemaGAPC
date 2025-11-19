@@ -112,7 +112,7 @@ def pagina_grupos():
         cursor.execute("""
             SELECT M.id_miembro, M.nombre
             FROM Grupomiembros GM
-            JOIN Miembros M ON GM.id_miembro = M.id_miembro
+            JOIN Miembros M ON GM.id_miembro = GM.id_miembro
             WHERE GM.id_grupo = %s
         """, (grupo_seleccionado,))
         miembros = cursor.fetchall()
@@ -154,11 +154,13 @@ def pagina_grupos():
         key="grupo_eliminar"
     )
 
+    # Botón para iniciar confirmación
     if not st.session_state["confirmar_eliminar"]:
         if st.button("Eliminar grupo seleccionado"):
             st.session_state["confirmar_eliminar"] = True
             st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
+    # Bloque de confirmación separado, **sin rerun dentro**
     if st.session_state["confirmar_eliminar"]:
         st.warning("⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros huérfanos.")
         col1, col2 = st.columns(2)
@@ -179,15 +181,17 @@ def pagina_grupos():
                 finally:
                     cursor.close()
                     conn.close()
-                    st.session_state["confirmar_eliminar"] = False
-                    st.session_state["grupo_a_eliminar"] = None
+                # Limpiar el flag para la próxima iteración
+                st.session_state["confirmar_eliminar"] = False
+                st.session_state["grupo_a_eliminar"] = None
+
         with col2:
             if st.button("Cancelar"):
                 st.info("Operación cancelada.")
                 st.session_state["confirmar_eliminar"] = False
                 st.session_state["grupo_a_eliminar"] = None
 
-    # ================= RECARGAR LA APP =================
+    # ================= RECARGAR LA APP AL FINAL =================
     if st.session_state.get("actualizar", False):
         st.session_state["actualizar"] = False
         st.experimental_rerun()
