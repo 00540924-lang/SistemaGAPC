@@ -5,11 +5,11 @@ import time  # Para temporizar el mensaje temporal
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
-    # ------------------ BOTÓN REGRESAR ------------------
+   # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")  # espaciado
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
-        return  # Simplemente regresamos al menú sin recargar
-
+        st.rerun()
     st.write("---")
 
     # ================= FORMULARIO NUEVO GRUPO =================
