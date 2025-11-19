@@ -10,6 +10,12 @@ def pagina_grupos():
         return
     st.write("---")
 
+    # Inicializar flag de actualización
+    if "actualizar" not in st.session_state:
+        st.session_state["actualizar"] = False
+    if "confirmar_eliminar" not in st.session_state:
+        st.session_state["confirmar_eliminar"] = False
+
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
     nombre = st.text_input("Nombre del Grupo", key="nombre_grupo")
@@ -29,12 +35,12 @@ def pagina_grupos():
                 )
                 conn.commit()
                 st.success("Grupo creado correctamente.")
+                st.session_state["actualizar"] = True
             except Exception as e:
                 st.error(f"Error al crear grupo: {e}")
             finally:
                 cursor.close()
                 conn.close()
-        st.experimental_rerun()
 
     st.write("---")
 
@@ -69,26 +75,24 @@ def pagina_grupos():
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor(dictionary=True)
-                    # Insertar miembro
                     cursor.execute(
                         "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                         (nombre_m, dui, telefono)
                     )
                     conn.commit()
                     miembro_id = cursor.lastrowid
-                    # Asignar al grupo
                     cursor.execute(
                         "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                         (grupo_asignado, miembro_id)
                     )
                     conn.commit()
                     st.success(f"{nombre_m} registrado correctamente en el grupo.")
+                    st.session_state["actualizar"] = True
                 except Exception as e:
                     st.error(f"Error al registrar miembro: {e}")
                 finally:
                     cursor.close()
                     conn.close()
-                st.experimental_rerun()
 
     st.write("---")
 
@@ -129,10 +133,10 @@ def pagina_grupos():
                         )
                         conn.commit()
                         st.success(f"{m['nombre']} eliminado del grupo.")
+                        st.session_state["actualizar"] = True
                     finally:
                         cursor.close()
                         conn.close()
-                    st.experimental_rerun()
     else:
         st.info("Este grupo no tiene miembros.")
 
@@ -146,9 +150,6 @@ def pagina_grupos():
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
         key="grupo_eliminar"
     )
-
-    if "confirmar_eliminar" not in st.session_state:
-        st.session_state["confirmar_eliminar"] = False
 
     if st.button("Eliminar grupo seleccionado"):
         st.session_state["confirmar_eliminar"] = True
@@ -169,13 +170,19 @@ def pagina_grupos():
                     cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
                     conn.commit()
                     st.success("Grupo eliminado correctamente.")
+                    st.session_state["actualizar"] = True
                 finally:
                     cursor.close()
                     conn.close()
-                    st.session_state["confirmar_eliminar"] = False
-                st.experimental_rerun()
+                st.session_state["confirmar_eliminar"] = False
 
         with col2:
             if st.button("Cancelar"):
                 st.info("Operación cancelada.")
                 st.session_state["confirmar_eliminar"] = False
+
+    # ================= RECARGAR LA APP SI ES NECESARIO =================
+    if st.session_state.get("actualizar", False):
+        st.session_state["actualizar"] = False
+        st.experimental_rerun()
+
