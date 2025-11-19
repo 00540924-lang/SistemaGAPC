@@ -1,7 +1,6 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
 import unicodedata
-import hashlib
 
 # ==========================
 # Funciones auxiliares
@@ -16,7 +15,7 @@ def limpiar_rol(rol):
     return rol
 
 def verificar_usuario(usuario, contraseña):
-    """Verifica usuario y contraseña en la base de datos usando SHA256"""
+    """Verifica usuario y contraseña en la base de datos en texto plano"""
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
@@ -24,15 +23,12 @@ def verificar_usuario(usuario, contraseña):
 
     try:
         cursor = con.cursor()
-        # Encriptar contraseña ingresada
-        hash_password = hashlib.sha256(contraseña.encode()).hexdigest()
-
         query = """
             SELECT Usuario, Rol 
             FROM Administradores 
             WHERE Usuario = %s AND Contraseña = %s
         """
-        cursor.execute(query, (usuario, hash_password))
+        cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
 
         if not result:
