@@ -1,11 +1,11 @@
 import streamlit as st
 from modulos.config.conexion import obtener_conexion
-import time  # Para temporizar el mensaje temporal
+import time  # Para temporizar los mensajes
 
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
-   # ------------------ BOTÓN REGRESAR ------------------
+    # ------------------ BOTÓN REGRESAR ------------------
     st.write("")  # espaciado
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
@@ -154,13 +154,19 @@ def pagina_grupos():
         key="grupo_eliminar"
     )
 
-    # Mensaje de confirmación interactivo
+    confirm_placeholder = st.empty()  # Placeholder para el mensaje de advertencia
+
+    # Botón para iniciar confirmación
     if st.button("Eliminar grupo seleccionado"):
         st.session_state["confirmar_eliminar"] = True
         st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
+    # Mostrar confirmación si corresponde
     if st.session_state.get("confirmar_eliminar", False):
-        st.warning("⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo.")
+        confirm_placeholder.warning(
+            "⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo."
+        )
+
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Sí, eliminar"):
@@ -194,7 +200,9 @@ def pagina_grupos():
                     placeholder.success("Grupo y miembros asociados eliminados correctamente.")
                     time.sleep(2)
                     placeholder.empty()
-
+                    confirm_placeholder.empty()  # ❌ El mensaje de advertencia desaparece
+                    st.session_state["confirmar_eliminar"] = False
+                    st.session_state.pop("grupo_a_eliminar", None)
                     st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
 
                 except Exception as e:
@@ -204,11 +212,10 @@ def pagina_grupos():
                 finally:
                     cursor.close()
                     conn.close()
-                    st.session_state["confirmar_eliminar"] = False
-                    st.session_state.pop("grupo_a_eliminar", None)
 
         with col2:
             if st.button("Cancelar"):
                 st.info("Operación cancelada.")
+                confirm_placeholder.empty()
                 st.session_state["confirmar_eliminar"] = False
                 st.session_state.pop("grupo_a_eliminar", None)
