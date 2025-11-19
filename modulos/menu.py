@@ -79,9 +79,16 @@ div.stButton > button:hover {
     #           NOMBRE DEL USUARIO Y GRUPO
     # -----------------------------------------------------
     if "usuario" in st.session_state:
-        st.markdown(f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>", unsafe_allow_html=True)
-    if "nombre_grupo" in st.session_state and st.session_state['nombre_grupo']:
-        st.markdown(f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>", unsafe_allow_html=True)
+        st.markdown(
+            f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
+            unsafe_allow_html=True
+        )
+
+    if "nombre_grupo" in st.session_state and st.session_state["nombre_grupo"]:
+        st.markdown(
+            f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
+            unsafe_allow_html=True
+        )
 
     # -----------------------------------------------------
     #                   MÓDULOS BASE
@@ -89,38 +96,43 @@ div.stButton > button:hover {
     modulos_base = [
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "inspecciones_btn"),
+        ("📝 Grupos", "grupos", "grupos_btn"),
         ("📜 Reglamento", "reglamento", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("⚙️ Configuración", "configuracion", "configuracion_btn"),
     ]
 
     # -----------------------------------------------------
-    #               FILTRO POR ROL
+    #               FILTRO POR ROL (CORREGIDO)
     # -----------------------------------------------------
     if rol == "institucional":
         modulos = modulos_base
+
     elif rol == "promotor":
-        modulos = [m for m in modulos_base if m[1] in ["proyectos", "inspecciones"]]
+        # Los módulos que realmente quieres permitir
+        modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
+
     elif rol == "miembro":
-        modulos = [m for m in modulos_base if m[1] == "documentos"]
+        modulos = [m for m in modulos_base if m[1] == "reglamento"]
+
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
     # -----------------------------------------------------
-    #               GRID DE BOTONES
+    #               GRID DE BOTONES (CORREGIDO)
     # -----------------------------------------------------
     cols = st.columns(3)
+
     for i, (texto, modulo, css_id) in enumerate(modulos):
         with cols[i % 3]:
-            btn = st.container()
-            with btn:
-                b = st.button(texto, key=f"btn_{modulo}")
-                btn.markdown(f"<div id='{css_id}'></div>", unsafe_allow_html=True)
-                if b:
+            container = st.container()
+            with container:
+                container.markdown(f"<div id='{css_id}'>", unsafe_allow_html=True)
+                if st.button(texto, key=f"btn_{modulo}"):
                     st.session_state.page = modulo
                     st.rerun()
+            container.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
@@ -128,8 +140,9 @@ div.stButton > button:hover {
     st.write("---")
     logout_container = st.container()
     with logout_container:
-        logout = st.button("🔒 Cerrar sesión", key="logout")
-        logout_container.markdown("<div id='logout_btn'></div>", unsafe_allow_html=True)
-        if logout:
+        logout_container.markdown("<div id='logout_btn'>", unsafe_allow_html=True)
+        if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
+        logout_container.markdown("</div>", unsafe_allow_html=True)
+
