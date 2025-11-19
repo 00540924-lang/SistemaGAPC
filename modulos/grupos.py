@@ -112,7 +112,7 @@ def pagina_grupos():
         cursor.execute("""
             SELECT M.id_miembro, M.nombre
             FROM Grupomiembros GM
-            JOIN Miembros M ON GM.id_miembro = GM.id_miembro
+            JOIN Miembros M ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s
         """, (grupo_seleccionado,))
         miembros = cursor.fetchall()
@@ -154,42 +154,46 @@ def pagina_grupos():
         key="grupo_eliminar"
     )
 
-    # Botón para iniciar confirmación
+    confirm_placeholder = st.empty()
+
     if not st.session_state["confirmar_eliminar"]:
         if st.button("Eliminar grupo seleccionado"):
             st.session_state["confirmar_eliminar"] = True
             st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
-    # Bloque de confirmación separado, **sin rerun dentro**
     if st.session_state["confirmar_eliminar"]:
-        st.warning("⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros huérfanos.")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Sí, eliminar"):
-                try:
-                    conn = obtener_conexion()
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
-                    cursor.execute("""
-                        DELETE FROM Miembros
-                        WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
-                    """)
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
-                    conn.commit()
-                    st.success("Grupo y miembros asociados eliminados correctamente.")
-                    st.session_state["actualizar"] = True
-                finally:
-                    cursor.close()
-                    conn.close()
-                # Limpiar el flag para la próxima iteración
-                st.session_state["confirmar_eliminar"] = False
-                st.session_state["grupo_a_eliminar"] = None
+        with confirm_placeholder.container():
+            st.warning("⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros huérfanos.")
+            col1, col2 = st.columns(2)
 
-        with col2:
-            if st.button("Cancelar"):
-                st.info("Operación cancelada.")
-                st.session_state["confirmar_eliminar"] = False
-                st.session_state["grupo_a_eliminar"] = None
+            with col1:
+                if st.button("Sí, eliminar"):
+                    # Eliminar grupo y miembros huérfanos
+                    try:
+                        conn = obtener_conexion()
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
+                        cursor.execute("""
+                            DELETE FROM Miembros
+                            WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
+                        """)
+                        cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
+                        conn.commit()
+                        st.success("Grupo y miembros asociados eliminados correctamente.")
+                        st.session_state["actualizar"] = True
+                    finally:
+                        cursor.close()
+                        conn.close()
+
+                    # Limpiar flags **sin rerun dentro del contenedor**
+                    st.session_state["confirmar_eliminar"] = False
+                    st.session_state["grupo_a_eliminar"] = None
+
+            with col2:
+                if st.button("Cancelar"):
+                    st.info("Operación cancelada.")
+                    st.session_state["confirmar_eliminar"] = False
+                    st.session_state["grupo_a_eliminar"] = None
 
     # ================= RECARGAR LA APP AL FINAL =================
     if st.session_state.get("actualizar", False):
