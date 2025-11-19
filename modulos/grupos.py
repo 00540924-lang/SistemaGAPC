@@ -8,7 +8,7 @@ def pagina_grupos():
     st.write("")  # espaciado
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
-        st.rerun()
+        return
     st.write("---")
 
     # ================= FORMULARIO NUEVO GRUPO =================
@@ -147,14 +147,12 @@ def pagina_grupos():
         key="grupo_eliminar"
     )
 
-    confirm_placeholder = st.empty()  # Placeholder para la confirmación
+    confirm_placeholder = st.empty()
 
-    # Botón para iniciar confirmación
     if st.button("Eliminar grupo seleccionado"):
         st.session_state["confirmar_eliminar"] = True
         st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
-    # Mostrar confirmación si corresponde
     if st.session_state.get("confirmar_eliminar", False):
         with confirm_placeholder.container():
             st.warning(
@@ -192,14 +190,16 @@ def pagina_grupos():
                         cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_id,))
                         conn.commit()
 
+                        st.success("Grupo y miembros asociados eliminados correctamente.")
+
                     finally:
                         cursor.close()
                         conn.close()
-                        # Limpiar estado y recargar la app para actualizar la interfaz
+                        # Limpiar el estado y el placeholder, la app se actualizará naturalmente
                         st.session_state.pop("grupo_a_eliminar", None)
                         st.session_state["confirmar_eliminar"] = False
                         confirm_placeholder.empty()
-                        st.experimental_rerun()
+                        st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
 
             with col2:
                 if st.button("Cancelar"):
