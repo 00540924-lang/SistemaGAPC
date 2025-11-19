@@ -41,17 +41,6 @@ def mostrar_reglamento():
     st.write("Complete o actualice el reglamento del grupo.")
 
     # -------------------------------------------------------------------
-    #   🟣 OCULTAR TEXTO “Choose options” EN MULTISELECT
-    # -------------------------------------------------------------------
-    st.markdown("""
-    <style>
-    .stMultiSelect div[data-baseweb="select"] span {
-        opacity: 0 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # -------------------------------------------------------------------
     #        📋 FORMULARIO COMPLETO
     # -------------------------------------------------------------------
     with st.form("form_reglamento"):
