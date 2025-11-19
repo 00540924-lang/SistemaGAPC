@@ -4,12 +4,11 @@ from modulos.config.conexion import obtener_conexion
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
-    # ------------------ BOTÓN VOLVER AL MENÚ ------------------
-    if st.button("⬅️ Regresar al menú"):
-        st.session_state["page"] = "menu"
-        st.stop()
-
-    st.write("---")
+ # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")  # espaciado
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
 
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
