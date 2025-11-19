@@ -9,7 +9,7 @@ def pagina_grupos():
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
-
+ st.write("---")
     # ================= FORMULARIO NUEVO GRUPO =================
     st.subheader("➕ Registrar nuevo grupo")
     nombre = st.text_input("Nombre del Grupo", key="nombre_grupo")
