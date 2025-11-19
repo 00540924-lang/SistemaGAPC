@@ -141,3 +141,30 @@ def pagina_grupos():
         st.info("Este grupo no tiene miembros.")
 
     st.write("---")
+
+    # ================= ELIMINAR UN GRUPO =================
+    st.subheader("🗑️ Eliminar un grupo completo")
+    grupo_eliminar = st.selectbox(
+        "Selecciona un grupo para eliminar",
+        options=[g["id_grupo"] for g in grupos],
+        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
+        key="grupo_eliminar"
+    )
+    confirmar = st.checkbox("⚠️ Confirmar eliminación del grupo")
+
+    if st.button("Eliminar grupo seleccionado") and confirmar:
+        try:
+            conn = obtener_conexion()
+            cursor = conn.cursor()
+            # Eliminar miembros asociados al grupo
+            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_eliminar,))
+            # Eliminar el grupo
+            cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_eliminar,))
+            conn.commit()
+            st.success("Grupo eliminado correctamente.")
+            st.session_state["actualizar"] = not st.session_state.get("actualizar", False)
+        except Exception as e:
+            st.error(f"Error al eliminar el grupo: {e}")
+        finally:
+            cursor.close()
+            conn.close()
