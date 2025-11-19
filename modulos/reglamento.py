@@ -106,8 +106,8 @@ def mostrar_reglamento():
         con.close()
 
     # ---------------------------------------
-    # BOTÓN PARA VOLVER AL MENÚ PRINCIPAL
-    # ---------------------------------------
-    if st.button("⬅️ Regresar al menú"):
-        st.session_state["modulo"] = None
-        st.rerun()
+# BOTÓN PARA VOLVER AL MENÚ
+# ---------------------------------------
+if st.button("⬅️ Regresar al menú", key="reglamento_volver"):
+    st.session_state["page"] = "menu"
+    st.rerun()
