@@ -128,7 +128,8 @@ dias_reunion = st.multiselect(
 
             datos = (
                 comunidad, fecha_formacion,
-                dia_reunion, hora_reunion, lugar_reunion, frecuencia_reunion,
+                ", ".join(dias_reunion),  # ← AQUÍ VA
+                hora_reunion, lugar_reunion, frecuencia_reunion,
                 presidenta, secretaria, tesorera, responsable_llave,
                 multa_ausencia, razones_sin_multa, deposito_minimo,
                 interes_por_10, max_prestamo, max_plazo,
