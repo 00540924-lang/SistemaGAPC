@@ -47,12 +47,14 @@ def pagina_grupos():
     st.write("---")
 
     # ================= LISTAR GRUPOS =================
-    conn = obtener_conexion()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
-    grupos = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
+        grupos = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
     if not grupos:
         st.info("No hay grupos registrados aún.")
@@ -77,12 +79,14 @@ def pagina_grupos():
                 try:
                     conn = obtener_conexion()
                     cursor = conn.cursor(dictionary=True)
+                    # Insertar miembro
                     cursor.execute(
                         "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                         (nombre_m, dui, telefono)
                     )
                     conn.commit()
                     miembro_id = cursor.lastrowid
+                    # Asignar al grupo
                     cursor.execute(
                         "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                         (grupo_asignado, miembro_id)
@@ -107,17 +111,19 @@ def pagina_grupos():
         key="grupo_lista"
     )
 
-    conn = obtener_conexion()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT M.id_miembro, M.nombre
-        FROM Grupomiembros GM
-        JOIN Miembros M ON GM.id_miembro = M.id_miembro
-        WHERE GM.id_grupo = %s
-    """, (grupo_seleccionado,))
-    miembros = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT M.id_miembro, M.nombre
+            FROM Grupomiembros GM
+            JOIN Miembros M ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+        """, (grupo_seleccionado,))
+        miembros = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
     if miembros:
         for m in miembros:
@@ -144,65 +150,61 @@ def pagina_grupos():
 
     st.write("---")
 
-  # ================= ELIMINAR UN GRUPO =================
-st.subheader("🗑️ Eliminar un grupo completo")
-grupo_eliminar = st.selectbox(
-    "Selecciona un grupo para eliminar",
-    options=[g["id_grupo"] for g in grupos],
-    format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
-    key="grupo_eliminar"
-)
+    # ================= ELIMINAR UN GRUPO =================
+    st.subheader("🗑️ Eliminar un grupo completo")
+    grupo_eliminar = st.selectbox(
+        "Selecciona un grupo para eliminar",
+        options=[g["id_grupo"] for g in grupos],
+        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
+        key="grupo_eliminar"
+    )
 
-# Placeholder para la confirmación
-confirm_placeholder = st.empty()
+    confirm_placeholder = st.empty()
 
-# Inicializamos variable de sesión
-if "confirmar_eliminar" not in st.session_state:
-    st.session_state["confirmar_eliminar"] = False
+    # Botón para iniciar confirmación
+    if st.button("Eliminar grupo seleccionado"):
+        st.session_state["confirmar_eliminar"] = True
+        st.session_state["grupo_a_eliminar"] = grupo_eliminar
 
-# Botón para iniciar confirmación
-if st.button("Eliminar grupo seleccionado"):
-    st.session_state["confirmar_eliminar"] = True
+    if st.session_state["confirmar_eliminar"]:
+        with confirm_placeholder.container():
+            st.warning(
+                "⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo."
+            )
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Sí, eliminar"):
+                    try:
+                        conn = obtener_conexion()
+                        cursor = conn.cursor()
+                        # Eliminar relaciones
+                        cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
+                        # Eliminar miembros huérfanos
+                        cursor.execute("""
+                            DELETE FROM Miembros
+                            WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
+                        """)
+                        # Eliminar grupo
+                        cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (st.session_state["grupo_a_eliminar"],))
+                        conn.commit()
+                        st.success("Grupo y miembros asociados eliminados correctamente.")
+                        st.session_state["actualizar"] = True
+                    finally:
+                        cursor.close()
+                        conn.close()
+                        st.session_state["confirmar_eliminar"] = False
+                        st.session_state["grupo_a_eliminar"] = None
+                        confirm_placeholder.empty()
 
-# Mostrar confirmación
-if st.session_state["confirmar_eliminar"]:
-    with confirm_placeholder.container():
-        st.warning(
-            "⚠️ ¿Seguro que deseas eliminar este grupo? Esto eliminará también a los miembros que solo pertenecen a este grupo."
-        )
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if st.button("Sí, eliminar"):
-                try:
-                    conn = obtener_conexion()
-                    cursor = conn.cursor()
-                    # Eliminar relaciones
-                    cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo=%s", (grupo_eliminar,))
-                    # Eliminar miembros que ya no pertenezcan a ningún grupo
-                    cursor.execute("""
-                        DELETE FROM Miembros
-                        WHERE id_miembro NOT IN (SELECT id_miembro FROM Grupomiembros)
-                    """)
-                    # Eliminar grupo
-                    cursor.execute("DELETE FROM Grupos WHERE id_grupo=%s", (grupo_eliminar,))
-                    conn.commit()
-                    st.success("Grupo y miembros asociados eliminados correctamente.")
-                    # Marcamos para recarga
-                    st.session_state["actualizar"] = True
-                finally:
-                    cursor.close()
-                    conn.close()
+            with col2:
+                if st.button("Cancelar"):
+                    st.info("Operación cancelada.")
                     st.session_state["confirmar_eliminar"] = False
+                    st.session_state["grupo_a_eliminar"] = None
                     confirm_placeholder.empty()
 
-        with col2:
-            if st.button("Cancelar"):
-                st.info("Operación cancelada.")
-                st.session_state["confirmar_eliminar"] = False
-                confirm_placeholder.empty()
+    # ================= RECARGAR LA APP SI ES NECESARIO =================
+    if st.session_state.get("actualizar", False):
+        st.session_state["actualizar"] = False
+        st.experimental_rerun()
 
-# ================= RECARGAR LA APP SI ES NECESARIO =================
-if st.session_state.get("actualizar", False):
-    st.session_state["actualizar"] = False
-    st.experimental_rerun()
