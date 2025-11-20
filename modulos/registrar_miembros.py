@@ -39,14 +39,17 @@ def registrar_miembros():
             )
             con.commit()
             id_miembro = cursor.lastrowid
+
             cursor.execute(
                 "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                 (id_grupo, id_miembro)
             )
             con.commit()
+
             st.success("Miembro registrado correctamente ✔️")
             time.sleep(0.5)
-            st.experimental_rerun()  # recarga automática
+            st.rerun()  # recarga automática
+
         finally:
             cursor.close()
             con.close()
@@ -104,15 +107,17 @@ def mostrar_tabla_y_acciones(id_grupo):
         if seleccionado:
             miembro = miembro_dict[seleccionado]
             col1, col2 = st.columns(2)
+
             with col1:
                 if st.button(f"Editar Miembro {miembro['ID']}"):
                     editar_miembro(miembro)
+
             with col2:
                 if st.button(f"Eliminar Miembro {miembro['ID']}"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(0.5)
-                    st.experimental_rerun()
+                    st.rerun()
 
     finally:
         cursor.close()
@@ -146,6 +151,7 @@ def eliminar_miembro(id_miembro, id_grupo):
 # ================================
 def editar_miembro(row):
     st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
+
     with st.form(f"form_editar_{row['ID']}"):
         nombre = st.text_input("Nombre completo", value=row['Nombre'])
         dui = st.text_input("DUI", value=row['DUI'])
@@ -161,9 +167,11 @@ def editar_miembro(row):
                 (nombre, dui, telefono, row['ID'])
             )
             con.commit()
+
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(0.5)
-            st.experimental_rerun()
+            st.rerun()
+
         finally:
             cursor.close()
             con.close()
