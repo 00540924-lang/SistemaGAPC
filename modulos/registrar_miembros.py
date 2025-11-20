@@ -74,9 +74,9 @@ def registrar_miembros():
             # -------------------------------
             # Cabecera de la tabla
             # -------------------------------
-            cols = st.columns([1, 3, 2, 2, 2])
+            col_headers = st.columns([1, 3, 2, 2, 2])
             headers = ["No.", "Nombre", "DUI", "Teléfono", "Acciones"]
-            for col, header in zip(cols, headers):
+            for col, header in zip(col_headers, headers):
                 col.markdown(f"**{header}**")
 
             # -------------------------------
@@ -89,10 +89,10 @@ def registrar_miembros():
                 cols[2].markdown(row["DUI"])
                 cols[3].markdown(row["Teléfono"])
                 with cols[4]:
-                    if st.button(f"Editar {row['ID']}", key=f"editar_{row['ID']}"):
+                    if st.button("Editar", key=f"editar_{row['ID']}"):
                         editar_miembro(row)
                         st.experimental_rerun()
-                    if st.button(f"Eliminar {row['ID']}", key=f"eliminar_{row['ID']}"):
+                    if st.button("Eliminar", key=f"eliminar_{row['ID']}"):
                         eliminar_miembro(row["ID"], id_grupo)
                         st.experimental_rerun()
 
@@ -150,4 +150,3 @@ def editar_miembro(row):
         finally:
             cursor.close()
             con.close()
-
