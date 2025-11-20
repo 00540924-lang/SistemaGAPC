@@ -73,8 +73,29 @@ def mostrar_reglamento():
         fecha_formacion = st.date_input("Fecha de formación:", fecha_valida("fecha_formacion"))
 
         st.subheader("📅 Reuniones")
-        dia_reunion = st.text_input("Día(s) de reunión:", val("dia_reunion"))
-        hora_reunion = st.text_input("Hora:", val("hora_reunion"))
+        # Lista de días posibles
+dias_lista = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+# Convertir cadena guardada en BD a lista (si existe)
+dias_guardados = val("dia_reunion").split(",") if val("dia_reunion") else []
+
+dia_reunion = st.multiselect(
+    "Día(s) de reunión:",
+    dias_lista,
+    default=dias_guardados
+)
+
+# Convertir string de BD a objeto time
+try:
+    hora_guardada = datetime.datetime.strptime(val("hora_reunion"), "%H:%M").time()
+except:
+    hora_guardada = datetime.datetime.now().time()
+
+hora_reunion_time = st.time_input("Hora:", value=hora_guardada)
+
+# Guardar como texto HH:MM
+hora_reunion = hora_reunion_time.strftime("%H:%M")
+
         lugar_reunion = st.text_input("Lugar:", val("lugar_reunion"))
         frecuencia_reunion = st.text_input("Frecuencia:", val("frecuencia_reunion"))
 
