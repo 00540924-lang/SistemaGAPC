@@ -1,95 +1,129 @@
 import streamlit as st
 import mysql.connector
-from datetime import datetime
-from modulos.db import get_connection   # Usa tu función real de conexión
+from datetime import date
+from modulos.config.conexion import get_connection   # ← TU FUNCIÓN REAL
 
 
 def mostrar_asistencia():
 
-    st.title("📋 Control de Asistencia")
-
-    # ---------------------------------------------
-    # 1️⃣ OBTENER ID DEL GRUPO DESDE LA SESIÓN
-    # ---------------------------------------------
+    # ========================================================
+    # 1. Obtener ID del grupo del usuario
+    # ========================================================
     id_grupo = st.session_state.get("id_grupo", None)
 
     if not id_grupo:
-        st.error("❌ No se detectó un grupo asociado al usuario. Inicie sesión nuevamente.")
+        st.error("❌ No se detectó un grupo asignado. Inicie sesión nuevamente.")
         return
 
+    # Conexión a la base
     conn = get_connection()
     if not conn:
+        st.error("❌ No se pudo conectar a MySQL.")
         return
-    cursor = conn.cursor()
 
-    # ------------------------------------------------
-    # 2️⃣ OBTENER NOMBRE DEL GRUPO
-    # ------------------------------------------------
+    cursor = conn.cursor(dictionary=True)
+
+    # ========================================================
+    # 2. Obtener nombre del grupo
+    # ========================================================
     cursor.execute("SELECT nombre FROM Grupos WHERE id_grupo = %s", (id_grupo,))
     grupo = cursor.fetchone()
 
     if not grupo:
-        st.error("❌ No se encontró información del grupo.")
+        st.error("❌ No se encontró el grupo.")
         return
 
-    nombre_grupo = grupo[0]
+    nombre_grupo = grupo["nombre"]
 
+    st.title("📋 Registro de Asistencia")
     st.subheader(f"👥 Miembros del grupo: **{nombre_grupo}**")
 
-    # ------------------------------------------------
-    # 3️⃣ OBTENER MIEMBROS DEL GRUPO (TABLA INTERMEDIA)
-    # ------------------------------------------------
-    query = """
-        SELECT M.id_miembro, M.nombre
-        FROM Grupo_Miembros GM
-        INNER JOIN Miembros M ON GM.id_miembro = M.id_miembro
+    # ========================================================
+    # 3. Seleccionar fecha
+    # ========================================================
+    fecha = st.date_input("📅 Seleccione la fecha", date.today())
+    st.write("---")
+
+    # ========================================================
+    # 4. Obtener miembros desde la tabla intermedia
+    # ========================================================
+    cursor.execute("""
+        SELECT M.id_miembro, M.Nombre
+        FROM Miembros M
+        JOIN GrupoMiembros GM ON GM.id_miembro = M.id_miembro
         WHERE GM.id_grupo = %s
-        ORDER BY M.nombre ASC
-    """
-    cursor.execute(query, (id_grupo,))
+        ORDER BY M.Nombre ASC
+    """, (id_grupo,))
+
     miembros = cursor.fetchall()
 
     if not miembros:
-        st.warning("⚠ No hay miembros registrados en este grupo.")
+        st.warning("⚠️ No hay miembros asignados al grupo.")
         return
 
-    # ------------------------------------------------
-    # 4️⃣ MOSTRAR TABLA DE ASISTENCIA
-    # ------------------------------------------------
+    # ========================================================
+    # 5. Mostrar controles estilo tabla
+    # ========================================================
     st.write("### 🗒️ Registrar asistencia")
 
-    asistencia_data = {}
+    estado_asistencia = {}
 
-    for id_miembro, nombre in miembros:
+    # Encabezado estilo tabla
+    col1, col2 = st.columns([3, 2])
+    col1.markdown("**Nombre**")
+    col2.markdown("**Asistencia**")
+
+    for m in miembros:
         col1, col2 = st.columns([3, 2])
 
         with col1:
-            st.write(f"**{nombre}**")
+            st.write(m["Nombre"])
 
         with col2:
             estado = st.radio(
-                f"Estado_{id_miembro}",
+                f"asistencia_{m['id_miembro']}",
                 ["Presente", "Ausente"],
                 horizontal=True,
                 label_visibility="collapsed"
             )
 
-        asistencia_data[id_miembro] = estado
+        estado_asistencia[m["id_miembro"]] = estado
 
-    # ------------------------------------------------
-    # 5️⃣ GUARDAR ASISTENCIA EN BD
-    # ------------------------------------------------
+    st.write("---")
+
+    # ========================================================
+    # 6. Guardar asistencia
+    # ========================================================
     if st.button("💾 Guardar asistencia"):
-        fecha = datetime.now().date()
-
-        for id_miembro, estado in asistencia_data.items():
+        for id_m, estado in estado_asistencia.items():
             cursor.execute("""
-                INSERT INTO Asistencia (id_miembro, fecha, estado)
-                VALUES (%s, %s, %s)
-            """, (id_miembro, fecha, estado))
+                INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
+                VALUES (%s, %s, %s, %s)
+            """, (id_grupo, fecha, id_m, estado))
 
         conn.commit()
-        st.success("✅ Asistencia registrada correctamente.")
+        st.success("✅ Asistencia guardada correctamente.")
+
+    # ========================================================
+    # 7. Historial de asistencia
+    # ========================================================
+    st.write("---")
+    st.subheader("📚 Historial del grupo")
+
+    cursor.execute("""
+        SELECT A.fecha, M.Nombre, A.asistencia
+        FROM Asistencia A
+        JOIN Miembros M ON A.id_miembro = M.id_miembro
+        WHERE A.id_grupo = %s
+        ORDER BY A.fecha DESC, M.Nombre ASC
+    """, (id_grupo,))
+
+    registros = cursor.fetchall()
+
+    if registros:
+        st.dataframe(registros)
+    else:
+        st.info("Aún no hay registros.")
 
     cursor.close()
     conn.close()
