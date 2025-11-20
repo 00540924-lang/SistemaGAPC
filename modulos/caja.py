@@ -4,20 +4,27 @@ from datetime import date
 from modulos.config.conexion import obtener_conexion
 import pandas as pd
 
-def mostrar_caja():
+def mostrar_caja(id_grupo):
+    """
+    Módulo de caja.
+    Recibe id_grupo desde app.py (obligatorio para miembros).
+    """
 
     # ===============================
-    # 0. Verificar grupo por tipo de usuario
+    # 0. Verificar acceso
     # ===============================
     rol = st.session_state.get("rol", "").lower()
     usuario = st.session_state.get("usuario", "").lower()
-    id_grupo = st.session_state.get("id_grupo", None)
 
-    # 🔹 "dark" y "institucional" pueden entrar aunque no tengan grupo
-    if usuario != "dark" and rol not in ["institucional"]:
-        if not id_grupo:
-            st.error("❌ No tiene un grupo asignado. Pida al administrador que lo agregue a un grupo.")
-            return
+    # 🔹 Solo miembros, institucional y Dark pueden usar Caja
+    if rol not in ["miembro", "institucional"] and usuario != "dark":
+        st.error("❌ No tiene permisos para acceder a este módulo.")
+        return
+
+    # 🔹 Los miembros deben tener grupo sí o sí
+    if rol == "miembro" and not id_grupo:
+        st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
+        return
 
     st.title("💰 Formulario de Caja")
 
@@ -31,13 +38,13 @@ def mostrar_caja():
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # 2. Seleccionar fecha
+    # 2. Fecha
     # ===============================
     fecha = st.date_input("📅 Fecha de registro", date.today())
     st.write("---")
 
     # ===============================
-    # 3. Formulario DINERO QUE ENTRA
+    # 3. DINERO QUE ENTRA
     # ===============================
     st.subheader("🟩 Dinero que entra")
 
@@ -51,7 +58,7 @@ def mostrar_caja():
     st.number_input("🔹 Total dinero que entra", value=total_entrada, disabled=True)
 
     # ===============================
-    # 4. Formulario DINERO QUE SALE
+    # 4. DINERO QUE SALE
     # ===============================
     st.write("---")
     st.subheader("🟥 Dinero que sale")
@@ -64,7 +71,7 @@ def mostrar_caja():
     st.number_input("🔻 Total dinero que sale", value=total_salida, disabled=True)
 
     # ===============================
-    # 5. Calcular saldo neto
+    # 5. Saldo neto
     # ===============================
     st.write("---")
     saldo_neto = total_entrada - total_salida
@@ -95,16 +102,14 @@ def mostrar_caja():
         st.success("✅ Movimiento de caja guardado con éxito.")
 
     # ===============================
-    # 7. HISTORIAL
+    # 7. Historial
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
 
-    fecha_filtro = st.date_input(
-        "📅 Filtrar por fecha",
-        value=None,
-        key="filtro_caja"
-    )
+    st.info("Si desea ver todos los registros, deje la fecha vacía.")
+
+    fecha_filtro = st.date_input("📅 Filtrar por fecha específica (opcional)", key="filtro_caja")
 
     if fecha_filtro:
         cursor.execute("""
@@ -130,7 +135,7 @@ def mostrar_caja():
         st.info("No hay registros para mostrar.")
 
     # ===============================
-    # 8. Botón regresar
+    # 8. Regresar
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
