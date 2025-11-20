@@ -21,7 +21,7 @@ def prestamos_modulo():
     st.title("📄 Registro de Préstamos")
 
     # ==============================
-    # Validar grupo del usuario
+    # Validar que existe un grupo
     # ==============================
     id_grupo = st.session_state.get("id_grupo", None)
     if not id_grupo:
@@ -34,13 +34,18 @@ def prestamos_modulo():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT miembros.id, miembros.nombre
-        FROM GrupoMiembros
-        JOIN miembros ON GrupoMiembros.id_miembro = miembros.id
-        WHERE GrupoMiembros.id_grupo = %s
-    """, (id_grupo,))
-    miembros = cursor.fetchall()
+    try:
+        cursor.execute("""
+            SELECT miembros.id, miembros.nombre
+            FROM Grupomiembros
+            JOIN miembros ON Grupomiembros.id_miembro = miembros.id
+            WHERE Grupomiembros.id_grupo = %s
+        """, (id_grupo,))
+        miembros = cursor.fetchall()
+    except Exception as e:
+        st.error(f"❌ Error al cargar miembros: {e}")
+        conn.close()
+        return
 
     if not miembros:
         st.warning("⚠ No hay miembros registrados en tu grupo.")
@@ -50,7 +55,7 @@ def prestamos_modulo():
     miembros_dict = {m[1]: m[0] for m in miembros}  # nombre → id
 
     # ======================================
-    # FORMULARIO DE PRÉSTAMO
+    # CREAR FORMULARIO
     # ======================================
     with st.form("form_prestamo"):
         st.subheader("🧾 Datos del Préstamo")
@@ -58,6 +63,8 @@ def prestamos_modulo():
         nombre_miembro = st.selectbox("Seleccione un miembro:", list(miembros_dict.keys()))
         monto = st.number_input("Monto del préstamo:", min_value=1.0, step=1.0)
         fecha = st.date_input("Fecha del préstamo:", value=date.today())
+
+        # Guardar la cantidad de pagos
         cantidad_pagos = st.number_input("Cantidad de pagos:", min_value=1, step=1)
 
         submitted = st.form_submit_button("💾 Guardar Préstamo")
@@ -66,17 +73,16 @@ def prestamos_modulo():
     # PROCESAR EL ENVÍO DEL FORMULARIO
     # ======================================
     if submitted:
-
-        id_miembro = miembros_dict[nombre_miembro]
-
-        cursor.execute("""
-            INSERT INTO prestamos (id_miembro, monto, fecha, cantidad_pagos)
-            VALUES (%s, %s, %s, %s)
-        """, (id_miembro, monto, fecha, cantidad_pagos))
-
-        conn.commit()
-
-        st.success("✅ Préstamo registrado con éxito.")
+        try:
+            id_miembro = miembros_dict[nombre_miembro]
+            cursor.execute("""
+                INSERT INTO prestamos (id_miembro, monto, fecha, cantidad_pagos)
+                VALUES (%s, %s, %s, %s)
+            """, (id_miembro, monto, fecha, cantidad_pagos))
+            conn.commit()
+            st.success("✅ Préstamo registrado con éxito.")
+        except Exception as e:
+            st.error(f"❌ Error al guardar el préstamo: {e}")
 
     # ======================================
     # PLAN DE PAGOS (FUERA DEL FORM)
