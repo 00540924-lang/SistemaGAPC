@@ -123,12 +123,12 @@ def mostrar_tabla_y_acciones(id_grupo):
             col1, col2 = st.columns(2)
 
             with col1:
-                if st.button("Editar"):
+                if st.button(" ✏️ Editar"):
                     st.session_state["editar_miembro"] = miembro
                     st.rerun()  # 🔥 activa modo edición
 
             with col2:
-                if st.button("Eliminar"):
+                if st.button("🗑️ Eliminar"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(0.5)
