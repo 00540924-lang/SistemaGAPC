@@ -18,8 +18,8 @@ def multas_modulo():
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
-    st.markdown(f"<h2 style='text-align:center;'>💸 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center;'>📋 Gestión de Multas</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center;'> 📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'> 💸 Gestión de Multas</h1>", unsafe_allow_html=True)
 
     # ================================
     # EDITAR MULTA
