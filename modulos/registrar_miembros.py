@@ -54,7 +54,7 @@ def registrar_miembros():
             con.close()
 
     # ================================
-    # MOSTRAR MIEMBROS EN TABLA BONITA
+    # MOSTRAR MIEMBROS CON TABLA BONITA
     # ================================
     try:
         con = obtener_conexion()
@@ -72,6 +72,11 @@ def registrar_miembros():
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
             return
+
+        # -------------------------------
+        # TÍTULO DE LA LISTA
+        # -------------------------------
+        st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
         # Mostrar tabla con Streamlit nativo
         st.dataframe(df.drop(columns="ID"), use_container_width=True)
