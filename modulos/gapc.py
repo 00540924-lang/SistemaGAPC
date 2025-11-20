@@ -9,9 +9,9 @@ def mostrar_gapc():
         st.warning("Debes iniciar sesión para acceder a este módulo.")
         return
 
-    rol = st.session_state['rol']
+    rol = st.session_state['rol'].lower()  # convertir a minúscula para evitar problemas
 
-    if rol != "Institucional":
+    if rol != "institucional":
         st.error("❌ No tienes permisos para ver este módulo.")
         return
 
