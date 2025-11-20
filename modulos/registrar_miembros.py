@@ -6,7 +6,7 @@ import time
 def registrar_miembros():
 
     # ================================
-    # VALIDAR SESIÓN Y OBTENER GRUPO
+    # VALIDAR SESIÓN Y GRUPO
     # ================================
     if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
@@ -15,9 +15,22 @@ def registrar_miembros():
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
-    # Mostrar encabezado SOLO después de obtener la información
-    st.subheader(f"📌 Grupo: **{nombre_grupo}**")
-    st.title("🧍 Registro de Miembros")
+    # ================================
+    # TITULOS CENTRADOS
+    # ================================
+    st.markdown(
+        f"""
+        <h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <h1 style='text-align:center;'>🧍 Registro de Miembros</h1>
+        """,
+        unsafe_allow_html=True
+    )
 
     # ================================
     # FORMULARIO
@@ -28,27 +41,27 @@ def registrar_miembros():
         telefono = st.text_input("Telefono")
         enviar = st.form_submit_button("Registrar")
 
-    # ------------------ BOTÓN REGRESAR ------------------
+    # BOTÓN REGRESAR
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
 
     # ================================
-    # GUARDAR MIEMBRO
+    # PROCESAR FORMULARIO
     # ================================
     if enviar:
         try:
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # Insertar miembro
+            # Insertar Miembro
             sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             cursor.execute(sql, (nombre, dui, telefono))
             con.commit()
 
             id_miembro = cursor.lastrowid
 
-            # Asignarlo al grupo del usuario logeado
+            # Relación en Grupomiembros
             cursor.execute(
                 "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                 (id_grupo, id_miembro)
@@ -57,7 +70,7 @@ def registrar_miembros():
 
             msg = st.success("Miembro registrado correctamente ✔️")
 
-            # Hacer desaparecer el mensaje
+            # 🕒 Hacer que desaparezca
             time.sleep(2)
             msg.empty()
 
@@ -72,10 +85,14 @@ def registrar_miembros():
                 pass
 
     # ================================
-    # LISTA DE MIEMBROS DE ESTE GRUPO
+    # MOSTRAR MIEMBROS DEL GRUPO
     # ================================
-    st.write("")
-    st.subheader(f"📝 Miembros registrados en {nombre_grupo}")
+    st.markdown(
+        f"""
+        <h2 style='text-align:center;'>📝 Miembros registrados en {nombre_grupo}</h2>
+        """,
+        unsafe_allow_html=True
+    )
 
     try:
         con = obtener_conexion()
