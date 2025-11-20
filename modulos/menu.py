@@ -82,7 +82,6 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # Usuario
     st.markdown(
         f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
         unsafe_allow_html=True
@@ -113,24 +112,19 @@ div.stButton > button:hover {
         ("📋 Asistencia", "asistencia", "asistencia_btn"),
         ("🏛️ GAPC", "GAPC", "gapc_btn"),
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
-        # 🔹🔹 NUEVO MÓDULO CAJA 🔹🔹
         ("💰 Caja", "caja", "caja_btn"),
     ]
 
     # -----------------------------------------------------
     #          FILTRO POR ROL
     # -----------------------------------------------------
-    if usuario == "dark":
-        modulos = modulos_base
-
-    elif rol.lower() == "institucional":
+    if usuario == "dark" or rol.lower() == "institucional":
         modulos = modulos_base
 
     elif rol.lower() == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
 
     elif rol.lower() == "miembro":
-        # 🔹 SOLO reglamento, asistencia Y AHORA CAJA 🔹
         modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja"]]
 
     else:
@@ -163,3 +157,4 @@ div.stButton > button:hover {
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
+
