@@ -124,15 +124,15 @@ def registrar_miembros():
                     font-weight: bold;
                 }
                 button {
-                    background-color: #ff4b4b;
-                    color: white;
-                    border: none;
+                    background-color: #f0f0f5;
+                    color: #444;
+                    border: 1px solid #ccc;
                     padding: 6px 12px;
                     border-radius: 6px;
                     cursor: pointer;
                 }
                 button:hover {
-                    background-color: #d93636;
+                    background-color: #e2e2eb;
                 }
             </style>
             <table>
