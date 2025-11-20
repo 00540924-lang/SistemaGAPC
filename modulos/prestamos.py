@@ -5,10 +5,10 @@ import datetime
 import time
 
 
-# ================================
-#   FORMULARIO DE PRÉSTAMOS
-# ================================
-def pagina_prestamos():
+# =====================================================
+#   MÓDULO PRINCIPAL DE PRÉSTAMOS
+# =====================================================
+def prestamos_modulo():
 
     # --------------------------------------
     # Validar sesión y grupo
@@ -22,7 +22,7 @@ def pagina_prestamos():
     st.markdown("<h1 style='text-align:center;'>💲 Registro de Préstamos</h1>", unsafe_allow_html=True)
 
     # --------------------------------------
-    # Obtener lista de miembros del grupo
+    # Obtener miembros del grupo
     # --------------------------------------
     con = obtener_conexion()
     cursor = con.cursor()
@@ -36,14 +36,14 @@ def pagina_prestamos():
     con.close()
 
     if not miembros:
-        st.warning("No hay miembros registrados en este grupo.")
+        st.warning("⚠ No hay miembros registrados en este grupo.")
         return
 
     miembros_dict = {f"{m[1]} - {m[2]}": m[0] for m in miembros}
 
-    # ================================
-    # FORMULARIO NUEVO PRÉSTAMO
-    # ================================
+    # =====================================================
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO
+    # =====================================================
     with st.form("form_nuevo_prestamo"):
         st.subheader("📄 Datos del Préstamo")
 
@@ -55,7 +55,7 @@ def pagina_prestamos():
         firma = st.text_input("Firma del solicitante")
         estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
-        enviar = st.form_submit_button("Guardar Préstamo")
+        enviar = st.form_submit_button("💾 Guardar Préstamo")
 
     if enviar:
         try:
@@ -77,28 +77,30 @@ def pagina_prestamos():
 
             con.commit()
             st.success("✅ Préstamo registrado correctamente")
-            time.sleep(0.6)
+            time.sleep(0.5)
             st.experimental_rerun()
 
         finally:
             cursor.close()
             con.close()
 
-    # ================================
-    # MOSTRAR PRÉSTAMOS REGISTRADOS
-    # ================================
+    # =====================================================
+    #   MOSTRAR LISTA DE PRÉSTAMOS
+    # =====================================================
     mostrar_lista_prestamos(id_grupo)
 
 
-# ================================
-# TABLA DE PRÉSTAMOS
-# ================================
+# =====================================================
+#   TABLA DE PRÉSTAMOS
+# =====================================================
 def mostrar_lista_prestamos(id_grupo):
+
     con = obtener_conexion()
     cursor = con.cursor()
 
     cursor.execute("""
-        SELECT P.id_prestamo, M.nombre, P.proposito, P.monto, P.fecha_desembolso, P.fecha_vencimiento, P.estado
+        SELECT P.id_prestamo, M.nombre, P.proposito, P.monto, 
+               P.fecha_desembolso, P.fecha_vencimiento, P.estado
         FROM prestamos P
         JOIN Miembros M ON M.id_miembro = P.id_miembro
         JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
@@ -122,20 +124,20 @@ def mostrar_lista_prestamos(id_grupo):
     st.subheader("📋 Préstamos registrados")
     st.dataframe(df, use_container_width=True)
 
-    # Seleccionar préstamo para registrar pagos
+    # Dropdown para seleccionar préstamo
     prestamo_opciones = {f"{row['Miembro']} - ${row['Monto']} (ID {row['ID']})": row["ID"] for _, row in df.iterrows()}
-    prestamo_sel = st.selectbox("Registrar pagos para:", list(prestamo_opciones.keys()))
+    prestamo_sel = st.selectbox("Selecciona un préstamo para registrar pagos:", list(prestamo_opciones.keys()))
 
     if prestamo_sel:
         mostrar_formulario_pagos(prestamo_opciones[prestamo_sel])
 
 
-# ================================
-# FORMULARIO DE PAGOS
-# ================================
+# =====================================================
+#   FORMULARIO DE PAGOS
+# =====================================================
 def mostrar_formulario_pagos(id_prestamo):
 
-    st.markdown("<h3>💵 Registrar pago</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>💵 Registrar un pago</h3>", unsafe_allow_html=True)
 
     with st.form(f"form_pago_{id_prestamo}"):
 
@@ -145,7 +147,7 @@ def mostrar_formulario_pagos(id_prestamo):
         interes = st.number_input("Interés", min_value=0.00, step=0.01)
         estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
 
-        guardar = st.form_submit_button("Registrar Pago")
+        guardar = st.form_submit_button("💾 Registrar Pago")
 
     if guardar:
         try:
@@ -166,6 +168,8 @@ def mostrar_formulario_pagos(id_prestamo):
 
             con.commit()
             st.success("💰 Pago registrado correctamente")
+            time.sleep(0.5)
+            st.experimental_rerun()
 
         finally:
             cursor.close()
