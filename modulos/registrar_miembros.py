@@ -3,6 +3,12 @@ import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import time
 
+# ================================
+# VARIABLE DE CONTROL PARA RECARGA
+# ================================
+if "recargar" not in st.session_state:
+    st.session_state["recargar"] = False
+
 def registrar_miembros():
     # ================================
     # VALIDAR SESIÓN Y GRUPO
@@ -13,6 +19,13 @@ def registrar_miembros():
 
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
+
+    # ================================
+    # RECARGAR SI ES NECESARIO
+    # ================================
+    if st.session_state["recargar"]:
+        st.session_state["recargar"] = False
+        st.experimental_rerun()
 
     # ================================
     # TITULOS CENTRADOS
@@ -46,7 +59,7 @@ def registrar_miembros():
             con.commit()
             st.success("Miembro registrado correctamente ✔️")
             time.sleep(1)
-            st.experimental_rerun()
+            st.session_state["recargar"] = True
         except Exception as e:
             st.error(f"Error: {e}")
         finally:
@@ -54,7 +67,7 @@ def registrar_miembros():
             con.close()
 
     # ================================
-    # MOSTRAR MIEMBROS CON TABLA BONITA
+    # MOSTRAR MIEMBROS
     # ================================
     try:
         con = obtener_conexion()
@@ -78,11 +91,13 @@ def registrar_miembros():
         # -------------------------------
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
-        # Mostrar tabla con Streamlit nativo
+        # -------------------------------
+        # Mostrar tabla
+        # -------------------------------
         st.dataframe(df.drop(columns="ID"), use_container_width=True)
 
         # ================================
-        # Seleccionar miembro para editar/eliminar
+        # Seleccionar miembro para acciones
         # ================================
         miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
         seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
@@ -99,7 +114,7 @@ def registrar_miembros():
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(1)
-                    st.experimental_rerun()
+                    st.session_state["recargar"] = True
 
     finally:
         cursor.close()
@@ -150,7 +165,7 @@ def editar_miembro(row):
             con.commit()
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(1)
-            st.experimental_rerun()
+            st.session_state["recargar"] = True
         finally:
             cursor.close()
             con.close()
