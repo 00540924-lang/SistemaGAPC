@@ -19,12 +19,15 @@ def get_connection():
         st.error(f"❌ Error al conectar con MySQL: {e}")
         return None
 
+
 # ========== GENERAR PDF ==========
 def generar_pdf(reglamento, nombre_grupo):
+
     nombre_archivo = f"Reglamento_{nombre_grupo}.pdf"
     ruta_pdf = os.path.join("/tmp", nombre_archivo)
 
     c = canvas.Canvas(ruta_pdf)
+
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, 800, f"Reglamento interno del grupo {nombre_grupo}")
     c.setFont("Helvetica", 12)
@@ -40,7 +43,8 @@ def generar_pdf(reglamento, nombre_grupo):
     c.save()
     return ruta_pdf
 
-# ========== VISTA MEJORADA ==========
+
+# ========== VISTA ==========
 def mostrar_reglamento_guardado(reglamento):
     st.subheader("Vista previa del reglamento")
 
@@ -48,7 +52,9 @@ def mostrar_reglamento_guardado(reglamento):
         st.info("Aún no hay un reglamento registrado para este grupo.")
         return
 
-    limpieza = {k: str(v) for k, v in reglamento.items()}
+    limpieza = {}
+    for k, v in reglamento.items():
+        limpieza[k] = str(v)
 
     df = pd.DataFrame(limpieza.items(), columns=["Campo", "Valor"])
     st.table(df)
@@ -59,8 +65,10 @@ def mostrar_reglamento_guardado(reglamento):
             texto += f"**{campo.replace('_',' ').title()}**: {valor}\n\n"
         st.markdown(texto)
 
-# ========== MÓDULO PRINCIPAL ==========
+
+# ========== PRINCIPAL ==========
 def mostrar_reglamento():
+
     if "id_grupo" not in st.session_state:
         st.error("No se ha establecido el grupo del usuario.")
         return
@@ -75,55 +83,55 @@ def mostrar_reglamento():
         return
     cursor = conn.cursor(dictionary=True)
 
-    # =================== CONSULTAR REGLAMENTO EXISTENTE ===================
+    # =================== CONSULTA ===================
     cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
     reglamento = cursor.fetchone()
 
     # =================== FORMULARIO ===================
+    st.subheader("Formulario del reglamento")
+
     dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
-    dia_reunion = st.multiselect(
-        "Días de reunión", dias_semana,
-        default=(reglamento["dia_reunion"].split(",") if reglamento and reglamento.get("dia_reunion") else [])
-    )
+    dia_reunion = st.multiselect("Días de reunión", dias_semana,
+                                 default=(reglamento["dia_reunion"].split(",") if reglamento else []))
 
     hora_reunion = st.time_input(
         "Hora de reunión",
-        value=datetime.strptime(reglamento["hora_reunion"], "%H:%M").time() if reglamento and reglamento.get("hora_reunion") else datetime.now().time()
+        value=datetime.strptime(reglamento["hora_reunion"], "%H:%M").time() if reglamento else datetime.now().time()
     )
 
-    comunidad = st.text_input("Comunidad", reglamento.get("comunidad","") if reglamento else "")
-    lugar_reunion = st.text_input("Lugar de reunión", reglamento.get("lugar_reunion","") if reglamento else "")
-    frecuencia = st.text_input("Frecuencia de reunión", reglamento.get("frecuencia_reunion","") if reglamento else "")
+    comunidad = st.text_input("Comunidad", reglamento["comunidad"] if reglamento else "")
+    lugar_reunion = st.text_input("Lugar de reunión", reglamento["lugar_reunion"] if reglamento else "")
+    frecuencia = st.text_input("Frecuencia de reunión", reglamento["frecuencia_reunion"] if reglamento else "")
 
-    presidenta = st.text_input("Presidenta", reglamento.get("presidenta","") if reglamento else "")
-    secretaria = st.text_input("Secretaria", reglamento.get("secretaria","") if reglamento else "")
-    tesorera = st.text_input("Tesorera", reglamento.get("tesorera","") if reglamento else "")
-    responsable_llave = st.text_input("Responsable de llave", reglamento.get("responsable_llave","") if reglamento else "")
+    presidenta = st.text_input("Presidenta", reglamento["presidenta"] if reglamento else "")
+    secretaria = st.text_input("Secretaria", reglamento["secretaria"] if reglamento else "")
+    tesorera = st.text_input("Tesorera", reglamento["tesorera"] if reglamento else "")
+    responsable_llave = st.text_input("Responsable de llave", reglamento["responsable_llave"] if reglamento else "")
 
     multa_ausencia = st.number_input("Multa por ausencia", min_value=0.0,
-                                     value=float(reglamento.get("multa_ausencia",0.0)) if reglamento else 0.0)
+                                     value=float(reglamento["multa_ausencia"]) if reglamento else 0.0)
 
-    razones_sin_multa = st.text_input("Razones sin multa", reglamento.get("razones_sin_multa","") if reglamento else "")
+    razones_sin_multa = st.text_input("Razones sin multa", reglamento["razones_sin_multa"] if reglamento else "")
     deposito_minimo = st.number_input("Depósito mínimo", min_value=0.0,
-                                      value=float(reglamento.get("deposito_minimo",0.0)) if reglamento else 0.0)
+                                      value=float(reglamento["deposito_minimo"]) if reglamento else 0.0)
     interes_por_10 = st.number_input("Interés por 10", min_value=0.0,
-                                     value=float(reglamento.get("interes_por_10",0.0)) if reglamento else 0.0)
+                                     value=float(reglamento["interes_por_10"]) if reglamento else 0.0)
 
     max_prestamo = st.number_input("Monto máximo de préstamo", min_value=0.0,
-                                   value=float(reglamento.get("max_prestamo",0.0)) if reglamento else 0.0)
+                                   value=float(reglamento["max_prestamo"]) if reglamento else 0.0)
 
-    max_plazo = st.text_input("Plazo máximo", reglamento.get("max_plazo","") if reglamento else "")
+    max_plazo = st.text_input("Plazo máximo", reglamento["max_plazo"] if reglamento else "")
 
-    un_solo_prestamo = st.checkbox("Solo un préstamo activo", value=bool(reglamento.get("un_solo_prestamo",False)) if reglamento else False)
-    evaluacion_monto = st.checkbox("Evaluar monto según plazo", value=bool(reglamento.get("evaluacion_monto_plazo",False)) if reglamento else False)
+    un_solo_prestamo = st.checkbox("Solo un préstamo activo", value=bool(reglamento["un_solo_prestamo"]) if reglamento else False)
+    evaluacion_monto = st.checkbox("Evaluar monto según plazo", value=bool(reglamento["evaluacion_monto_plazo"]) if reglamento else False)
 
     fecha_formacion = st.date_input("Fecha de formación",
-                                    value=reglamento.get("fecha_formacion", datetime.now()) if reglamento else datetime.now())
+                                    value=reglamento["fecha_formacion"] if reglamento else datetime.now())
 
     fecha_inicio_ciclo = st.date_input("Fecha de inicio de ciclo",
-                                       value=reglamento.get("fecha_inicio_ciclo", datetime.now()) if reglamento else datetime.now())
+                                       value=reglamento["fecha_inicio_ciclo"] if reglamento else datetime.now())
 
-    # =================== BOTÓN GUARDAR ===================
+    # =================== GUARDAR ===================
     if st.button("Guardar reglamento"):
         datos = (
             id_grupo,
@@ -173,7 +181,7 @@ def mostrar_reglamento():
         st.success("Reglamento guardado correctamente.")
         st.rerun()
 
-    # =================== MOSTRAR VISTA PREVIA ===================
+    # =================== PREVIEW ===================
     if reglamento:
         mostrar_reglamento_guardado(reglamento)
 
@@ -186,3 +194,4 @@ def mostrar_reglamento():
                     file_name=f"Reglamento_{nombre_grupo}.pdf",
                     mime="application/pdf"
                 )
+
