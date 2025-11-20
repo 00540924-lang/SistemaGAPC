@@ -57,12 +57,6 @@ def multas_modulo():
     pagada = st.selectbox("¿Pagada?", options=["No", "Sí"])
   
     if st.button("💾 Registrar Multa"):
-        # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
-    st.write("---")
         try:
             con = obtener_conexion()
             cursor = con.cursor()
@@ -79,7 +73,12 @@ def multas_modulo():
         finally:
             cursor.close()
             con.close()
-
+    # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
     # ================================
     # TABLA DE MULTAS
     # ================================
