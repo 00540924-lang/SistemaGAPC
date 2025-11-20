@@ -15,7 +15,7 @@ def mostrar_asistencia():
     st.title("📋 Registro de Asistencia")
 
     # ===============================
-    # CONEXIÓN DIRECTA (igual que tus otros módulos)
+    # CONEXIÓN DIRECTa
     # ===============================
     try:
         conn = mysql.connector.connect(
@@ -39,10 +39,10 @@ def mostrar_asistencia():
     # 2. Obtener miembros del grupo
     # ===============================
     cursor.execute("""
-        SELECT id_miembro, nombre 
+        SELECT id_miembro, Nombre
         FROM Miembros
         WHERE id_grupo = %s
-        ORDER BY nombre
+        ORDER BY Nombre
     """, (id_grupo,))
 
     miembros = cursor.fetchall()
@@ -60,7 +60,7 @@ def mostrar_asistencia():
 
     for m in miembros:
         estado = st.radio(
-            f"{m['nombre']}",
+            f"{m['Nombre']}",
             ["Presente", "Ausente"],
             horizontal=True,
             key=f"asistencia_{m['id_miembro']}"
@@ -90,11 +90,11 @@ def mostrar_asistencia():
     st.subheader("📚 Historial de Asistencias")
 
     cursor.execute("""
-        SELECT A.fecha, M.nombre, A.asistencia
+        SELECT A.fecha, M.Nombre, A.asistencia
         FROM Asistencia A
         JOIN Miembros M ON A.id_miembro = M.id_miembro
         WHERE A.id_grupo = %s
-        ORDER BY A.fecha DESC, M.nombre
+        ORDER BY A.fecha DESC, M.Nombre
     """, (id_grupo,))
 
     registros = cursor.fetchall()
@@ -106,3 +106,4 @@ def mostrar_asistencia():
 
     cursor.close()
     conn.close()
+
