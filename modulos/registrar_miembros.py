@@ -22,7 +22,6 @@ def registrar_miembros():
         f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>",
         unsafe_allow_html=True
     )
-
     st.markdown(
         "<h1 style='text-align:center;'>🧍 Registro de Miembros</h1>",
         unsafe_allow_html=True
@@ -76,9 +75,8 @@ def registrar_miembros():
             except:
                 pass
 
-
     # ================================
-    # MOSTRAR MIEMBROS DEL GRUPO
+    # MOSTRAR MIEMBROS EN TABLA HTML ESTILIZADA
     # ================================
     st.markdown(
         f"<h2 style='text-align:center;'>📝 Miembros registrados en {nombre_grupo}</h2>",
@@ -100,15 +98,43 @@ def registrar_miembros():
 
         if resultados:
 
-            # Encabezados de tabla
-            col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
-            col1.write("**No.**")
-            col2.write("**Nombre**")
-            col3.write("**DUI**")
-            col4.write("**Teléfono**")
-            col5.write("**Acciones**")
+            # Encabezado de la tabla con estilo
+            st.markdown("""
+                <style>
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 15px;
+                    }
+                    th, td {
+                        border: 1px solid #ccc;
+                        padding: 8px;
+                        text-align: center;
+                    }
+                    th {
+                        background-color: #f2f2f2;
+                        font-weight: bold;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #fafafa;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
 
-            # Filas
+            # Crear encabezado manual
+            st.markdown("""
+                <table>
+                    <tr>
+                        <th>No.</th>
+                        <th>Nombre</th>
+                        <th>DUI</th>
+                        <th>Teléfono</th>
+                        <th>Acciones</th>
+                    </tr>
+                </table>
+            """, unsafe_allow_html=True)
+
+            # Filas con botones
             for idx, row in enumerate(resultados, start=1):
                 id_miembro = row[0]
                 nombre = row[1]
@@ -117,7 +143,7 @@ def registrar_miembros():
 
                 col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
 
-                col1.write(idx)
+                col1.write(f"{idx}")
                 col2.write(nombre)
                 col3.write(dui)
                 col4.write(telefono)
