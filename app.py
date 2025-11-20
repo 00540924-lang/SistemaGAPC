@@ -94,7 +94,7 @@ elif pagina == "caja":
     rol = st.session_state.get("rol")
     id_grupo = st.session_state.get("id_grupo")
 
-    if rol != "Miembro":
+    if rol != "miembro":
         st.error("❌ No tiene permisos para acceder a este módulo.")
     else:
         if not id_grupo:
