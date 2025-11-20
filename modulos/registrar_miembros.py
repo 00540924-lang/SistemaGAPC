@@ -4,6 +4,7 @@ from modulos.config.conexion import obtener_conexion
 import time
 
 def registrar_miembros():
+    st.subheader(f"📌 Grupo: **{nombre_grupo}**")
     st.title("🧍 Registro de Miembros")
 
     # ================================
@@ -15,8 +16,6 @@ def registrar_miembros():
     
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
-
-    st.subheader(f"📌 Registrando miembros para el grupo: **{nombre_grupo}**")
 
     # ========================
     # FORMULARIO
