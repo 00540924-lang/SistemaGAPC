@@ -4,11 +4,9 @@ from modulos.config.conexion import obtener_conexion
 import time
 
 def registrar_miembros():
-    st.subheader(f"📌 Grupo: **{nombre_grupo}**")
-    st.title("🧍 Registro de Miembros")
 
     # ================================
-    # VALIDAR SESIÓN Y GRUPO
+    # VALIDAR SESIÓN Y OBTENER GRUPO
     # ================================
     if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
@@ -17,9 +15,13 @@ def registrar_miembros():
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
-    # ========================
+    # Mostrar encabezado SOLO después de obtener la información
+    st.subheader(f"📌 Grupo: **{nombre_grupo}**")
+    st.title("🧍 Registro de Miembros")
+
+    # ================================
     # FORMULARIO
-    # ========================
+    # ================================
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
@@ -31,22 +33,22 @@ def registrar_miembros():
         st.session_state.page = "menu"
         st.rerun()
 
-    # ========================
-    # PROCESAR FORMULARIO
-    # ========================
+    # ================================
+    # GUARDAR MIEMBRO
+    # ================================
     if enviar:
         try:
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # 1️⃣ Insertar en Miembros
+            # Insertar miembro
             sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
             cursor.execute(sql, (nombre, dui, telefono))
             con.commit()
 
             id_miembro = cursor.lastrowid
 
-            # 2️⃣ Insertar relación en Grupomiembros
+            # Asignarlo al grupo del usuario logeado
             cursor.execute(
                 "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                 (id_grupo, id_miembro)
@@ -55,7 +57,7 @@ def registrar_miembros():
 
             msg = st.success("Miembro registrado correctamente ✔️")
 
-            # 🕒 Hacer que desaparezca el mensaje
+            # Hacer desaparecer el mensaje
             time.sleep(2)
             msg.empty()
 
@@ -69,9 +71,9 @@ def registrar_miembros():
             except:
                 pass
 
-    # ========================
-    # MOSTRAR MIEMBROS DEL GRUPO
-    # ========================
+    # ================================
+    # LISTA DE MIEMBROS DE ESTE GRUPO
+    # ================================
     st.write("")
     st.subheader(f"📝 Miembros registrados en {nombre_grupo}")
 
@@ -101,4 +103,3 @@ def registrar_miembros():
 
     except Exception as e:
         st.error(f"Error al mostrar miembros: {e}")
-
