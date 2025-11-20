@@ -3,13 +3,10 @@ import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import time
 
-# ================================
-# REGISTRAR MIEMBROS
-# ================================
 def registrar_miembros():
-    # -------------------------------
-    # Validar sesión y grupo
-    # -------------------------------
+    # ================================
+    # VALIDAR SESIÓN Y GRUPO
+    # ================================
     if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
         return
@@ -17,15 +14,15 @@ def registrar_miembros():
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
-    # -------------------------------
-    # Títulos centrados
-    # -------------------------------
+    # ================================
+    # TITULOS CENTRADOS
+    # ================================
     st.markdown(f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align:center;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
-    # -------------------------------
-    # Formulario nuevo miembro
-    # -------------------------------
+    # ================================
+    # FORMULARIO NUEVO MIEMBRO
+    # ================================
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
@@ -53,16 +50,14 @@ def registrar_miembros():
             cursor.close()
             con.close()
 
-    # -------------------------------
+    # ================================
     # Mostrar tabla y acciones
-    # -------------------------------
+    # ================================
     mostrar_tabla_y_acciones(id_grupo)
 
 
-# ================================
-# MOSTRAR TABLA Y ACCIONES
-# ================================
 def mostrar_tabla_y_acciones(id_grupo):
+    """Función para mostrar la tabla y los botones de editar/eliminar"""
     try:
         con = obtener_conexion()
         cursor = con.cursor()
@@ -93,14 +88,6 @@ def mostrar_tabla_y_acciones(id_grupo):
         st.dataframe(df_display.drop(columns="ID"), use_container_width=True)
 
         # -------------------------------
-        # Inicializar variables de sesión
-        # -------------------------------
-        if "editar_id" not in st.session_state:
-            st.session_state["editar_id"] = None
-        if "eliminar_id" not in st.session_state:
-            st.session_state["eliminar_id"] = None
-
-        # -------------------------------
         # Selección de miembro
         # -------------------------------
         miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
@@ -111,29 +98,16 @@ def mostrar_tabla_y_acciones(id_grupo):
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Editar Miembro"):
-                    st.session_state["editar_id"] = miembro["ID"]
+                    editar_miembro(miembro)
+                    # Actualizar tabla inmediatamente
+                    mostrar_tabla_y_acciones(id_grupo)
             with col2:
                 if st.button("Eliminar Miembro"):
-                    st.session_state["eliminar_id"] = miembro["ID"]
-
-        # -------------------------------
-        # Ejecutar edición
-        # -------------------------------
-        if st.session_state["editar_id"]:
-            fila = df[df["ID"] == st.session_state["editar_id"]].iloc[0]
-            editar_miembro(fila)
-            st.session_state["editar_id"] = None
-
-        # -------------------------------
-        # Ejecutar eliminación
-        # -------------------------------
-        if st.session_state["eliminar_id"]:
-            eliminar_miembro(st.session_state["eliminar_id"], id_grupo)
-            st.success("Miembro eliminado ✔️")
-            st.session_state["eliminar_id"] = None
-            time.sleep(0.5)
-            # Volver a mostrar la tabla actualizada
-            mostrar_tabla_y_acciones(id_grupo)
+                    eliminar_miembro(miembro["ID"], id_grupo)
+                    st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
+                    time.sleep(0.5)
+                    # Actualizar tabla inmediatamente
+                    mostrar_tabla_y_acciones(id_grupo)
 
     finally:
         cursor.close()
