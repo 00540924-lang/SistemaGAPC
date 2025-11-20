@@ -1,3 +1,8 @@
+import streamlit as st
+import pandas as pd
+from modulos.config.conexion import obtener_conexion
+import time
+
 def registrar_miembros():
     # ================================
     # VALIDAR SESIÓN Y GRUPO
@@ -56,15 +61,8 @@ def registrar_miembros():
     mostrar_tabla_y_acciones(id_grupo)
 
 
-    # ================================
-    # Mostrar tabla y acciones
-    # ================================
-    mostrar_tabla_y_acciones(id_grupo)
-
-
 def mostrar_tabla_y_acciones(id_grupo):
-
-    # 🔥 Si estamos editando, mostrar el formulario ANTES de la tabla
+    # 🔥 Si estamos editando, mostrar solo el formulario de edición y salir
     if "editar_miembro" in st.session_state:
         editar_miembro(st.session_state["editar_miembro"])
         return
@@ -162,7 +160,6 @@ def eliminar_miembro(id_miembro, id_grupo):
 # EDITAR MIEMBRO
 # ================================
 def editar_miembro(row):
-
     st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
 
     with st.form("form_editar"):
@@ -192,6 +189,5 @@ def editar_miembro(row):
         finally:
             cursor.close()
             con.close()
-
 
 
