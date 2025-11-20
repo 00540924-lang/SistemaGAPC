@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from modulos.config.conexion import obtener_conexion
 
 def mostrar_gapc():
@@ -10,7 +9,8 @@ def mostrar_gapc():
         st.warning("Debes iniciar sesión para acceder a este módulo.")
         return
 
-    rol = st.session_state['rol'].lower()
+    rol = st.session_state['rol'].lower()  # insensible a mayúsculas
+
     if rol != "institucional":
         st.error("❌ No tienes permisos para ver este módulo.")
         return
@@ -30,7 +30,7 @@ def mostrar_gapc():
     # 2. Obtener todos los grupos
     # ===============================
     cursor.execute("""
-        SELECT id_grupo, distrito, Nombre_grupo
+        SELECT distrito, Nombre_grupo
         FROM Grupos
         ORDER BY distrito, Nombre_grupo
     """)
@@ -43,17 +43,17 @@ def mostrar_gapc():
         return
 
     # ===============================
-    # 3. Diccionario distritos -> grupos
+    # 3. Crear diccionario distritos -> grupos
     # ===============================
     distritos_dict = {}
     for grupo in grupos:
         distrito = grupo['distrito']
         if distrito not in distritos_dict:
             distritos_dict[distrito] = []
-        distritos_dict[distrito].append(grupo)
+        distritos_dict[distrito].append(grupo['Nombre_grupo'])
 
     # ===============================
-    # 4. Selectbox de distritos
+    # 4. Selectbox para elegir distrito
     # ===============================
     distrito_seleccionado = st.selectbox(
         "Seleccione un distrito",
@@ -65,18 +65,9 @@ def mostrar_gapc():
     # ===============================
     st.subheader(f"Grupos del distrito: {distrito_seleccionado}")
     grupos_mostrar = distritos_dict.get(distrito_seleccionado, [])
-
     if grupos_mostrar:
-        # Crear DataFrame para mostrar en tabla editable
-        df = pd.DataFrame(grupos_mostrar)
-        df = df.rename(columns={"Nombre_grupo": "Grupo", "distrito": "Distrito", "id_grupo": "ID"})
-        df = df[["ID", "Grupo"]]  # Solo mostramos ID y Nombre
-        st.data_editor(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            disabled=True  # Solo lectura
-        )
+        for g in grupos_mostrar:
+            st.write(f"- {g}")
     else:
         st.info("No hay grupos en este distrito.")
 
@@ -93,4 +84,3 @@ def mostrar_gapc():
     # ===============================
     cursor.close()
     conn.close()
-
