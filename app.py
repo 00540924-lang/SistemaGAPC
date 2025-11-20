@@ -1,35 +1,37 @@
 import streamlit as st
-from modulos.login import login
-from modulos.menu import mostrar_menu
 
 # ==========================================
 # CONFIGURACIÓN DE VARIABLES DE SESIÓN
 # ==========================================
 st.session_state.setdefault("sesion_iniciada", False)
 st.session_state.setdefault("page", "menu")  # Página por defecto
+st.session_state.setdefault("rol", None)
+st.session_state.setdefault("id_grupo", None)
 
 # ==========================================
 # LOGIN
 # ==========================================
 if not st.session_state["sesion_iniciada"]:
+    from modulos.login import login
     login()
     st.stop()
 
 # ==========================================
-# DESPACHADOR DE PÁGINAS PRINCIPAL
+# DESPACHADOR DE PÁGINAS
 # ==========================================
 pagina = st.session_state.get("page", "menu")
 
 # ---- MENÚ PRINCIPAL ----
 if pagina == "menu":
+    from modulos.menu import mostrar_menu
     mostrar_menu()
 
-# ---- GESTIÓN DE PROYECTOS ----
+# ---- PROYECTOS ----
 elif pagina == "proyectos":
     from modulos.proyectos import vista_proyectos
     vista_proyectos()
 
-# ---- REGISTRO DE MIEMBROS ----
+# ---- REGISTRAR MIEMBROS ----
 elif pagina == "registrar_miembros":
     from modulos.registrar_miembros import registrar_miembros
     registrar_miembros()
@@ -54,7 +56,7 @@ elif pagina == "reportes":
     from modulos.reportes import vista_reportes
     vista_reportes()
 
-# ---- CONFIGURACIÓN ----
+# ---- ASISTENCIA (NUEVO MÓDULO) ----
 elif pagina == "asistencia":
     from modulos.asistencia import vista_asistencia
     vista_asistencia()
@@ -69,11 +71,11 @@ elif pagina == "reglamento":
     from modulos.reglamento import mostrar_reglamento
     mostrar_reglamento()
 
-# ---- MULTAS (NUEVO MÓDULO) ----
+# ---- MULTAS ----
 elif pagina == "multas":
     from modulos.multas import multas_modulo
     multas_modulo()
 
-# ---- ERROR SI NO EXISTE LA PÁGINA ----
+# ---- ERROR SI NO EXISTE ----
 else:
     st.error("❌ Página no encontrada.")
