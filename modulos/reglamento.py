@@ -1,42 +1,47 @@
 import streamlit as st
 import mysql.connector
 import datetime
+from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
 
 # ============================
-# FUNCIÓN PARA GENERAR PDF
+# FUNCIÓN PARA GENERAR PDF EN MEMORIA
 # ============================
-def generar_pdf(datos, nombre_grupo):
-    ruta = "/mnt/data/reglamento.pdf"
-    c = canvas.Canvas(ruta, pagesize=letter)
+def generar_pdf(reglamento, nombre_grupo):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
 
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(130, 760, f"Reglamento Interno del Grupo {nombre_grupo}")
+    c.drawString(50, 750, f"Reglamento interno del grupo {nombre_grupo}")
 
-    c.setFont("Helvetica", 12)
-    y = 730
+    c.setFont("Helvetica", 11)
 
-    for key, value in datos.items():
-        texto = f"{key.replace('_', ' ').capitalize()}: {value}"
-        c.drawString(40, y, texto)
+    y = 720
+    for campo, valor in reglamento.items():
+        if valor is None:
+            valor = ""
+        texto = f"{campo.replace('_', ' ').capitalize()}: {valor}"
+        c.drawString(50, y, texto)
         y -= 18
 
-        if y < 40:  # Crear nueva página si no hay espacio
+        if y < 50:
             c.showPage()
-            c.setFont("Helvetica", 12)
+            c.setFont("Helvetica", 11)
             y = 750
 
     c.save()
-    return ruta
+    buffer.seek(0)
+    return buffer
 
 
 # ============================
-# MÓDULO PRINCIPAL
+# FUNCIÓN PRINCIPAL
 # ============================
 def mostrar_reglamento():
 
+    # Validación de sesión
     if "usuario" not in st.session_state:
         st.error("Debes iniciar sesión.")
         return
@@ -59,8 +64,8 @@ def mostrar_reglamento():
     try:
         conn = mysql.connector.connect(
             host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-            user="uiazxdhtd3r8o7uv",
-            password="uGjZ9MXWemv7vPsjOdA5",
+            user="u1ok2gqomnp9hrku",
+            password="VWvN6Pw7wKdfDU9uINZT",
             database="bzn5gsi7ken7lufcglbg"
         )
         cursor = conn.cursor(dictionary=True)
@@ -68,9 +73,7 @@ def mostrar_reglamento():
         st.error(f"❌ Error al conectar con MySQL: {e}")
         return
 
-    # ============================
-    # CARGAR REGLAMENTO
-    # ============================
+    # Obtener reglamento actual
     cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
     reglamento = cursor.fetchone()
 
@@ -97,18 +100,12 @@ def mostrar_reglamento():
         fecha_formacion = st.date_input("Fecha de formación:", fecha_valida("fecha_formacion"))
 
         st.subheader("📅 Reuniones")
-        dias_lista = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-        dias_guardados = val("dia_reunion").split(",") if val("dia_reunion") else []
-        dia_reunion = st.multiselect("Día(s) de reunión:", dias_lista, default=dias_guardados)
+        # Lista desplegable de días
+        dias_opciones = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+        dia_reunion = st.selectbox("Día(s) de reunión:", dias_opciones, index=dias_opciones.index(val("dia_reunion")) if val("dia_reunion") in dias_opciones else 0)
 
-        # Hora
-        try:
-            hora_guardada = datetime.datetime.strptime(val("hora_reunion"), "%H:%M").time()
-        except:
-            hora_guardada = datetime.datetime.now().time()
-
-        hora_reunion_time = st.time_input("Hora de reunión:", value=hora_guardada)
-        hora_reunion = hora_reunion_time.strftime("%H:%M")
+        # Selector de hora
+        hora_reunion = st.time_input("Hora de reunión:", datetime.time.fromisoformat(val("hora_reunion")) if val("hora_reunion") else datetime.time(8, 0))
 
         lugar_reunion = st.text_input("Lugar:", val("lugar_reunion"))
         frecuencia_reunion = st.text_input("Frecuencia:", val("frecuencia_reunion"))
@@ -144,12 +141,10 @@ def mostrar_reglamento():
         submitted = st.form_submit_button("💾 Guardar reglamento")
 
     # ============================
-    # GUARDAR CAMBIOS
+    # GUARDAR EN BD
     # ============================
     if submitted:
         try:
-            dias_como_texto = ",".join(dia_reunion)
-
             if reglamento:
                 cursor.execute("""
                     UPDATE Reglamento SET
@@ -161,7 +156,7 @@ def mostrar_reglamento():
                         fecha_fin_ciclo=%s, meta_social=%s, otras_reglas=%s
                     WHERE id=%s
                 """, (
-                    comunidad, fecha_formacion, dias_como_texto, hora_reunion,
+                    comunidad, fecha_formacion, dia_reunion, hora_reunion.strftime("%H:%M"),
                     lugar_reunion, frecuencia_reunion, presidenta, secretaria,
                     tesorera, responsable_llave, multa_ausencia, razones_sin_multa,
                     deposito_minimo, interes_por_10, max_prestamo, max_plazo,
@@ -180,7 +175,7 @@ def mostrar_reglamento():
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                               %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    id_grupo, comunidad, fecha_formacion, dias_como_texto, hora_reunion,
+                    id_grupo, comunidad, fecha_formacion, dia_reunion, hora_reunion.strftime("%H:%M"),
                     lugar_reunion, frecuencia_reunion, presidenta, secretaria, tesorera,
                     responsable_llave, multa_ausencia, razones_sin_multa, deposito_minimo,
                     interes_por_10, max_prestamo, max_plazo, un_solo_prestamo,
@@ -193,40 +188,28 @@ def mostrar_reglamento():
             st.rerun()
 
         except Exception as e:
-            st.error(f"❌ Error al guardar: {e}")
+            st.error(f"Error al guardar: {e}")
 
     # ============================
-    # MOSTRAR REGLAMENTO
+    # VISTA PREVIA DEL REGLAMENTO
     # ============================
-    st.write("---")
     st.subheader("📄 Vista previa del reglamento")
 
+    cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
+    reglamento = cursor.fetchone()
+
     if reglamento:
-        for key, value in reglamento.items():
-            if key not in ("id", "id_grupo"):
-                st.write(f"**{key.replace('_',' ').capitalize()}:** {value}")
+        st.json(reglamento)
+
+        pdf_buffer = generar_pdf(reglamento, nombre_grupo)
+
+        st.download_button(
+            label="📥 Descargar Reglamento en PDF",
+            data=pdf_buffer,
+            file_name=f"Reglamento_{nombre_grupo}.pdf",
+            mime="application/pdf"
+        )
     else:
-        st.info("Aún no hay reglamento registrado.")
+        st.info("No hay reglamento guardado todavía.")
 
-    # ============================
-    # DESCARGAR PDF
-    # ============================
-    st.write("---")
-    if reglamento:
-        if st.button("📥 Descargar Reglamento en PDF"):
-            ruta_pdf = generar_pdf(reglamento, nombre_grupo)
-            with open(ruta_pdf, "rb") as f:
-                st.download_button(
-                    label="Descargar PDF",
-                    data=f,
-                    file_name=f"Reglamento_{nombre_grupo}.pdf",
-                    mime="application/pdf"
-                )
-
-    # ============================
-    # BOTÓN REGRESAR
-    # ============================
-    st.write("")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
+    conn.close()
