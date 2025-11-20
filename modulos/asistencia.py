@@ -5,12 +5,10 @@ from modulos.config.conexion import obtener_conexion
 import pandas as pd
 
 def mostrar_asistencia():
-
     # ===============================
     # 0. Verificar grupo del admin
     # ===============================
     id_grupo = st.session_state.get("id_grupo", None)
-
     if not id_grupo:
         st.error("❌ No se detectó un grupo asignado. Inicie sesión nuevamente.")
         return
@@ -45,7 +43,6 @@ def mostrar_asistencia():
     """, (id_grupo,))
 
     miembros = cursor.fetchall()
-
     if not miembros:
         st.warning("⚠️ No hay miembros registrados en este grupo.")
         return
@@ -74,7 +71,7 @@ def mostrar_asistencia():
                 options=["Presente", "Ausente"],
                 required=True
             ),
-            "id_miembro": None  # OCULTAR COLUMNA
+            "id_miembro": None  # Oculta columna id_miembro
         },
         hide_index=True,
         use_container_width=True,
@@ -86,13 +83,11 @@ def mostrar_asistencia():
     # 5. Guardar asistencia
     # ===============================
     if st.button("💾 Guardar asistencia"):
-
         for _, row in tabla_editada.iterrows():
             cursor.execute("""
                 INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
                 VALUES (%s, %s, %s, %s)
             """, (id_grupo, fecha, row["id_miembro"], row["Asistencia"]))
-
         conn.commit()
         st.success("✅ Asistencia registrada con éxito")
 
@@ -101,6 +96,27 @@ def mostrar_asistencia():
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Asistencias")
-
     cursor.execute("""
-        SELECT A.fecha, M.Nombre
+        SELECT A.fecha, M.Nombre, A.asistencia
+        FROM Asistencia A
+        JOIN Miembros M ON A.id_miembro = M.id_miembro
+        WHERE A.id_grupo = %s
+        ORDER BY A.fecha DESC, M.Nombre
+    """, (id_grupo,))
+    registros = cursor.fetchall()
+
+    if registros:
+        st.dataframe(registros, use_container_width=True)
+    else:
+        st.info("No hay registros todavía.")
+
+    cursor.close()
+    conn.close()
+
+    # ===============================
+    # 7. Botón regresar
+    # ===============================
+    st.write("---")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
