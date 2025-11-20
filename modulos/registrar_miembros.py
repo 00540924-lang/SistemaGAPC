@@ -61,7 +61,12 @@ def registrar_miembros():
 
 
 def mostrar_tabla_y_acciones(id_grupo):
-    """Función para mostrar la tabla y los botones de editar/eliminar"""
+
+    # 🔥 Si estamos editando, mostrar el formulario ANTES de la tabla
+    if "editar_miembro" in st.session_state:
+        editar_miembro(st.session_state["editar_miembro"])
+        return
+
     try:
         con = obtener_conexion()
         cursor = con.cursor()
@@ -110,7 +115,8 @@ def mostrar_tabla_y_acciones(id_grupo):
 
             with col1:
                 if st.button(f"Editar Miembro {miembro['ID']}"):
-                    editar_miembro(miembro)
+                    st.session_state["editar_miembro"] = miembro
+                    st.rerun()  # 🔥 activa modo edición
 
             with col2:
                 if st.button(f"Eliminar Miembro {miembro['ID']}"):
@@ -150,9 +156,10 @@ def eliminar_miembro(id_miembro, id_grupo):
 # EDITAR MIEMBRO
 # ================================
 def editar_miembro(row):
+
     st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
 
-    with st.form(f"form_editar_{row['ID']}"):
+    with st.form("form_editar"):
         nombre = st.text_input("Nombre completo", value=row['Nombre'])
         dui = st.text_input("DUI", value=row['DUI'])
         telefono = st.text_input("Teléfono", value=row['Teléfono'])
@@ -170,9 +177,14 @@ def editar_miembro(row):
 
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(0.5)
+
+            # 🔥 salir del modo edición
+            del st.session_state["editar_miembro"]
+
             st.rerun()
 
         finally:
             cursor.close()
             con.close()
+
 
