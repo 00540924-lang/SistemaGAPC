@@ -76,62 +76,69 @@ def registrar_miembros():
             except:
                 pass
 
-    # ================================
-    # MOSTRAR MIEMBROS DEL GRUPO
-    # ================================
-    st.markdown(
-        f"<h2 style='text-align:center;'>📝 Miembros registrados en {nombre_grupo}</h2>",
-        unsafe_allow_html=True
-    )
+  # ================================
+# MOSTRAR MIEMBROS DEL GRUPO
+# ================================
+st.markdown(
+    f"<h2 style='text-align:center;'>📝 Miembros registrados en {nombre_grupo}</h2>",
+    unsafe_allow_html=True
+)
 
-    try:
-        con = obtener_conexion()
-        cursor = con.cursor()
+try:
+    con = obtener_conexion()
+    cursor = con.cursor()
 
-        cursor.execute("""
-            SELECT M.id_miembro, M.nombre, M.dui, M.telefono
-            FROM Miembros M
-            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-            WHERE GM.id_grupo = %s
-        """, (id_grupo,))
+    cursor.execute("""
+        SELECT M.id_miembro, M.nombre, M.dui, M.telefono
+        FROM Miembros M
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
+    """, (id_grupo,))
 
-        resultados = cursor.fetchall()
+    resultados = cursor.fetchall()
 
-        if resultados:
+    if resultados:
 
-            df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
-            df.index = df.index + 1
-            df.index.name = "No."
+        # Crear DataFrame normal (como antes)
+        df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
+        df_visual = df.drop(columns=["ID"])   # ocultamos el ID en la tabla principal
+        df_visual.index = df_visual.index + 1
+        df_visual.index.name = "No."
 
-            # Mostrar tabla con botones de eliminar
-            for index, row in df.iterrows():
-                col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
+        st.dataframe(df_visual, use_container_width=True)
 
-                with col1:
-                    st.write(index)
+        st.write("### Acciones:")
 
-                with col2:
-                    st.write(row["Nombre"])
+        # Tabla manual con botones de eliminar por fila
+        for index, row in df.iterrows():
+            col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
 
-                with col3:
-                    st.write(row["DUI"])
+            with col1:
+                st.write(index + 1)
 
-                with col4:
-                    st.write(row["Teléfono"])
+            with col2:
+                st.write(row["Nombre"])
 
-                with col5:
-                    if st.button("🗑️ Eliminar", key=f"del_{row['ID']}"):
-                        eliminar_miembro(row["ID"], id_grupo)
-                        st.rerun()
+            with col3:
+                st.write(row["DUI"])
 
-        else:
-            st.info("Aún no hay miembros en este grupo.")
+            with col4:
+                st.write(row["Teléfono"])
 
-        cursor.close()
-        con.close()
+            with col5:
+                if st.button("🗑️ Eliminar", key=f"del_{row['ID']}"):
+                    eliminar_miembro(row["ID"], id_grupo)
+                    st.rerun()
 
-    except Exception as e:
-        st.error(f"Error al mostrar miembros: {e}")
+    else:
+        st.info("Aún no hay miembros en este grupo.")
+
+    cursor.close()
+    con.close()
+
+except Exception as e:
+    st.error(f"Error al mostrar miembros: {e}")
+
 
 
 # ========================================================
