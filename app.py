@@ -56,7 +56,7 @@ elif pagina == "reportes":
     from modulos.reportes import vista_reportes
     vista_reportes()
 
-# ---- ASISTENCIA (NUEVO MÓDULO) ----
+# ---- ASISTENCIA ----
 elif pagina == "asistencia":
     from modulos.asistencia import mostrar_asistencia
     mostrar_asistencia()
@@ -76,6 +76,12 @@ elif pagina == "multas":
     from modulos.multas import multas_modulo
     multas_modulo()
 
+# ---- GAPC (solo rol Institucional) ----
+elif pagina == "GAPC":
+    from modulos.gapc import mostrar_gapc
+    mostrar_gapc()
+
 # ---- ERROR SI NO EXISTE ----
 else:
     st.error("❌ Página no encontrada.")
+
