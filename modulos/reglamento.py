@@ -197,13 +197,98 @@ def mostrar_reglamento():
     # MOSTRAR REGLAMENTO DEBAJO DEL FORMULARIO
     # ============================================================
     st.write("---")
-    st.subheader("📄 Vista previa del reglamento")
+st.subheader("📄 Vista previa del reglamento")
 
-    cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
-    reglamento = cursor.fetchone()
+cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
+reglamento = cursor.fetchone()
 
-    if reglamento:
-        st.json(reglamento)
+if reglamento:
+
+    # -------------------------
+    # TARJETA DE VISUALIZACIÓN
+    # -------------------------
+    st.markdown(
+        """
+        <style>
+            .regla-box {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid #ddd;
+                margin-bottom: 25px;
+            }
+            .regla-titulo {
+                font-size: 20px;
+                font-weight: bold;
+                color: #2c3e50;
+                margin-bottom: 10px;
+            }
+            .regla-item {
+                margin-bottom: 8px;
+                font-size: 16px;
+            }
+            .regla-label {
+                font-weight: 600;
+                color: #34495e;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(f"<div class='regla-box'><div class='regla-titulo'>📘 Reglamento del grupo <b>{nombre_grupo}</b></div>", unsafe_allow_html=True)
+
+    # Función para imprimir bonito
+    def mostrar_item(label, valor):
+        if valor not in (None, "", "0"):
+            st.markdown(f"<div class='regla-item'><span class='regla-label'>{label}:</span> {valor}</div>", unsafe_allow_html=True)
+
+    mostrar_item("Comunidad", reglamento.get("comunidad"))
+    mostrar_item("Fecha de formación", reglamento.get("fecha_formacion"))
+    mostrar_item("Días de reunión", reglamento.get("dia_reunion"))
+    mostrar_item("Hora", reglamento.get("hora_reunion"))
+    mostrar_item("Lugar", reglamento.get("lugar_reunion"))
+    mostrar_item("Frecuencia", reglamento.get("frecuencia_reunion"))
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div class='regla-titulo'>🏛 Comité</div>", unsafe_allow_html=True)
+
+    mostrar_item("Presidenta", reglamento.get("presidenta"))
+    mostrar_item("Secretaria", reglamento.get("secretaria"))
+    mostrar_item("Tesorera", reglamento.get("tesorera"))
+    mostrar_item("Responsable de llave", reglamento.get("responsable_llave"))
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div class='regla-titulo'>🧾 Asistencia</div>", unsafe_allow_html=True)
+
+    mostrar_item("Multa por ausencia", reglamento.get("multa_ausencia"))
+    mostrar_item("Razones sin multa", reglamento.get("razones_sin_multa"))
+    mostrar_item("Depósito mínimo", reglamento.get("deposito_minimo"))
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div class='regla-titulo'>💰 Préstamos</div>", unsafe_allow_html=True)
+
+    mostrar_item("Interés por cada $10", reglamento.get("interes_por_10"))
+    mostrar_item("Monto máximo", reglamento.get("max_prestamo"))
+    mostrar_item("Plazo máximo", reglamento.get("max_plazo"))
+    mostrar_item("Un solo préstamo activo", "Sí" if reglamento.get("un_solo_prestamo") else "No")
+    mostrar_item("Evaluación de monto y plazo", "Sí" if reglamento.get("evaluacion_monto_plazo") else "No")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div class='regla-titulo'>🔄 Ciclo</div>", unsafe_allow_html=True)
+
+    mostrar_item("Inicio del ciclo", reglamento.get("fecha_inicio_ciclo"))
+    mostrar_item("Fin del ciclo", reglamento.get("fecha_fin_ciclo"))
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div class='regla-titulo'>⭐ Meta social</div>", unsafe_allow_html=True)
+    mostrar_item("Meta social", reglamento.get("meta_social"))
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div class='regla-titulo'>📌 Otras reglas</div>", unsafe_allow_html=True)
+    mostrar_item("Otras reglas", reglamento.get("otras_reglas"))
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
         # -------------------------
         # DESCARGAR PDF
