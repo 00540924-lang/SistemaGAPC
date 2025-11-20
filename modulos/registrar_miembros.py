@@ -22,6 +22,7 @@ def registrar_miembros():
         f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>",
         unsafe_allow_html=True
     )
+
     st.markdown(
         "<h1 style='text-align:center;'>🧍 Registro de Miembros</h1>",
         unsafe_allow_html=True
@@ -36,7 +37,6 @@ def registrar_miembros():
         telefono = st.text_input("Telefono")
         enviar = st.form_submit_button("Registrar")
 
-    # BOTÓN REGRESAR
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
@@ -49,8 +49,10 @@ def registrar_miembros():
             con = obtener_conexion()
             cursor = con.cursor()
 
-            sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
-            cursor.execute(sql, (nombre, dui, telefono))
+            cursor.execute(
+                "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
+                (nombre, dui, telefono)
+            )
             con.commit()
 
             id_miembro = cursor.lastrowid
@@ -62,7 +64,7 @@ def registrar_miembros():
             con.commit()
 
             msg = st.success("Miembro registrado correctamente ✔️")
-            time.sleep(1)
+            time.sleep(2)
             msg.empty()
 
         except Exception as e:
@@ -76,7 +78,7 @@ def registrar_miembros():
                 pass
 
     # ================================
-    # MOSTRAR MIEMBROS EN TABLA HTML ESTILIZADA
+    # MOSTRAR MIEMBROS
     # ================================
     st.markdown(
         f"<h2 style='text-align:center;'>📝 Miembros registrados en {nombre_grupo}</h2>",
@@ -98,58 +100,76 @@ def registrar_miembros():
 
         if resultados:
 
-            # Encabezado de la tabla con estilo
-            st.markdown("""
-                <style>
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 15px;
-                    }
-                    th, td {
-                        border: 1px solid #ccc;
-                        padding: 8px;
-                        text-align: center;
-                    }
-                    th {
-                        background-color: #f2f2f2;
-                        font-weight: bold;
-                    }
-                    tr:nth-child(even) {
-                        background-color: #fafafa;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
+            df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
+            df.index = df.index + 1
+            df.index.name = "No."
 
-            # Crear encabezado manual
-            st.markdown("""
-                <table>
-                    <tr>
-                        <th>No.</th>
-                        <th>Nombre</th>
-                        <th>DUI</th>
-                        <th>Teléfono</th>
-                        <th>Acciones</th>
-                    </tr>
-                </table>
-            """, unsafe_allow_html=True)
+            # ================================
+            # TABLA HTML PERSONALIZADA
+            # ================================
+            tabla_html = """
+            <style>
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 16px;
+                }
+                th, td {
+                    border: 1px solid #cfcfcf;
+                    padding: 8px;
+                    text-align: center;
+                }
+                th {
+                    background-color: #f5f5f5;
+                    font-weight: bold;
+                }
+                button {
+                    background-color: #ff4b4b;
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                }
+                button:hover {
+                    background-color: #d93636;
+                }
+            </style>
+            <table>
+                <tr>
+                    <th>No.</th>
+                    <th>Nombre</th>
+                    <th>DUI</th>
+                    <th>Teléfono</th>
+                    <th>Acciones</th>
+                </tr>
+            """
 
-            # Filas con botones
-            for idx, row in enumerate(resultados, start=1):
-                id_miembro = row[0]
-                nombre = row[1]
-                dui = row[2]
-                telefono = row[3]
+            for idx, row in df.iterrows():
+                tabla_html += f"""
+                <tr>
+                    <td>{idx}</td>
+                    <td>{row['Nombre']}</td>
+                    <td>{row['DUI']}</td>
+                    <td>{row['Teléfono']}</td>
+                    <td>
+                        <form action="" method="post">
+                            <button name="eliminar_{row['ID']}">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                """
 
-                col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
+            tabla_html += "</table>"
 
-                col1.write(f"{idx}")
-                col2.write(nombre)
-                col3.write(dui)
-                col4.write(telefono)
+            st.html(tabla_html)
 
-                if col5.button("🗑️ Eliminar", key=f"del_{id_miembro}"):
-                    eliminar_miembro(id_miembro, id_grupo)
+            # ================================
+            # DETECCIÓN DE BOTONES ELIMINAR
+            # ================================
+            for idx, row in df.iterrows():
+                if f"eliminar_{row['ID']}" in st.session_state:
+                    eliminar_miembro(row["ID"], id_grupo)
                     st.rerun()
 
         else:
@@ -162,9 +182,9 @@ def registrar_miembros():
         st.error(f"Error al mostrar miembros: {e}")
 
 
-# ========================================================
+# ================================================
 # FUNCIÓN PARA ELIMINAR MIEMBRO
-# ========================================================
+# ================================================
 def eliminar_miembro(id_miembro, id_grupo):
     try:
         con = obtener_conexion()
@@ -188,4 +208,3 @@ def eliminar_miembro(id_miembro, id_grupo):
             con.close()
         except:
             pass
-
