@@ -101,16 +101,21 @@ def mostrar_caja(id_grupo):
         conn.commit()
         st.success("✅ Movimiento de caja guardado con éxito.")
 
-    # ===============================
-    # 7. Historial
+        # ===============================
+    # 7. HISTORIAL BONITO
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
 
     st.info("Si desea ver todos los registros, deje la fecha vacía.")
 
-    fecha_filtro = st.date_input("📅 Filtrar por fecha específica (opcional)", key="filtro_caja")
+    fecha_filtro = st.date_input(
+        "📅 Filtrar por fecha específica (opcional)",
+        value=None,
+        key="filtro_caja"
+    )
 
+    # Consulta SQL
     if fecha_filtro:
         cursor.execute("""
             SELECT *
@@ -128,11 +133,76 @@ def mostrar_caja(id_grupo):
 
     registros = cursor.fetchall()
 
-    if registros:
-        df = pd.DataFrame(registros)
-        st.dataframe(df, use_container_width=True)
+    if not registros:
+        st.warning("No hay registros disponibles para este filtro.")
     else:
-        st.info("No hay registros para mostrar.")
+        for r in registros:
+            st.markdown("""
+                <div style="
+                    background:#F8F9FF;
+                    padding:20px;
+                    border-radius:12px;
+                    margin-bottom:15px;
+                    border-left: 6px solid #4C3A60;
+                ">
+                    <h3 style="margin:0; color:#4C3A60;">📅 {fecha}</h3>
+                    <p style="margin:4px 0 10px; color:#6D4C41;">Registro de caja del grupo</p>
+
+                    <div style="display:flex; gap:20px;">
+
+                        <div style="
+                            flex:1;
+                            background:#E8FFF3;
+                            padding:15px;
+                            border-radius:10px;
+                            border:1px solid #B6F2D0;
+                        ">
+                            <h4 style="color:#15653B; margin:0;">🟩 Entradas</h4>
+                            <p><b>Multas:</b> ${multa}</p>
+                            <p><b>Ahorros:</b> ${ahorros}</p>
+                            <p><b>Otras actividades:</b> ${act}</p>
+                            <p><b>Préstamos pagados:</b> ${pp}</p>
+                            <p><b>Otros ingresos:</b> ${oi}</p>
+                            <p><b>Total entrada:</b> <span style="color:#0B893E;"><b>${te}</b></span></p>
+                        </div>
+
+                        <div style="
+                            flex:1;
+                            background:#FFECEC;
+                            padding:15px;
+                            border-radius:10px;
+                            border:1px solid #F7C0C0;
+                        ">
+                            <h4 style="color:#B22424; margin:0;">🟥 Salidas</h4>
+                            <p><b>Retiros ahorros:</b> ${ra}</p>
+                            <p><b>Desembolsos:</b> ${des}</p>
+                            <p><b>Gastos del grupo:</b> ${gg}</p>
+                            <p><b>Total salida:</b> <span style="color:#C21818;"><b>${ts}</b></span></p>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top:15px;">⚖️ Saldo final: 
+                        <span style="color:{saldo_color};">
+                            <b>${saldo}</b>
+                        </span>
+                    </h3>
+                </div>
+            """.format(
+                fecha=r["fecha"],
+                multa=r["multas"],
+                ahorros=r["ahorros"],
+                act=r["otras_actividades"],
+                pp=r["pago_prestamos"],
+                oi=r["otros_ingresos"],
+                te=r["total_entrada"],
+                ra=r["retiro_ahorros"],
+                des=r["desembolso"],
+                gg=r["gastos_grupo"],
+                ts=r["total_salida"],
+                saldo=r["saldo_cierre"],
+                saldo_color="#008000" if r["saldo_cierre"] >= 0 else "#C21818"
+            ), unsafe_allow_html=True)
+
 
     # ===============================
     # 8. Regresar
