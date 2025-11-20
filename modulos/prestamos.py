@@ -11,7 +11,7 @@ def get_connection():
         host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
         user="uiazxdhtd3r8o7uv",
         password="uGjZ9MXWemv7vPsjOdA5",
-        database="sistemagapc"
+        database="bzn5gsi7ken7lufcglbg"
     )
 
 # ==========================================
