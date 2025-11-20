@@ -21,13 +21,6 @@ def registrar_miembros():
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
     # ================================
-    # RECARGAR SI ES NECESARIO
-    # ================================
-    if st.session_state["recargar"]:
-        st.session_state["recargar"] = False
-        st.experimental_rerun()
-
-    # ================================
     # TITULOS CENTRADOS
     # ================================
     st.markdown(f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
@@ -59,6 +52,7 @@ def registrar_miembros():
             con.commit()
             st.success("Miembro registrado correctamente ✔️")
             time.sleep(1)
+            # Marcamos que necesitamos recargar
             st.session_state["recargar"] = True
         except Exception as e:
             st.error(f"Error: {e}")
@@ -86,23 +80,17 @@ def registrar_miembros():
             st.info("Aún no hay miembros en este grupo.")
             return
 
-        # -------------------------------
+        # ================================
         # TÍTULO DE LA LISTA
-        # -------------------------------
+        # ================================
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
-        # -------------------------------
+        # ================================
         # Añadir columna No. comenzando desde 1
-        # -------------------------------
-        df = df.reset_index(drop=True)
-        df.index += 1
-        df_display = df.drop(columns="ID")
-        df_display.insert(0, "No.", df.index)
-
-        # -------------------------------
-        # Mostrar tabla con Streamlit nativo
-        # -------------------------------
-        st.dataframe(df_display, use_container_width=True)
+        # ================================
+        df_display = df.copy()
+        df_display.insert(0, "No.", range(1, len(df_display) + 1))
+        st.dataframe(df_display.drop(columns="ID"), use_container_width=True)
 
         # ================================
         # Seleccionar miembro para acciones
@@ -112,7 +100,6 @@ def registrar_miembros():
 
         if seleccionado:
             miembro = miembro_dict[seleccionado]
-
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Editar Miembro"):
@@ -122,6 +109,7 @@ def registrar_miembros():
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(1)
+                    # Marcamos recarga para que la lista se actualice
                     st.session_state["recargar"] = True
 
     finally:
@@ -177,3 +165,4 @@ def editar_miembro(row):
         finally:
             cursor.close()
             con.close()
+
