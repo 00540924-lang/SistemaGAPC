@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import datetime
-import time
 
 
 # =====================================================
@@ -77,8 +76,6 @@ def prestamos_modulo():
 
             con.commit()
             st.success("✅ Préstamo registrado correctamente")
-            time.sleep(0.5)
-            st.experimental_rerun()
 
         finally:
             cursor.close()
@@ -88,6 +85,7 @@ def prestamos_modulo():
     #   MOSTRAR LISTA DE PRÉSTAMOS
     # =====================================================
     mostrar_lista_prestamos(id_grupo)
+
 
 
 # =====================================================
@@ -124,28 +122,51 @@ def mostrar_lista_prestamos(id_grupo):
     st.subheader("📋 Préstamos registrados")
     st.dataframe(df, use_container_width=True)
 
-    # Dropdown para seleccionar préstamo
-    prestamo_opciones = {f"{row['Miembro']} - ${row['Monto']} (ID {row['ID']})": row["ID"] for _, row in df.iterrows()}
+    prestamo_opciones = {
+        f"{row['Miembro']} - ${row['Monto']} (ID {row['ID']})": row["ID"]
+        for _, row in df.iterrows()
+    }
+
     prestamo_sel = st.selectbox("Selecciona un préstamo para registrar pagos:", list(prestamo_opciones.keys()))
 
     if prestamo_sel:
         mostrar_formulario_pagos(prestamo_opciones[prestamo_sel])
 
 
+
 # =====================================================
-#   FORMULARIO DE PAGOS
+#   FORMULARIO DE PAGOS CORREGIDO
 # =====================================================
 def mostrar_formulario_pagos(id_prestamo):
 
     st.markdown("<h3>💵 Registrar un pago</h3>", unsafe_allow_html=True)
 
+    # Estados para limpiar después de guardar
+    if "pago_form" not in st.session_state:
+        st.session_state.pago_form = {
+            "numero_pago": 1,
+            "fecha_pago": datetime.date.today(),
+            "capital": 0.01,
+            "interes": 0.0,
+            "estado": "Pendiente"
+        }
+
     with st.form(f"form_pago_{id_prestamo}"):
 
-        numero_pago = st.number_input("Número de pago", min_value=1, step=1)
-        fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
-        capital = st.number_input("Capital", min_value=0.01, step=0.01)
-        interes = st.number_input("Interés", min_value=0.00, step=0.01)
-        estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
+        numero_pago = st.number_input("Número de pago", min_value=1, step=1,
+                                      value=st.session_state.pago_form["numero_pago"])
+
+        fecha_pago = st.date_input("Fecha del pago",
+                                   value=st.session_state.pago_form["fecha_pago"])
+
+        capital = st.number_input("Capital", min_value=0.01, step=0.01,
+                                  value=st.session_state.pago_form["capital"])
+
+        interes = st.number_input("Interés", min_value=0.00, step=0.01,
+                                  value=st.session_state.pago_form["interes"])
+
+        estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"],
+                                   index=["Pendiente", "Pagado"].index(st.session_state.pago_form["estado"]))
 
         guardar = st.form_submit_button("💾 Registrar Pago")
 
@@ -168,9 +189,17 @@ def mostrar_formulario_pagos(id_prestamo):
 
             con.commit()
             st.success("💰 Pago registrado correctamente")
-            time.sleep(0.5)
-            st.experimental_rerun()
+
+            # Limpiar formulario para que aparezca limpio
+            st.session_state.pago_form = {
+                "numero_pago": 1,
+                "fecha_pago": datetime.date.today(),
+                "capital": 0.01,
+                "interes": 0.0,
+                "estado": "Pendiente"
+            }
 
         finally:
             cursor.close()
             con.close()
+
