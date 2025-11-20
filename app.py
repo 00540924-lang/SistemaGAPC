@@ -78,8 +78,8 @@ elif pagina == "multas":
 
 # ---- PRESTAMOS ----
 elif pagina == "prestamos":
-    from modulos.prestamos import prestamos_modulo
-    prestamos_modulo()
+        from modulos.prestamos import prestamos_modulo
+        prestamos_modulo()
 
 # ---- GAPC (solo rol Institucional) ----
 elif pagina == "GAPC":
