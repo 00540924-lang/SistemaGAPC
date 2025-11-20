@@ -28,13 +28,13 @@ def mostrar_reglamento():
     )
 
     # ============================
-    # CONEXIÓN A BD CON MANEJO DE ERRORES
+    # CONEXIÓN A BD (CREDENCIALES CORRECTAS)
     # ============================
     try:
         conn = mysql.connector.connect(
             host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-            user="u1ok2gqomnp9hrku",
-            password="VWvN6Pw7wKdfDU9uINZT",
+            user="uiazxdhtd3r8o7uv",
+            password="uGjZ9MXWemv7vPsjOdA5",
             database="bzn5gsi7ken7lufcglbg"
         )
         cursor = conn.cursor(dictionary=True)
@@ -161,4 +161,3 @@ def mostrar_reglamento():
             st.error(f"Error al guardar: {e}")
 
     conn.close()
-
