@@ -54,7 +54,12 @@ def registrar_miembros():
             finally:
                 cursor.close()
                 con.close()
-
+ # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
     # ================================
     # Mostrar tabla y acciones
     # ================================
