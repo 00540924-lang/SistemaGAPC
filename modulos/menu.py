@@ -146,6 +146,7 @@ div.stButton > button:hover {
                 if st.button(texto, key=f"btn_{modulo}"):
                     st.session_state.page = modulo
                     st.rerun()
+                    return
             cont.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
