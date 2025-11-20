@@ -15,7 +15,7 @@ def mostrar_gapc():
         st.error("❌ No tienes permisos para ver este módulo.")
         return
 
-    st.title("📋 Lista de Grupos por Distrito")
+    st.title("📋 Lista de grupos por distrito")
 
     # ===============================
     # 1. Conexión a la BD
