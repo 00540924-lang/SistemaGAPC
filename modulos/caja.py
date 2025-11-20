@@ -102,16 +102,15 @@ def mostrar_caja(id_grupo):
         st.success("✅ Movimiento de caja guardado con éxito.")
 
     # ===============================
-    # 7. HISTORIAL BONITO
+    # 7. HISTORIAL ESTILIZADO
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
 
     st.info("Si desea ver todos los registros, deje la fecha vacía.")
 
-    st.write("📅 Filtrar por fecha específica (opcional)")
     fecha_texto = st.text_input(
-        "Formato: AAAA-MM-DD (dejar vacío para ver todo)",
+        "📅 Filtrar por fecha (opcional) — Formato: AAAA-MM-DD",
         placeholder="Ejemplo: 2025-11-20"
     )
 
@@ -142,62 +141,75 @@ def mostrar_caja(id_grupo):
 
     if not registros:
         st.warning("No hay registros disponibles para este filtro.")
-    else:
-        for r in registros:
+        return
 
-            saldo_color = "#008000" if r["saldo_cierre"] >= 0 else "#C21818"
+    # ===============================
+    # TARJETAS MODERNAS
+    # ===============================
+    for r in registros:
 
-            st.markdown(f"""
+        saldo_color = "#008000" if r["saldo_cierre"] >= 0 else "#C21818"
+
+        st.markdown(f"""
+            <div style="
+                background:#FFFFFF;
+                padding:22px;
+                border-radius:15px;
+                margin-bottom:18px;
+                border: 2px solid #ECECEC;
+                width:100%;
+            ">
+                <h3 style="margin:0; color:#4C3A60;">📅 {r["fecha"]}</h3>
+                <p style="margin:4px 0 12px; color:#6D4C41;">Movimiento registrado</p>
+
                 <div style="
-                    background:#F8F9FF;
-                    padding:20px;
-                    border-radius:12px;
-                    margin-bottom:15px;
-                    border-left: 6px solid #4C3A60;
+                    display:flex;
+                    flex-wrap:wrap;
+                    gap:20px;
+                    width:100%;
                 ">
-                    <h3 style="margin:0; color:#4C3A60;">📅 {r["fecha"]}</h3>
-                    <p style="margin:4px 0 10px; color:#6D4C41;">Registro de caja del grupo</p>
 
-                    <div style="display:flex; gap:20px;">
-
-                        <div style="
-                            flex:1;
-                            background:#E8FFF3;
-                            padding:15px;
-                            border-radius:10px;
-                            border:1px solid #B6F2D0;
-                        ">
-                            <h4 style="color:#15653B; margin:0;">🟩 Entradas</h4>
-                            <p><b>Multas:</b> ${r["multas"]}</p>
-                            <p><b>Ahorros:</b> ${r["ahorros"]}</p>
-                            <p><b>Otras actividades:</b> ${r["otras_actividades"]}</p>
-                            <p><b>Préstamos pagados:</b> ${r["pago_prestamos"]}</p>
-                            <p><b>Otros ingresos:</b> ${r["otros_ingresos"]}</p>
-                            <p><b>Total entrada:</b> <span style="color:#0B893E;"><b>${r["total_entrada"]}</b></span></p>
-                        </div>
-
-                        <div style="
-                            flex:1;
-                            background:#FFECEC;
-                            padding:15px;
-                            border-radius:10px;
-                            border:1px solid #F7C0C0;
-                        ">
-                            <h4 style="color:#B22424; margin:0;">🟥 Salidas</h4>
-                            <p><b>Retiros ahorros:</b> ${r["retiro_ahorros"]}</p>
-                            <p><b>Desembolsos:</b> ${r["desembolso"]}</p>
-                            <p><b>Gastos del grupo:</b> ${r["gastos_grupo"]}</p>
-                            <p><b>Total salida:</b> <span style="color:#C21818;"><b>${r["total_salida"]}</b></span></p>
-                        </div>
+                    <div style="
+                        flex:1;
+                        min-width:280px;
+                        background:#E8FFF3;
+                        padding:15px;
+                        border-radius:12px;
+                        border:1px solid #B6F2D0;
+                    ">
+                        <h4 style="color:#15653B; margin:0;">🟩 Entradas</h4>
+                        <p><b>Multas:</b> ${r["multas"]}</p>
+                        <p><b>Ahorros:</b> ${r["ahorros"]}</p>
+                        <p><b>Otras actividades:</b> ${r["otras_actividades"]}</p>
+                        <p><b>Préstamos pagados:</b> ${r["pago_prestamos"]}</p>
+                        <p><b>Otros ingresos:</b> ${r["otros_ingresos"]}</p>
+                        <p><b>Total entrada:</b> <span style="color:#0B893E;"><b>${r["total_entrada"]}</b></span></p>
                     </div>
 
-                    <h3 style="margin-top:15px;">⚖️ Saldo final:
-                        <span style="color:{saldo_color};">
-                            <b>${r["saldo_cierre"]}</b>
-                        </span>
-                    </h3>
+                    <div style="
+                        flex:1;
+                        min-width:280px;
+                        background:#FFECEC;
+                        padding:15px;
+                        border-radius:12px;
+                        border:1px solid #F7C0C0;
+                    ">
+                        <h4 style="color:#B22424; margin:0;">🟥 Salidas</h4>
+                        <p><b>Retiros ahorros:</b> ${r["retiro_ahorros"]}</p>
+                        <p><b>Desembolsos:</b> ${r["desembolso"]}</p>
+                        <p><b>Gastos del grupo:</b> ${r["gastos_grupo"]}</p>
+                        <p><b>Total salida:</b> <span style="color:#C21818;"><b>${r["total_salida"]}</b></span></p>
+                    </div>
+
                 </div>
-            """, unsafe_allow_html=True)
+
+                <h3 style="margin-top:15px;">⚖️ Saldo final:
+                    <span style="color:{saldo_color};">
+                        <b>${r["saldo_cierre"]}</b>
+                    </span>
+                </h3>
+            </div>
+        """, unsafe_allow_html=True)
 
     # ===============================
     # 8. Regresar
