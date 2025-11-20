@@ -23,7 +23,7 @@ def prestamos_modulo():
     st.title("📄 Registro de Préstamos")
 
     # ==============================
-    # Validar que existe un grupo
+    # Validar grupo
     # ==============================
     id_grupo = st.session_state.get("id_grupo", None)
     if not id_grupo:
@@ -40,7 +40,7 @@ def prestamos_modulo():
         cursor.execute("""
             SELECT Miembros.id_miembro, Miembros.Nombre
             FROM Grupomiembros
-            INNER JOIN Miembros ON Grupomiembros.id_miembro = Miembros.id_miembro
+            INNER JOIN Miembros ON Miembros.id_miembro = Grupomiembros.id_miembro
             WHERE Grupomiembros.id_grupo = %s
         """, (id_grupo,))
 
@@ -88,7 +88,7 @@ def prestamos_modulo():
             st.error(f"❌ Error al guardar en la base de datos: {e}")
 
     # ======================================
-    # PLAN DE PAGOS (simple)
+    # PLAN DE PAGOS
     # ======================================
     st.subheader("📅 Plan de Pagos")
 
@@ -110,3 +110,4 @@ def prestamos_modulo():
         c2.number_input(f"Monto pago {i+1}", min_value=0.0, key=f"monto_pago_{i}")
 
     conn.close()
+
