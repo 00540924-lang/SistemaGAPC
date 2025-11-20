@@ -14,7 +14,6 @@ def registrar_miembros():
     st.markdown(f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align:center;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
-    # Formulario para nuevo miembro
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
@@ -57,12 +56,42 @@ def registrar_miembros():
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
         else:
+            # Tabla HTML como antes
+            tabla_html = """
+            <style>
+                table { width: 100%; border-collapse: collapse; font-size: 16px; }
+                th, td { border: 1px solid #cfcfcf; padding: 8px; text-align: center; }
+                th { background-color: #f5f5f5; font-weight: bold; }
+            </style>
+            <table>
+                <tr>
+                    <th>No.</th>
+                    <th>Nombre</th>
+                    <th>DUI</th>
+                    <th>Teléfono</th>
+                    <th>Acciones</th>
+                </tr>
+            """
             for idx, row in df.iterrows():
-                st.write(f"**{row['Nombre']}** | {row['DUI']} | {row['Teléfono']}")
+                tabla_html += f"""
+                <tr>
+                    <td>{idx+1}</td>
+                    <td>{row['Nombre']}</td>
+                    <td>{row['DUI']}</td>
+                    <td>{row['Teléfono']}</td>
+                    <td>Streamlit buttons here</td>
+                </tr>
+                """
+            tabla_html += "</table>"
+            st.markdown(tabla_html, unsafe_allow_html=True)
+
+            # Botones de Streamlit por fila debajo de la tabla
+            for idx, row in df.iterrows():
                 col1, col2 = st.columns([1,1])
                 with col1:
                     if st.button(f"Editar {row['ID']}", key=f"editar_{row['ID']}"):
                         editar_miembro(row)
+                        st.experimental_rerun()
                 with col2:
                     if st.button(f"Eliminar {row['ID']}", key=f"eliminar_{row['ID']}"):
                         eliminar_miembro(row["ID"], id_grupo)
@@ -83,8 +112,6 @@ def eliminar_miembro(id_miembro, id_grupo):
         cursor.execute("DELETE FROM Miembros WHERE id_miembro = %s", (id_miembro,))
         con.commit()
         st.success("Miembro eliminado ✔️")
-    except Exception as e:
-        st.error(f"Error al eliminar miembro: {e}")
     finally:
         cursor.close()
         con.close()
@@ -97,7 +124,6 @@ def editar_miembro(row):
         dui = st.text_input("DUI", value=row['DUI'])
         telefono = st.text_input("Teléfono", value=row['Teléfono'])
         actualizar = st.form_submit_button("Actualizar")
-
     if actualizar:
         try:
             con = obtener_conexion()
@@ -108,8 +134,6 @@ def editar_miembro(row):
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(1)
             st.experimental_rerun()
-        except Exception as e:
-            st.error(f"Error al actualizar miembro: {e}")
         finally:
             cursor.close()
             con.close()
