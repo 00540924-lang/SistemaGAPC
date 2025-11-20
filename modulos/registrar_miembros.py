@@ -26,7 +26,7 @@ def registrar_miembros():
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
-        telefono = st.text_input("Telefono")
+        telefono = st.text_input("Teléfono")
         enviar = st.form_submit_button("Registrar")
 
     if enviar:
@@ -54,7 +54,7 @@ def registrar_miembros():
             con.close()
 
     # ================================
-    # MOSTRAR MIEMBROS CON ESTILO DE TABLA
+    # MOSTRAR MIEMBROS CON TABLA ALINEADA
     # ================================
     try:
         con = obtener_conexion()
@@ -72,48 +72,38 @@ def registrar_miembros():
             st.info("Aún no hay miembros en este grupo.")
         else:
             # -------------------------------
-            # Estilo CSS para tabla con líneas
+            # CSS para simular bordes de tabla
             # -------------------------------
             st.markdown("""
                 <style>
-                    .tabla th, .tabla td {
-                        border: 1px solid #ccc;
-                        padding: 6px 10px;
-                        text-align: center;
-                    }
-                    .tabla th {
-                        background-color: #f5f5f5;
-                    }
+                .fila, .cabecera {
+                    border-bottom: 1px solid #ccc;
+                    padding: 4px 0;
+                }
+                .cabecera {
+                    font-weight: bold;
+                    border-bottom: 2px solid #999;
+                }
                 </style>
             """, unsafe_allow_html=True)
 
             # -------------------------------
-            # Cabecera de la tabla
+            # Cabecera
             # -------------------------------
-            st.markdown('<table class="tabla">', unsafe_allow_html=True)
-            st.markdown('<tr><th>No.</th><th>Nombre</th><th>DUI</th><th>Teléfono</th><th>Acciones</th></tr>', unsafe_allow_html=True)
+            col_headers = st.columns([1,3,2,2,2])
+            headers = ["No.", "Nombre", "DUI", "Teléfono", "Acciones"]
+            for col, header in zip(col_headers, headers):
+                col.markdown(f"<div class='cabecera'>{header}</div>", unsafe_allow_html=True)
 
             # -------------------------------
-            # Filas de la tabla
+            # Filas de datos con botones
             # -------------------------------
             for idx, row in df.iterrows():
-                st.markdown(f'''
-                    <tr>
-                        <td>{idx+1}</td>
-                        <td>{row["Nombre"]}</td>
-                        <td>{row["DUI"]}</td>
-                        <td>{row["Teléfono"]}</td>
-                        <td id="acciones_{row['ID']}"></td>
-                    </tr>
-                ''', unsafe_allow_html=True)
-
-            st.markdown('</table>', unsafe_allow_html=True)
-
-            # -------------------------------
-            # Botones Streamlit para acciones
-            # -------------------------------
-            for idx, row in df.iterrows():
-                cols = st.columns([5,1,1,1,2])
+                cols = st.columns([1,3,2,2,2])
+                cols[0].markdown(f"<div class='fila'>{idx+1}</div>", unsafe_allow_html=True)
+                cols[1].markdown(f"<div class='fila'>{row['Nombre']}</div>", unsafe_allow_html=True)
+                cols[2].markdown(f"<div class='fila'>{row['DUI']}</div>", unsafe_allow_html=True)
+                cols[3].markdown(f"<div class='fila'>{row['Teléfono']}</div>", unsafe_allow_html=True)
                 with cols[4]:
                     if st.button("Editar", key=f"editar_{row['ID']}"):
                         editar_miembro(row)
