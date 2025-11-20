@@ -149,55 +149,6 @@ def pagina_grupos():
                 cursor.close()
                 conn.close()
 
-    st.write("---")
-
-    # ================= LISTAR MIEMBROS DEL GRUPO =================
-    st.subheader("🧑‍🤝‍🧑 Miembros por Grupo")
-    grupo_seleccionado = st.selectbox(
-        "Selecciona un grupo para ver sus miembros",
-        options=[g["id_grupo"] for g in grupos],
-        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x),
-        key="grupo_lista"
-    )
-
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT M.id_miembro, M.nombre
-            FROM Grupomiembros GM
-            JOIN Miembros M ON GM.id_miembro = M.id_miembro
-            WHERE GM.id_grupo = %s
-        """, (grupo_seleccionado,))
-        miembros = cursor.fetchall()
-    finally:
-        cursor.close()
-        conn.close()
-
-    if miembros:
-        for m in miembros:
-            col1, col2 = st.columns([4, 1])
-            with col1:
-                st.write(f"✔️ {m['nombre']}")
-            with col2:
-                if st.button("❌", key=f"del_{grupo_seleccionado}_{m['id_miembro']}"):
-                    mensaje = st.empty()
-                    try:
-                        conn = obtener_conexion()
-                        cursor = conn.cursor()
-                        cursor.execute(
-                            "DELETE FROM Grupomiembros WHERE id_grupo=%s AND id_miembro=%s",
-                            (grupo_seleccionado, m['id_miembro'])
-                        )
-                        conn.commit()
-                        mensaje.success(f"{m['nombre']} eliminado del grupo.")
-                        time.sleep(3)
-                        mensaje.empty()
-                    finally:
-                        cursor.close()
-                        conn.close()
-    else:
-        st.info("Este grupo no tiene miembros.")
 
     st.write("---")
 
