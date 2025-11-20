@@ -84,7 +84,7 @@ def mostrar_caja(id_grupo):
 
         cursor.execute("""
             INSERT INTO Caja (
-                id_grupo, fecha, multas, ahorros, otras_actividades, 
+                id_grupo, fecha, multas, ahorros, otras_actividades,
                 pago_prestamos, otros_ingresos, total_entrada,
                 retiro_ahorros, desembolso, gastos_grupo, total_salida,
                 saldo_cierre
@@ -109,21 +109,27 @@ def mostrar_caja(id_grupo):
 
     st.info("Si desea ver todos los registros, deje la fecha vacía.")
 
-    # Permitir fecha vacía
-    fecha_filtro = st.date_input(
-        "📅 Filtrar por fecha específica (opcional)",
-        value=None,
-        key="filtro_caja"
+    st.write("📅 Filtrar por fecha específica (opcional)")
+    fecha_texto = st.text_input(
+        "Formato: AAAA-MM-DD (dejar vacío para ver todo)",
+        placeholder="Ejemplo: 2025-11-20"
     )
 
-    # Consulta SQL
-    if fecha_filtro:
+    # Procesar filtro
+    if fecha_texto.strip():
+        try:
+            fecha_filtro = pd.to_datetime(fecha_texto).date()
+        except:
+            st.error("❌ Formato inválido. Use AAAA-MM-DD.")
+            return
+
         cursor.execute("""
             SELECT *
             FROM Caja
             WHERE id_grupo = %s AND fecha = %s
             ORDER BY fecha DESC
         """, (id_grupo, fecha_filtro))
+
     else:
         cursor.execute("""
             SELECT *
@@ -185,7 +191,7 @@ def mostrar_caja(id_grupo):
                         </div>
                     </div>
 
-                    <h3 style="margin-top:15px;">⚖️ Saldo final: 
+                    <h3 style="margin-top:15px;">⚖️ Saldo final:
                         <span style="color:{saldo_color};">
                             <b>${r["saldo_cierre"]}</b>
                         </span>
@@ -203,4 +209,3 @@ def mostrar_caja(id_grupo):
 
     cursor.close()
     conn.close()
-
