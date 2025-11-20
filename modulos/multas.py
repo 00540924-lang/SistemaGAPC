@@ -73,6 +73,7 @@ def multas_modulo():
         finally:
             cursor.close()
             con.close()
+            st.write("---")
     # ------------------ BOTÓN REGRESAR ------------------
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
