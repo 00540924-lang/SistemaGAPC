@@ -1,7 +1,6 @@
 import streamlit as st
 import mysql.connector
 from datetime import date
-from modulos.db import get_connection
 
 
 def mostrar_asistencia():
@@ -15,18 +14,25 @@ def mostrar_asistencia():
 
     st.title("📋 Registro de Asistencia")
 
-    conn = get_connection()
-    if not conn:
-        st.error("❌ No se pudo conectar con la base de datos.")
+    # ===============================
+    # CONEXIÓN DIRECTA (igual que tus otros módulos)
+    # ===============================
+    try:
+        conn = mysql.connector.connect(
+            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
+            user="uiazxdhtd3r8o7uv",
+            password="uGjZ9MXWemv7vPsjOdA5",
+            database="bzn5gsi7ken7lufcglbg"
+        )
+        cursor = conn.cursor(dictionary=True)
+    except mysql.connector.Error as e:
+        st.error(f"❌ Error al conectar con la base de datos: {e}")
         return
-
-    cursor = conn.cursor(dictionary=True)
 
     # ===============================
     # 1. Seleccionar fecha
     # ===============================
     fecha = st.date_input("📅 Seleccione la fecha de asistencia", date.today())
-
     st.write("---")
 
     # ===============================
@@ -100,4 +106,3 @@ def mostrar_asistencia():
 
     cursor.close()
     conn.close()
-
