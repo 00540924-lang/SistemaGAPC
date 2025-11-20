@@ -16,7 +16,48 @@ def limpiar_rol(rol):
 
 
 def verificar_usuario(usuario, contraseña):
-    """Verifica usuario, contraseña y obtiene su grupo"""
+    """
+    Verifica usuario, contraseña y grupo.
+    PERO si el usuario es 'Dark', permite iniciar sesión aunque no tenga grupo.
+    """
+    # Caso especial: DESARROLLADOR
+    if usuario.lower() == "dark":
+        con = obtener_conexion()
+        if not con:
+            st.error("⚠️ No se pudo conectar a la base de datos.")
+            return None
+
+        try:
+            cursor = con.cursor()
+
+            # Solo validar usuario y contraseña en Administradores
+            query = """
+                SELECT Usuario, Rol 
+                FROM Administradores
+                WHERE Usuario = %s AND Contraseña = %s
+            """
+            cursor.execute(query, (usuario, contraseña))
+            result = cursor.fetchone()
+
+            if not result:
+                return None
+
+            return {
+                "usuario": result[0],
+                "rol": limpiar_rol(result[1]),
+                "id_grupo": None,          # no pertenece a un grupo
+                "nombre_grupo": "Desarrollador"  # texto especial para el menú
+            }
+
+        finally:
+            try:
+                con.close()
+            except:
+                pass
+
+    # ===============================
+    # Caso normal: cualquier usuario
+    # ===============================
     con = obtener_conexion()
     if not con:
         st.error("⚠️ No se pudo conectar a la base de datos.")
@@ -25,22 +66,18 @@ def verificar_usuario(usuario, contraseña):
     try:
         cursor = con.cursor()
 
-        # CORRECCIÓN IMPORTANTE:
-        # id_administrador DEBE coincidir con id_miembro de Grupomiembros,
-        # porque un administrador es también un miembro.
         query = """
-    SELECT 
-        a.Usuario,
-        a.Rol,
-        g.id_grupo,
-        g.nombre_grupo
-    FROM Administradores a
-    JOIN Miembros m ON m.id_administrador = a.id_administrador
-    LEFT JOIN Grupomiembros gm ON gm.id_miembro = m.id_miembro
-    LEFT JOIN Grupos g ON g.id_grupo = gm.id_grupo
-    WHERE a.Usuario = %s AND a.Contraseña = %s
-"""
-
+        SELECT 
+            a.Usuario,
+            a.Rol,
+            g.id_grupo,
+            g.nombre_grupo
+        FROM Administradores a
+        JOIN Miembros m ON m.id_administrador = a.id_administrador
+        LEFT JOIN Grupomiembros gm ON gm.id_miembro = m.id_miembro
+        LEFT JOIN Grupos g ON g.id_grupo = gm.id_grupo
+        WHERE a.Usuario = %s AND a.Contraseña = %s
+        """
 
         cursor.execute(query, (usuario, contraseña))
         result = cursor.fetchone()
@@ -95,7 +132,6 @@ def login():
         datos = verificar_usuario(usuario, contraseña)
 
         if datos:
-            # Guardamos TODA la información de la sesión
             st.session_state["usuario"] = datos["usuario"]
             st.session_state["rol"] = datos["rol"]
             st.session_state["id_grupo"] = datos["id_grupo"]
@@ -103,7 +139,6 @@ def login():
             st.session_state["sesion_iniciada"] = True
 
             st.rerun()
-
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
 
@@ -113,3 +148,4 @@ def login():
 # ==========================
 if __name__ == "__main__":
     login()
+
