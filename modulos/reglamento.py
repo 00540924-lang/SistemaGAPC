@@ -1,236 +1,87 @@
-def mostrar_reglamento():
+import streamlit as st
+import mysql.connector
+from mysql.connector import Error
 
-    rol = st.session_state.get("rol", "").lower()
-    nombre_grupo = st.session_state.get("nombre_grupo", None)
-
-    # ---------------------------------------------------------
-    #      🟣 TITULO DINÁMICO SEGÚN EL USUARIO
-    # ---------------------------------------------------------
-    if rol == "desarrollador" or nombre_grupo is None:
-        titulo = "📜 Reglamento Interno – Acceso total (Desarrollador)"
-    else:
-        titulo = f"📜 Reglamento Interno del Grupo {nombre_grupo}"
-
-    st.markdown(
-        f"<h2 style='text-align:center; color:#4C3A60;'>{titulo}</h2>",
-        unsafe_allow_html=True
+def obtener_conexion():
+    return mysql.connector.connect(
+        host="containers-us-west-115.railway.app",
+        user="root",
+        password="EYmbgBSmzxYJuFOkquBG",
+        database="railway",
+        port=7474
     )
 
-    id_grupo = st.session_state.get("id_grupo", 1)
+def mostrar_reglamento():
 
-    # -------------------------------------------------------------------
-    #   🚀 2. CARGAR DATOS SIN BLOQUEAR EL RENDER
-    # -------------------------------------------------------------------
-    reglamento_existente = cargar_reglamento(id_grupo)
+    # ============================
+    # 1️⃣ Variables desde sesión
+    # ============================
+    id_grupo = st.session_state.get("id_grupo")
+    nombre_grupo = st.session_state.get("nombre_grupo", "No definido")
 
-    def get_val(campo, defecto=""):
-        if reglamento_existente and campo in reglamento_existente and reglamento_existente[campo] is not None:
-            return reglamento_existente[campo]
-        return defecto
+    if not id_grupo:
+        st.error("Error: No se encontró el grupo del usuario en la sesión.")
+        return
 
-    st.write("Complete o actualice el reglamento del grupo.")
+    # ============================
+    # 2️⃣ Título dinámico
+    # ============================
+    st.title(f"📘 Reglamento interno del grupo {nombre_grupo}")
 
-    # -------------------------------------------------------------------
-    #        📋 FORMULARIO COMPLETO
-    # -------------------------------------------------------------------
-    with st.form("form_reglamento"):
+    # ============================
+    # 3️⃣ Conexion
+    # ============================
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor(dictionary=True)
+    except Error as e:
+        st.error(f"❌ Error al conectar a la base de datos: {e}")
+        return
 
-        st.subheader("Información del grupo")
-        comunidad = st.text_input("Comunidad", get_val("comunidad"))
-        fecha_formacion = st.date_input("Fecha de formación",
-                                        get_val("fecha_formacion", datetime.date.today()))
+    # ============================
+    # 4️⃣ Ver si el grupo ya tiene reglamento
+    # ============================
+    cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
+    resultado = cursor.fetchone()
 
-        # -------------------------------------------------------------------
-        #                  📅 REUNIONES
-        # -------------------------------------------------------------------
-        st.subheader("Reuniones")
+    # ============================
+    # 5️⃣ Si NO existe → crear
+    # ============================
+    if not resultado:
+        st.info("Este grupo aún no tiene reglamento registrado.")
 
-        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves",
-                       "Viernes", "Sábado", "Domingo"]
+        contenido_nuevo = st.text_area("Escriba el reglamento del grupo:")
 
-        dias_guardados = []
-        if get_val("dia_reunion"):
-            dias_guardados = [d.strip() for d in get_val("dia_reunion").split(",")]
-
-        dias_reunion = st.multiselect(
-            "Día(s) de reunión",
-            options=dias_semana,
-            default=dias_guardados
-        )
-
-        hora_reunion = st.time_input(
-            "Hora de reunión",
-            value=datetime.time.fromisoformat(get_val("hora_reunion"))
-            if get_val("hora_reunion") else datetime.time(8, 0)
-        )
-
-        lugar_reunion = st.text_input("Lugar", get_val("lugar_reunion"))
-        frecuencia_reunion = st.text_input("Frecuencia", get_val("frecuencia_reunion"))
-
-        # -------------------------------------------------------------------
-        #               🏛️ COMITÉ DE DIRECCIÓN
-        # -------------------------------------------------------------------
-        st.subheader("Comité de dirección")
-        presidenta = st.text_input("Presidenta", get_val("presidenta"))
-        secretaria = st.text_input("Secretaria", get_val("secretaria"))
-        tesorera = st.text_input("Tesorera", get_val("tesorera"))
-        responsable_llave = st.text_input("Responsable de llave", get_val("responsable_llave"))
-
-        # -------------------------------------------------------------------
-        #               📌 ASISTENCIA
-        # -------------------------------------------------------------------
-        st.subheader("Asistencia")
-        multa_ausencia = st.number_input(
-            "Multa por ausencia ($)",
-            min_value=0.0,
-            step=0.5,
-            value=float(get_val("multa_ausencia", 0.0))
-        )
-
-        razones_sin_multa = st.text_area("Razones válidas de ausencia sin multa",
-                                         get_val("razones_sin_multa"))
-
-        deposito_minimo = st.number_input(
-            "Depósito mínimo por reunión ($)",
-            min_value=0.0,
-            step=0.5,
-            value=float(get_val("deposito_minimo", 0.0))
-        )
-
-        # -------------------------------------------------------------------
-        #               💵 PRÉSTAMOS
-        # -------------------------------------------------------------------
-        st.subheader("Préstamos")
-        interes_por_10 = st.number_input(
-            "Interés por cada $10 (%)",
-            min_value=0.0, step=0.5,
-            value=float(get_val("interes_por_10", 0.0))
-        )
-
-        max_prestamo = st.number_input(
-            "Monto máximo de préstamo ($)",
-            min_value=0.0, step=1.0,
-            value=float(get_val("max_prestamo", 0.0))
-        )
-
-        max_plazo = st.text_input("Plazo máximo permitido", get_val("max_plazo"))
-        un_solo_prestamo = st.checkbox(
-            "Solo un préstamo activo a la vez",
-            value=bool(get_val("un_solo_prestamo", 0))
-        )
-        evaluacion_monto_plazo = st.checkbox(
-            "Evaluar según monto y plazo",
-            value=bool(get_val("evaluacion_monto_plazo", 0))
-        )
-
-        # -------------------------------------------------------------------
-        #               🔄 CICLO
-        # -------------------------------------------------------------------
-        st.subheader("Ciclo")
-        fecha_inicio_ciclo = st.date_input("Inicio del ciclo",
-                                           get_val("fecha_inicio_ciclo", datetime.date.today()))
-        fecha_fin_ciclo = st.date_input("Fin del ciclo",
-                                        get_val("fecha_fin_ciclo", datetime.date.today()))
-
-        # -------------------------------------------------------------------
-        #               ⭐ META SOCIAL
-        # -------------------------------------------------------------------
-        st.subheader("Meta social")
-        meta_social = st.text_area("Meta social del grupo", get_val("meta_social"))
-
-        # -------------------------------------------------------------------
-        #               📌 OTRAS REGLAS
-        # -------------------------------------------------------------------
-        st.subheader("Otras reglas")
-        otras_reglas = st.text_area("Otras reglas del grupo", get_val("otras_reglas"))
-
-        guardar = st.form_submit_button("💾 Guardar Cambios")
-
-    # -------------------------------------------------------------------
-    #  💾 GUARDAR EN MYSQL
-    # -------------------------------------------------------------------
-    if guardar:
-        con = obtener_conexion()
-        cursor = con.cursor()
-
-        dias_join = ", ".join(dias_reunion)
-
-        if reglamento_existente:
-            query = """
-            UPDATE Reglamento SET
-                comunidad=%s, fecha_formacion=%s,
-                dia_reunion=%s, hora_reunion=%s, lugar_reunion=%s, frecuencia_reunion=%s,
-                presidenta=%s, secretaria=%s, tesorera=%s, responsable_llave=%s,
-                multa_ausencia=%s, razones_sin_multa=%s, deposito_minimo=%s,
-                interes_por_10=%s, max_prestamo=%s, max_plazo=%s,
-                un_solo_prestamo=%s, evaluacion_monto_plazo=%s,
-                fecha_inicio_ciclo=%s, fecha_fin_ciclo=%s,
-                meta_social=%s, otras_reglas=%s
-            WHERE id_grupo = %s
-            """
-
-            datos = (
-                comunidad, fecha_formacion,
-                dias_join, hora_reunion, lugar_reunion, frecuencia_reunion,
-                presidenta, secretaria, tesorera, responsable_llave,
-                multa_ausencia, razones_sin_multa, deposito_minimo,
-                interes_por_10, max_prestamo, max_plazo,
-                un_solo_prestamo, evaluacion_monto_plazo,
-                fecha_inicio_ciclo, fecha_fin_ciclo,
-                meta_social, otras_reglas,
-                id_grupo
+        if st.button("Guardar reglamento"):
+            cursor.execute(
+                "INSERT INTO Reglamento (id_grupo, contenido) VALUES (%s, %s)",
+                (id_grupo, contenido_nuevo)
             )
+            conexion.commit()
+            st.success("Reglamento agregado correctamente.")
+            st.rerun()
 
-            cursor.execute(query, datos)
-            con.commit()
-            st.success("✅ Reglamento actualizado correctamente.")
+    else:
+        # ============================
+        # 6️⃣ Si existe → mostrar y permitir editar
+        # ============================
+        st.subheader("Reglamento actual:")
 
-        else:
-            query = """
-            INSERT INTO Reglamento (
-                id_grupo, comunidad, fecha_formacion,
-                dia_reunion, hora_reunion, lugar_reunion, frecuencia_reunion,
-                presidenta, secretaria, tesorera, responsable_llave,
-                multa_ausencia, razones_sin_multa, deposito_minimo,
-                interes_por_10, max_prestamo, max_plazo,
-                un_solo_prestamo, evaluacion_monto_plazo,
-                fecha_inicio_ciclo, fecha_fin_ciclo,
-                meta_social, otras_reglas
+        contenido_editado = st.text_area(
+            "Puede editar el reglamento:",
+            value=resultado["contenido"],
+            height=300
+        )
+
+        if st.button("Guardar cambios"):
+            cursor.execute(
+                "UPDATE Reglamento SET contenido = %s WHERE id_grupo = %s",
+                (contenido_editado, id_grupo)
             )
-            VALUES (
-                %s, %s, %s,
-                %s, %s, %s, %s,
-                %s, %s, %s, %s,
-                %s, %s, %s,
-                %s, %s, %s,
-                %s, %s,
-                %s, %s,
-                %s, %s
-            )
-            """
+            conexion.commit()
+            st.success("Reglamento actualizado correctamente.")
+            st.rerun()
 
-            datos = (
-                id_grupo, comunidad, fecha_formacion,
-                dias_join, hora_reunion, lugar_reunion, frecuencia_reunion,
-                presidenta, secretaria, tesorera, responsable_llave,
-                multa_ausencia, razones_sin_multa, deposito_minimo,
-                interes_por_10, max_prestamo, max_plazo,
-                un_solo_prestamo, evaluacion_monto_plazo,
-                fecha_inicio_ciclo, fecha_fin_ciclo,
-                meta_social, otras_reglas
-            )
-
-            cursor.execute(query, datos)
-            con.commit()
-            st.success("✅ Reglamento creado correctamente.")
-
-        cursor.close()
-        con.close()
-
-        cargar_reglamento.clear()
-        st.rerun()
-
-    if st.button("⬅️ Regresar al menú"):
-        st.session_state["page"] = "menu"
-        st.rerun()
+    cursor.close()
+    conexion.close()
 
