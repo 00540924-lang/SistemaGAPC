@@ -1,105 +1,95 @@
 import streamlit as st
 import mysql.connector
-from datetime import date
-from modulos.config.conexion import obtener_conexion  # IMPORT CORRECTO
+import pandas as pd
+from datetime import datetime
 
+# ==========================================
+# CONEXIÓN A LA BASE DE DATOS
+# ==========================================
+def get_connection():
+    try:
+        conn = mysql.connector.connect(
+            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
+            user="uiazxdhtd3r8o7uv",
+            password="uGjZ9MXWemv7vPsjOdA5",
+            database="bzn5gsi7ken7lufcglbg"
+        )
+        return conn
+    except mysql.connector.Error as e:
+        st.error(f"❌ Error al conectar con MySQL: {e}")
+        return None
+
+
+# ==========================================
+# MOSTRAR ASISTENCIA
+# ==========================================
 def mostrar_asistencia():
+    st.title("📋 Control de Asistencia")
 
-    # Verificar grupo del admin
+    # Obtener variables de sesión
     id_grupo = st.session_state.get("id_grupo", None)
+    nombre_grupo = st.session_state.get("nombre_grupo", "Sin nombre")
 
     if not id_grupo:
-        st.error("❌ No se detectó un grupo asignado. Inicie sesión nuevamente.")
+        st.error("❌ No se detectó el grupo del usuario. Inicie sesión nuevamente.")
         return
 
-    st.title("📋 Registro de Asistencia")
+    st.subheader(f"Miembros del grupo **{nombre_grupo}**")
 
-    # ===============================
-    # 1. Conexión a la BD
-    # ===============================
-    conn = obtener_conexion()
+    # ---------------------------------------------------
+    # Cargar miembros del grupo
+    # ---------------------------------------------------
+    conn = get_connection()
     if not conn:
-        st.error("❌ No se pudo conectar a la base de datos.")
         return
 
     cursor = conn.cursor(dictionary=True)
-
-    # ===============================
-    # 2. Seleccionar fecha
-    # ===============================
-    fecha = st.date_input("📅 Seleccione la fecha de asistencia", date.today())
-    st.write("---")
-
-    # ===============================
-    # 3. Obtener miembros del grupo
-    # ===============================
-    cursor.execute("""
-        SELECT M.id_miembro, M.Nombre
-        FROM Miembros M
-        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-        WHERE GM.id_grupo = %s
-        ORDER BY M.Nombre
-    """, (id_grupo,))
-
+    cursor.execute("SELECT id_miembro, nombre FROM Miembros WHERE id_grupo = %s", (id_grupo,))
     miembros = cursor.fetchall()
 
     if not miembros:
         st.warning("⚠️ No hay miembros registrados en este grupo.")
         return
 
-    # ===============================
-    # 4. Mostrar controles de asistencia
-    # ===============================
-    st.subheader("Miembros del grupo")
+    # Convertir a DataFrame para mostrar tabla editable
+    df = pd.DataFrame(miembros)
+    df["Asistencia"] = "Presente"  # Default
 
-    estado_asistencia = {}
+    st.write("### 📌 Lista de asistencia")
+    
+    edit_df = st.data_editor(
+        df,
+        hide_index=True,
+        column_config={
+            "nombre": "Nombre del miembro",
+            "Asistencia": st.column_config.SelectboxColumn(
+                "Asistencia",
+                options=["Presente", "Ausente"],
+                help="Selecciona si el miembro asistió o no"
+            )
+        }
+    )
 
-    for m in miembros:
-        estado = st.radio(
-            f"{m['Nombre']}",
-            ["Presente", "Ausente"],
-            horizontal=True,
-            key=f"asistencia_{m['id_miembro']}"
-        )
-        estado_asistencia[m["id_miembro"]] = estado
-
-    st.write("---")
-
-    # ===============================
-    # 5. Guardar asistencia
-    # ===============================
+    # ---------------------------------------------------
+    # Guardar asistencia
+    # ---------------------------------------------------
     if st.button("💾 Guardar asistencia"):
+        fecha = datetime.now().strftime("%Y-%m-%d")
 
-        for id_miembro, estado in estado_asistencia.items():
-            cursor.execute("""
-                INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
-                VALUES (%s, %s, %s, %s)
-            """, (id_grupo, fecha, id_miembro, estado))
+        try:
+            for _, row in edit_df.iterrows():
+                cursor.execute("""
+                    INSERT INTO Asistencia (id_miembro, fecha, estado)
+                    VALUES (%s, %s, %s)
+                """, (row["id_miembro"], fecha, row["Asistencia"]))
 
-        conn.commit()
-        st.success("✅ Asistencia registrada con éxito")
+            conn.commit()
+            st.success("✅ Asistencia guardada correctamente")
 
-    # ===============================
-    # 6. Historial
-    # ===============================
-    st.write("---")
-    st.subheader("📚 Historial de Asistencias")
+        except mysql.connector.Error as e:
+            st.error(f"❌ Error al guardar asistencia: {e}")
 
-    cursor.execute("""
-        SELECT A.fecha, M.Nombre, A.asistencia
-        FROM Asistencia A
-        JOIN Miembros M ON A.id_miembro = M.id_miembro
-        WHERE A.id_grupo = %s
-        ORDER BY A.fecha DESC, M.Nombre
-    """, (id_grupo,))
-
-    registros = cursor.fetchall()
-
-    if registros:
-        st.dataframe(registros)
-    else:
-        st.info("No hay registros todavía.")
-
-    cursor.close()
-    conn.close()
+        finally:
+            cursor.close()
+            conn.close()
 
