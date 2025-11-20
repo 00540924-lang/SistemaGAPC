@@ -305,3 +305,9 @@ def mostrar_reglamento():
                 mime="application/pdf"
             )
 
+# ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
