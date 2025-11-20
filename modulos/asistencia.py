@@ -61,7 +61,7 @@ def mostrar_asistencia():
     df_asistencia = df_asistencia.rename(columns={"Nombre": "Miembro"})
     df_asistencia["Asistencia"] = "Presente"  # valor por defecto
 
-    st.subheader(f"🧑‍🤝‍🧑 Miembros del grupo ({grupo_nombre})")
+    st.subheader(f"🧑‍🤝‍🧑 Miembros del grupo {grupo_nombre}")
 
     tabla_editada = st.data_editor(
         df_asistencia,
