@@ -54,12 +54,12 @@ div.stButton > button:hover {
 #documentos_btn > button { background-color: #1E88E5 !important; }
 #reportes_btn > button { background-color: #43A047 !important; }
 #configuracion_btn > button { background-color: #6D4C41 !important; }
-
-/* Nuevo botón Asistencia */
 #asistencia_btn > button { background-color: #FF7043 !important; }
-
-# Nuevo botón GAPC
 #gapc_btn > button { background-color: #29B6F6 !important; }
+#prestamos_btn > button { background-color: #9C27B0 !important; }
+
+/* NUEVO BOTÓN CAJA */
+#caja_btn > button { background-color: #00BFA5 !important; }
 
 /* Logout */
 #logout_btn > button {
@@ -82,9 +82,7 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-    # -----------------------------------------------------
-    #     NOMBRE DEL USUARIO (Y GRUPO O DESARROLLADOR)
-    # -----------------------------------------------------
+    # Usuario
     st.markdown(
         f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
         unsafe_allow_html=True
@@ -113,25 +111,27 @@ div.stButton > button:hover {
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("💸 Multas", "multas", "configuracion_btn"),
         ("📋 Asistencia", "asistencia", "asistencia_btn"),
-        # GAPC (solo usuarios institucionales)
         ("🏛️ GAPC", "GAPC", "gapc_btn"),
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
+        # 🔹🔹 NUEVO MÓDULO CAJA 🔹🔹
+        ("💰 Caja", "caja", "caja_btn"),
     ]
 
     # -----------------------------------------------------
     #          FILTRO POR ROL
     # -----------------------------------------------------
     if usuario == "dark":
-        modulos = modulos_base  # acceso total
+        modulos = modulos_base
 
     elif rol.lower() == "institucional":
-        modulos = modulos_base  # acceso a todo + GAPC
+        modulos = modulos_base
 
     elif rol.lower() == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
 
     elif rol.lower() == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia"]]
+        # 🔹 SOLO reglamento, asistencia Y AHORA CAJA 🔹
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja"]]
 
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
