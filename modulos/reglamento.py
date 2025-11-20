@@ -1,27 +1,18 @@
-import streamlit as st
-from modulos.config.conexion import obtener_conexion
-import datetime
-
-# -------------------------------------------------------------------
-#   🚀 1. OBTENER REGLAMENTO SIN ATRASAR EL RENDER
-# -------------------------------------------------------------------
-@st.cache_data(show_spinner=False)
-def cargar_reglamento(id_grupo):
-    con = obtener_conexion()
-    cursor = con.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
-    data = cursor.fetchone()
-
-    cursor.close()
-    con.close()
-    return data
-
-
 def mostrar_reglamento():
 
+    rol = st.session_state.get("rol", "").lower()
+    nombre_grupo = st.session_state.get("nombre_grupo", None)
+
+    # ---------------------------------------------------------
+    #      🟣 TITULO DINÁMICO SEGÚN EL USUARIO
+    # ---------------------------------------------------------
+    if rol == "desarrollador" or nombre_grupo is None:
+        titulo = "📜 Reglamento Interno – Acceso total (Desarrollador)"
+    else:
+        titulo = f"📜 Reglamento Interno del Grupo {nombre_grupo}"
+
     st.markdown(
-        "<h2 style='text-align:center; color:#4C3A60;'>📜 Reglamento Interno del Grupo</h2>",
+        f"<h2 style='text-align:center; color:#4C3A60;'>{titulo}</h2>",
         unsafe_allow_html=True
     )
 
@@ -32,7 +23,6 @@ def mostrar_reglamento():
     # -------------------------------------------------------------------
     reglamento_existente = cargar_reglamento(id_grupo)
 
-    # Función para autocompletar valores
     def get_val(campo, defecto=""):
         if reglamento_existente and campo in reglamento_existente and reglamento_existente[campo] is not None:
             return reglamento_existente[campo]
@@ -55,7 +45,6 @@ def mostrar_reglamento():
         # -------------------------------------------------------------------
         st.subheader("Reuniones")
 
-        # 🗓️ Días de la semana
         dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves",
                        "Viernes", "Sábado", "Domingo"]
 
@@ -69,7 +58,6 @@ def mostrar_reglamento():
             default=dias_guardados
         )
 
-        # 🕒 Selector de hora con AM/PM
         hora_reunion = st.time_input(
             "Hora de reunión",
             value=datetime.time.fromisoformat(get_val("hora_reunion"))
@@ -242,9 +230,7 @@ def mostrar_reglamento():
         cargar_reglamento.clear()
         st.rerun()
 
-    # -------------------------------------------------------------------
-    # ⬅️ VOLVER AL MENÚ
-    # -------------------------------------------------------------------
     if st.button("⬅️ Regresar al menú"):
         st.session_state["page"] = "menu"
         st.rerun()
+
