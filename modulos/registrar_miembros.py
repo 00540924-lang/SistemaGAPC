@@ -92,9 +92,17 @@ def registrar_miembros():
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
         # -------------------------------
-        # Mostrar tabla
+        # Añadir columna No. comenzando desde 1
         # -------------------------------
-        st.dataframe(df.drop(columns="ID"), use_container_width=True)
+        df = df.reset_index(drop=True)
+        df.index += 1
+        df_display = df.drop(columns="ID")
+        df_display.insert(0, "No.", df.index)
+
+        # -------------------------------
+        # Mostrar tabla con Streamlit nativo
+        # -------------------------------
+        st.dataframe(df_display, use_container_width=True)
 
         # ================================
         # Seleccionar miembro para acciones
