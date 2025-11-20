@@ -2,8 +2,12 @@ import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import time
+from datetime import datetime
 
-def mostrar_multas():
+# ================================
+# MÓDULO MULTAS
+# ================================
+def multas_modulo():
     # ================================
     # VALIDAR SESIÓN Y GRUPO
     # ================================
@@ -18,50 +22,56 @@ def mostrar_multas():
     st.markdown("<h1 style='text-align:center;'>📋 Gestión de Multas</h1>", unsafe_allow_html=True)
 
     # ================================
-    # FORMULARIO NUEVA MULTA (si no estamos editando)
+    # EDITAR MULTA
     # ================================
-    if "editar_multa" not in st.session_state:
+    if "editar_multa" in st.session_state:
+        editar_multa(st.session_state["editar_multa"])
+        return
+
+    # ================================
+    # FORMULARIO NUEVA MULTA
+    # ================================
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT M.id_miembro, M.nombre
+            FROM Miembros M
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            ORDER BY M.nombre
+        """, (id_grupo,))
+        miembros = cursor.fetchall()
+        miembro_dict = {nombre: id_miembro for id_miembro, nombre in miembros}
+    finally:
+        cursor.close()
+        con.close()
+
+    if not miembros:
+        st.info("No hay miembros en este grupo para asignar multas.")
+        return
+
+    miembro_seleccionado = st.selectbox("Selecciona un miembro", options=list(miembro_dict.keys()))
+    fecha = st.date_input("Fecha de la multa")
+    monto = st.number_input("Monto a pagar", min_value=0.0, step=0.01)
+    pagada = st.selectbox("¿Pagada?", options=["No", "Sí"])
+
+    if st.button("💾 Registrar Multa"):
         try:
             con = obtener_conexion()
             cursor = con.cursor()
-            # Obtener miembros del grupo
+            fecha_str = fecha.strftime("%Y-%m-%d")
             cursor.execute("""
-                SELECT M.id_miembro, M.nombre
-                FROM Miembros M
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s
-                ORDER BY M.nombre
-            """, (id_grupo,))
-            miembros = cursor.fetchall()
-            miembro_dict = {nombre: id_miembro for id_miembro, nombre in miembros}
+                INSERT INTO Multas (id_miembro, fecha, monto_a_pagar, pagada)
+                VALUES (%s, %s, %s, %s)
+            """, (miembro_dict[miembro_seleccionado], fecha_str, monto, pagada))
+            con.commit()
+            st.success("Multa registrada correctamente ✔️")
+            time.sleep(0.5)
+            st.rerun()
         finally:
             cursor.close()
             con.close()
-
-        if not miembros:
-            st.info("No hay miembros en este grupo para asignar multas.")
-            return
-
-        miembro_seleccionado = st.selectbox("Selecciona un miembro", options=list(miembro_dict.keys()))
-        fecha = st.date_input("Fecha de la multa")
-        monto = st.number_input("Monto a pagar", min_value=0.0, step=0.01)
-        pagada = st.selectbox("¿Pagada?", options=["No", "Sí"])
-
-        if st.button("💾 Registrar Multa"):
-            try:
-                con = obtener_conexion()
-                cursor = con.cursor()
-                cursor.execute("""
-                    INSERT INTO Multas (id_miembro, fecha, monto_a_pagar, pagada)
-                    VALUES (%s, %s, %s, %s)
-                """, (miembro_dict[miembro_seleccionado], fecha, monto, pagada))
-                con.commit()
-                st.success("Multa registrada correctamente ✔️")
-                time.sleep(0.5)
-                st.rerun()
-            finally:
-                cursor.close()
-                con.close()
 
     # ================================
     # TABLA DE MULTAS
@@ -69,6 +79,9 @@ def mostrar_multas():
     mostrar_tabla_multas(id_grupo)
 
 
+# ================================
+# FUNCIONES AUXILIARES
+# ================================
 def mostrar_tabla_multas(id_grupo):
     try:
         con = obtener_conexion()
@@ -104,12 +117,12 @@ def mostrar_tabla_multas(id_grupo):
             col1, col2 = st.columns(2)
 
             with col1:
-                if st.button("✏️ Editar"):
+                if st.button("✏️ Editar", key=f"editar_{multa['ID']}"):
                     st.session_state["editar_multa"] = multa
                     st.rerun()
 
             with col2:
-                if st.button("🗑️ Eliminar"):
+                if st.button("🗑️ Eliminar", key=f"eliminar_{multa['ID']}"):
                     eliminar_multa(multa["ID"])
                     st.success("Multa eliminada ✔️")
                     time.sleep(0.5)
@@ -128,3 +141,29 @@ def eliminar_multa(id_multa):
     finally:
         cursor.close()
         con.close()
+
+
+def editar_multa(multa):
+    st.markdown(f"<h3>✏️ Editando multa de: {multa['Miembro']}</h3>", unsafe_allow_html=True)
+
+    fecha = st.date_input("Fecha de la multa", value=pd.to_datetime(multa['Fecha']).date())
+    monto = st.number_input("Monto a pagar", min_value=0.0, step=0.01, value=float(multa['Monto']))
+    pagada = st.selectbox("¿Pagada?", options=["No", "Sí"], index=0 if multa['Pagada'] == "No" else 1)
+
+    if st.button("💾 Actualizar Multa"):
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+            fecha_str = fecha.strftime("%Y-%m-%d")
+            cursor.execute("""
+                UPDATE Multas SET fecha=%s, monto_a_pagar=%s, pagada=%s
+                WHERE id_multa=%s
+            """, (fecha_str, monto, pagada, multa['ID']))
+            con.commit()
+            st.success("Multa actualizada correctamente ✔️")
+            time.sleep(0.5)
+            del st.session_state["editar_multa"]
+            st.rerun()
+        finally:
+            cursor.close()
+            con.close()
