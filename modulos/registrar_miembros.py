@@ -82,14 +82,12 @@ def mostrar_tabla_y_acciones(id_grupo):
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
         # -------------------------------
-        # Numeración desde 1
+        # Numeración desde 1 y eliminar columna extra
         # -------------------------------
-        df_display = df.copy()
+        df_display = df.reset_index(drop=True)  # eliminar índice antiguo
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
 
-        # -------------------------------
-        # Mostrar tabla sin columna extra
-        # -------------------------------
+        # Mostrar solo las columnas necesarias
         st.dataframe(df_display[["No.", "Nombre", "DUI", "Teléfono"]], use_container_width=True)
 
         # -------------------------------
