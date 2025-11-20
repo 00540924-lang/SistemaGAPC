@@ -1,113 +1,82 @@
 import streamlit as st
-import mysql.connector
-from datetime import date
+import pandas as pd
+from modulos.config.conexion import obtener_conexion
 
+def prestamos():
+    # ================================
+    # Validar sesión y grupo
+    # ================================
+    if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
+        st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
+        return
 
-# ==========================================
-# CONEXIÓN A BASE DE DATOS
-# ==========================================
-def get_connection():
-    return mysql.connector.connect(
-        host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-        user="uiazxdhtd3r8o7uv",
-        password="uGjZ9MXWemv7vPsjOdA5",
-        database="bzn5gsi7ken7lufcglbg"
-    )
+    id_grupo = st.session_state["id_grupo"]
+    nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
+    st.markdown(f"<h2 style='text-align:center;'>💰 Préstamos - {nombre_grupo}</h2>", unsafe_allow_html=True)
 
-# ==========================================
-# MÓDULO DE PRÉSTAMOS
-# ==========================================
-def prestamos_modulo():
-
-    st.title("📄 Registro de Préstamos")
-
-    # ==============================
-    # Validar grupo
-    # ==============================
-    id_grupo = st.session_state.get("id_grupo", None)
-    if not id_grupo:
-        st.error("❌ No se detectó el grupo del usuario. Inicie sesión nuevamente.")
-        st.stop()
-
-    # ==============================
-    # Cargar miembros del grupo
-    # ==============================
+    # ================================
+    # Obtener miembros del grupo
+    # ================================
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
+        con = obtener_conexion()
+        cursor = con.cursor()
 
         cursor.execute("""
-            SELECT Miembros.id_miembro, Miembros.Nombre
-            FROM Grupomiembros
-            INNER JOIN Miembros ON Miembros.id_miembro = Grupomiembros.id_miembro
-            WHERE Grupomiembros.id_grupo = %s
+            SELECT M.id_miembro, M.nombre 
+            FROM Miembros M
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            ORDER BY M.nombre ASC
         """, (id_grupo,))
 
         miembros = cursor.fetchall()
 
-    except mysql.connector.Error as e:
-        st.error(f"❌ Error al cargar miembros: {e}")
-        return
+        if not miembros:
+            st.warning("No hay miembros registrados en este grupo.")
+            return
 
-    if not miembros:
-        st.warning("⚠ No hay miembros registrados en este grupo.")
-        return
+        # Convertir a diccionario para mostrarlo en selectbox
+        miembros_dict = {nombre: mid for mid, nombre in miembros}
 
-    miembros_dict = {m[1]: m[0] for m in miembros}
+        miembro_seleccionado = st.selectbox(
+            "Selecciona una socia para generar un préstamo:",
+            options=list(miembros_dict.keys())
+        )
 
-    # ======================================
-    # FORMULARIO DEL PRÉSTAMO
-    # ======================================
+        id_miembro = miembros_dict[miembro_seleccionado]
+
+    finally:
+        cursor.close()
+        con.close()
+
+    # ================================
+    # Formulario de préstamo
+    # ================================
+    st.markdown("<h3>📄 Formulario de préstamo</h3>", unsafe_allow_html=True)
+
     with st.form("form_prestamo"):
-        st.subheader("🧾 Datos del Préstamo")
+        fecha_desembolso = st.date_input("Fecha de desembolso")
+        fecha_vencimiento = st.date_input("Fecha de vencimiento")
+        proposito = st.text_input("Propósito")
+        cantidad = st.number_input("Cantidad", min_value=1.0, step=0.5)
+        
+        enviar = st.form_submit_button("Guardar préstamo")
 
-        nombre_miembro = st.selectbox("Seleccione un miembro:", list(miembros_dict.keys()))
-        monto = st.number_input("Monto del préstamo:", min_value=1.0, step=1.0)
-        fecha = st.date_input("Fecha del préstamo:", value=date.today())
-        cantidad_pagos = st.number_input("Cantidad de pagos:", min_value=1, step=1)
-
-        submitted = st.form_submit_button("💾 Guardar Préstamo")
-
-    # ======================================
-    # PROCESAR ENVÍO
-    # ======================================
-    if submitted:
-        id_miembro = miembros_dict[nombre_miembro]
-
+    if enviar:
         try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+
             cursor.execute("""
-                INSERT INTO prestamos (id_miembro, monto, fecha, cantidad_pagos)
-                VALUES (%s, %s, %s, %s)
-            """, (id_miembro, monto, fecha, cantidad_pagos))
+                INSERT INTO Prestamos (id_miembro, fecha_desembolso, fecha_vencimiento, proposito, cantidad)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (id_miembro, fecha_desembolso, fecha_vencimiento, proposito, cantidad))
 
-            conn.commit()
-            st.success("✅ Préstamo registrado con éxito.")
+            con.commit()
 
-        except mysql.connector.Error as e:
-            st.error(f"❌ Error al guardar en la base de datos: {e}")
+            st.success("✔️ Préstamo registrado exitosamente")
 
-    # ======================================
-    # PLAN DE PAGOS
-    # ======================================
-    st.subheader("📅 Plan de Pagos")
-
-    if "pagos" not in st.session_state:
-        st.session_state.pagos = 1
-
-    col_a, col_b = st.columns(2)
-    if col_a.button("➕ Agregar fila"):
-        st.session_state.pagos += 1
-
-    if col_b.button("➖ Quitar fila") and st.session_state.pagos > 1:
-        st.session_state.pagos -= 1
-
-    # Mostrar tabla simple
-    st.write("### Tabla de Pagos")
-    for i in range(st.session_state.pagos):
-        c1, c2 = st.columns(2)
-        c1.date_input(f"Fecha pago {i+1}", key=f"fecha_pago_{i}")
-        c2.number_input(f"Monto pago {i+1}", min_value=0.0, key=f"monto_pago_{i}")
-
-    conn.close()
-
+        finally:
+            cursor.close()
+            con.close()
