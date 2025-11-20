@@ -58,6 +58,9 @@ div.stButton > button:hover {
 /* Nuevo botón Asistencia */
 #asistencia_btn > button { background-color: #FF7043 !important; }
 
+# Nuevo botón GAPC
+#gapc_btn > button { background-color: #29B6F6 !important; }
+
 /* Logout */
 #logout_btn > button {
     width: 200px !important;
@@ -109,24 +112,24 @@ div.stButton > button:hover {
         ("📜 Reglamento", "reglamento", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("💸 Multas", "multas", "configuracion_btn"),
-
-        # 👉 NUEVO MÓDULO
         ("📋 Asistencia", "asistencia", "asistencia_btn"),
+        # GAPC (solo usuarios institucionales)
+        ("🏛️ GAPC", "GAPC", "gapc_btn"),
     ]
 
     # -----------------------------------------------------
-    #          FILTRO POR ROL (solo miembro ve Asistencia)
+    #          FILTRO POR ROL
     # -----------------------------------------------------
     if usuario == "dark":
         modulos = modulos_base  # acceso total
 
-    elif rol == "institucional":
-        modulos = modulos_base
+    elif rol.lower() == "institucional":
+        modulos = modulos_base  # acceso a todo + GAPC
 
-    elif rol == "promotor":
+    elif rol.lower() == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
 
-    elif rol == "miembro":
+    elif rol.lower() == "miembro":
         modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia"]]
 
     else:
@@ -159,4 +162,3 @@ div.stButton > button:hover {
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
-
