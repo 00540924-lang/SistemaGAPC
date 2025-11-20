@@ -29,7 +29,7 @@ def registrar_miembros():
     )
 
     # ================================
-    # FORMULARIO
+    # FORMULARIO NUEVO MIEMBRO
     # ================================
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
@@ -130,6 +130,7 @@ def registrar_miembros():
                     padding: 6px 12px;
                     border-radius: 6px;
                     cursor: pointer;
+                    margin: 2px;
                 }
                 button:hover {
                     background-color: #e2e2eb;
@@ -154,6 +155,7 @@ def registrar_miembros():
                     <td>{row['Teléfono']}</td>
                     <td>
                         <form action="" method="post">
+                            <button name="editar_{row['ID']}">Editar</button>
                             <button name="eliminar_{row['ID']}">Eliminar</button>
                         </form>
                     </td>
@@ -165,11 +167,17 @@ def registrar_miembros():
             st.html(tabla_html)
 
             # ================================
-            # DETECCIÓN DE BOTONES ELIMINAR
+            # DETECCIÓN DE BOTONES
             # ================================
             for idx, row in df.iterrows():
+                # Botón Eliminar
                 if f"eliminar_{row['ID']}" in st.session_state:
                     eliminar_miembro(row["ID"], id_grupo)
+                    st.rerun()
+
+                # Botón Editar
+                if f"editar_{row['ID']}" in st.session_state:
+                    editar_miembro(row)
                     st.rerun()
 
         else:
@@ -208,3 +216,40 @@ def eliminar_miembro(id_miembro, id_grupo):
             con.close()
         except:
             pass
+
+
+# ================================================
+# FUNCIÓN PARA EDITAR MIEMBRO
+# ================================================
+def editar_miembro(row):
+    st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
+
+    with st.form(f"form_editar_{row['ID']}"):
+        nombre = st.text_input("Nombre completo", value=row['Nombre'])
+        dui = st.text_input("DUI", value=row['DUI'])
+        telefono = st.text_input("Teléfono", value=row['Teléfono'])
+        actualizar = st.form_submit_button("Actualizar")
+
+    if actualizar:
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+
+            cursor.execute(
+                "UPDATE Miembros SET Nombre=%s, DUI=%s, Telefono=%s WHERE id_miembro=%s",
+                (nombre, dui, telefono, row['ID'])
+            )
+            con.commit()
+            st.success("Miembro actualizado correctamente ✔️")
+            time.sleep(1)
+            st.experimental_rerun()
+
+        except Exception as e:
+            st.error(f"Error al actualizar miembro: {e}")
+
+        finally:
+            try:
+                cursor.close()
+                con.close()
+            except:
+                pass
