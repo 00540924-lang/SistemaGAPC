@@ -1,198 +1,168 @@
-iimport streamlit as st
-from datetime import date
-from modulos.config.conexion import obtener_conexion
-import pandas as pd
+import streamlit as st 
 
-
-def mostrar_caja(id_grupo):
-    """
-    Módulo de caja.
-    Recibe id_grupo desde app.py (obligatorio para miembros).
-    """
-
-    # ===============================
-    # 0. Verificar acceso
-    # ===============================
-    rol = st.session_state.get("rol", "").lower()
+def mostrar_menu():
+    rol = st.session_state.get("rol", None)
     usuario = st.session_state.get("usuario", "").lower()
 
-    # Solo miembros e institucional pueden usarlo. Dark = admin total.
-    if rol not in ["miembro", "institucional"] and usuario != "dark":
-        st.error("❌ No tiene permisos para acceder a este módulo.")
+    if not rol:
+        st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
         return
 
-    if rol == "miembro" and not id_grupo:
-        st.error("❌ No tiene un grupo asignado.")
-        return
+    # -----------------------------------------------------
+    #      🎨 CSS - Botones con animación + colores
+    # -----------------------------------------------------
+    st.markdown("""
+<style>
+div.stButton {
+    display: flex !important;
+    justify-content: center !important;
+}
 
-    st.title("💰 Formulario de Caja")
+div.stButton > button {
+    width: 240px !important;
+    height: 90px !important;
+    padding: 0 !important;
 
-    # ===============================
-    # 1. Conexión BD
-    # ===============================
-    conn = obtener_conexion()
-    if not conn:
-        st.error("❌ Error al conectar a la base de datos.")
-        return
-    cursor = conn.cursor(dictionary=True)
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 
-    # ===============================
-    # 2. Fecha
-    # ===============================
-    fecha = st.date_input("📅 Fecha de registro", date.today())
-    st.write("---")
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 
-    # ===============================
-    # 3. DINERO QUE ENTRA
-    # ===============================
-    st.subheader("🟩 Dinero que entra")
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #4C3A60 !important;
 
-    multa = st.number_input("Multas pagadas", min_value=0.0, step=0.01)
-    ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
-    otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
-    pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
-    otros_ingresos = st.number_input("Otros ingresos del grupo", min_value=0.0, step=0.01)
+    border-radius: 12px !important;
+    border: none !important;
 
-    total_entrada = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
-    st.number_input("🔹 Total dinero que entra", value=total_entrada, disabled=True)
+    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+}
 
-    # ===============================
-    # 4. DINERO QUE SALE
-    # ===============================
-    st.write("---")
-    st.subheader("🟥 Dinero que sale")
+div.stButton > button:hover {
+    transform: scale(1.07) !important;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
+}
 
-    retiro_ahorros = st.number_input("Retiros de ahorros", min_value=0.0, step=0.01)
-    desembolso = st.number_input("Desembolso de préstamos", min_value=0.0, step=0.01)
-    gastos_grupo = st.number_input("Otros gastos del grupo", min_value=0.0, step=0.01)
+/* Colores personalizados */
+#proyectos_btn > button { background-color: #F4B400 !important; }
+#usuarios_btn > button { background-color: #8E24AA !important; }
+#grupos_btn > button { background-color: #E53935 !important; }
+#documentos_btn > button { background-color: #1E88E5 !important; }
+#reportes_btn > button { background-color: #43A047 !important; }
+#configuracion_btn > button { background-color: #6D4C41 !important; }
+#asistencia_btn > button { background-color: #FF7043 !important; }
+#gapc_btn > button { background-color: #29B6F6 !important; }
+#prestamos_btn > button { background-color: #9C27B0 !important; }
 
-    total_salida = retiro_ahorros + desembolso + gastos_grupo
-    st.number_input("🔻 Total dinero que sale", value=total_salida, disabled=True)
+/* NUEVO BOTÓN CAJA */
+#caja_btn > button { background-color: #00BFA5 !important; }
 
-    # ===============================
-    # 5. Saldo neto
-    # ===============================
-    st.write("---")
-    saldo_neto = total_entrada - total_salida
-    st.number_input("⚖️ Saldo del cierre", value=saldo_neto, disabled=True)
+/* Logout */
+#logout_btn > button {
+    width: 200px !important;
+    height: 60px !important;
+    background-color: #424242 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    transition: transform 0.2s ease !important;
+}
+#logout_btn > button:hover {
+    transform: scale(1.05) !important;
+    background-color: #000000 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    # ===============================
-    # 6. Guardar registros
-    # ===============================
-    if st.button("💾 Guardar registro de caja"):
+    # -----------------------------------------------------
+    #                    TÍTULO
+    # -----------------------------------------------------
+    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
-        cursor.execute("""
-            INSERT INTO Caja (
-                id_grupo, fecha, multas, ahorros, otras_actividades,
-                pago_prestamos, otros_ingresos, total_entrada,
-                retiro_ahorros, desembolso, gastos_grupo, total_salida,
-                saldo_cierre
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            id_grupo, fecha,
-            multa, ahorros, otras_actividades,
-            pagos_prestamos, otros_ingresos, total_entrada,
-            retiro_ahorros, desembolso, gastos_grupo, total_salida,
-            saldo_neto
-        ))
-
-        conn.commit()
-        st.success("✅ Movimiento de caja guardado con éxito.")
-
-    # ===============================
-    # 7. HISTORIAL PERSONALIZADO
-    # ===============================
-    st.write("---")
-    st.subheader("📚 Historial de Caja")
-
-    st.info("Puede filtrar por fecha o dejar vacío para ver todos los registros.")
-
-    fecha_filtro = st.date_input(
-        "📅 Filtrar por fecha",
-        value=None,
-        key="filtro_historial"
+    st.markdown(
+        f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
+        unsafe_allow_html=True
     )
 
-    if fecha_filtro:
-        cursor.execute("""
-            SELECT *
-            FROM Caja
-            WHERE id_grupo = %s AND fecha = %s
-            ORDER BY fecha DESC
-        """, (id_grupo, fecha_filtro))
+    if usuario == "dark":
+        st.markdown(
+            "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Desarrollador</p>",
+            unsafe_allow_html=True
+        )
     else:
-        cursor.execute("""
-            SELECT *
-            FROM Caja
-            WHERE id_grupo = %s
-            ORDER BY fecha DESC
-        """, (id_grupo,))
+        if st.session_state.get("nombre_grupo"):
+            st.markdown(
+                f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
+                unsafe_allow_html=True
+            )
 
-    registros = cursor.fetchall()
+    # -----------------------------------------------------
+    #                   MÓDULOS BASE
+    # -----------------------------------------------------
+    modulos_base = [
+        ("📁 Credenciales", "credenciales", "proyectos_btn"),
+        ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
+        ("📝 Grupos", "grupos_btn", "grupos_btn"),
+        ("📜 Reglamento", "reglamento", "documentos_btn"),
+        ("📊 Reportes", "reportes", "reportes_btn"),
+        ("💸 Multas", "multas", "configuracion_btn"),
+        ("📋 Asistencia", "asistencia", "asistencia_btn"),
+        ("🏛️ GAPC", "GAPC", "gapc_btn"),
+        ("💼 Préstamos", "prestamos", "prestamos_btn"),
+        ("💰 Caja", "caja", "caja_btn"),
+    ]
 
-    if not registros:
-        st.warning("⚠ No hay registros para esta fecha.")
+    # -----------------------------------------------------
+    #          FILTRO POR ROL (CORREGIDO)
+    # -----------------------------------------------------
+    rol_l = rol.lower()
+
+    # 🔥 Desarrollador
+    if usuario == "dark":
+        modulos = modulos_base
+
+    # 🏛 Institucional: todos excepto Caja
+    elif rol_l == "institucional":
+        modulos = [m for m in modulos_base if m[1] not in ["caja"]]
+
+    # 👤 Promotor
+    elif rol_l == "promotor":
+        modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos_btn"]]
+
+    # 👥 Miembro
+    elif rol_l == "miembro":
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja"]]
+
+    else:
+        st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
 
-    # ===============================
-    # 8. MOSTRAR TARJETAS BONITAS
-    # ===============================
-    for r in registros:
+    # -----------------------------------------------------
+    #               GRID DE BOTONES
+    # -----------------------------------------------------
+    cols = st.columns(3)
 
-        saldo_color = "#008000" if r["saldo_cierre"] >= 0 else "#C21818"
+    for i, (texto, modulo, css_id) in enumerate(modulos):
+        with cols[i % 3]:
+            cont = st.container()
+            with cont:
+                cont.markdown(f"<div id='{css_id}'>", unsafe_allow_html=True)
+                if st.button(texto, key=f"btn_{modulo}"):
+                    st.session_state.page = modulo
+                    st.rerun()
+                    return
+            cont.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown(f"""
-            <div style="
-                background:#FFFFFF;
-                padding:20px;
-                border-radius:12px;
-                margin-bottom:15px;
-                border:1px solid #DDD;
-                box-shadow: 0px 4px 8px rgba(0,0,0,0.06);
-            ">
-                <h3 style="margin:0; color:#2D2D2D;">📅 {r["fecha"]}</h3>
-                <hr>
-
-                <div style="display:flex; gap:20px;">
-                    <div style="flex:1;">
-                        <h4 style="color:#0D6E2E;">🟩 Entradas</h4>
-                        <p><b>Multas:</b> ${r["multas"]}</p>
-                        <p><b>Ahorros:</b> ${r["ahorros"]}</p>
-                        <p><b>Otras actividades:</b> ${r["otras_actividades"]}</p>
-                        <p><b>Pago préstamos:</b> ${r["pago_prestamos"]}</p>
-                        <p><b>Otros ingresos:</b> ${r["otros_ingresos"]}</p>
-                        <p><b>Total entrada:</b> <b>${r["total_entrada"]}</b></p>
-                    </div>
-
-                    <div style="flex:1;">
-                        <h4 style="color:#B22424;">🟥 Salidas</h4>
-                        <p><b>Retiros ahorros:</b> ${r["retiro_ahorros"]}</p>
-                        <p><b>Desembolsos:</b> ${r["desembolso"]}</p>
-                        <p><b>Gastos grupo:</b> ${r["gastos_grupo"]}</p>
-                        <p><b>Total salida:</b> <b>${r["total_salida"]}</b></p>
-                    </div>
-                </div>
-
-                <h3 style="margin-top:15px;">
-                    ⚖ Saldo final:
-                    <span style="color:{saldo_color};">
-                        <b>${r["saldo_cierre"]}</b>
-                    </span>
-                </h3>
-            </div>
-        """, unsafe_allow_html=True)
-
-    conn.close()
-
-
-    # ===============================
-    # 8. Regresar
-    # ===============================
+    # -----------------------------------------------------
+    #               BOTÓN CERRAR SESIÓN
+    # -----------------------------------------------------
     st.write("---")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
-
-    cursor.close()
-    conn.close()
+    logout_container = st.container()
+    with logout_container:
+        logout_container.markdown("<div id='logout_btn'>", unsafe_allow_html=True)
+        if st.button("🔒 Cerrar sesión", key="logout"):
+            st.session_state.clear()
+            st.rerun()
