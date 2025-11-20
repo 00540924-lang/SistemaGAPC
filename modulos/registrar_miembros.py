@@ -86,12 +86,16 @@ def mostrar_tabla_y_acciones(id_grupo):
         # -------------------------------
         df_display = df.copy()
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
-        st.dataframe(df_display.drop(columns="ID"), use_container_width=True)
+
+        # -------------------------------
+        # Mostrar tabla sin columna extra
+        # -------------------------------
+        st.dataframe(df_display[["No.", "Nombre", "DUI", "Teléfono"]], use_container_width=True)
 
         # -------------------------------
         # Selección de miembro
         # -------------------------------
-        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
+        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for _, row in df.iterrows()}
         seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
 
         if seleccionado:
