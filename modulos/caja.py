@@ -1,215 +1,127 @@
 import streamlit as st
-import mysql.connector
-from datetime import date
-from modulos.config.conexion import obtener_conexion
 import pandas as pd
+from datetime import date
+from modulos.db import (
+    registrar_movimiento_caja,
+    obtener_historial_caja,
+    obtener_saldo_caja
+)
 
+# ------------------------------------------------------
+#     MÓDULO PRINCIPAL – CAJA
+# ------------------------------------------------------
 def mostrar_caja(id_grupo):
-    """
-    Módulo de caja.
-    Recibe id_grupo desde app.py (obligatorio para miembros).
-    """
 
-    # ===============================
-    # 0. Verificar acceso
-    # ===============================
-    rol = st.session_state.get("rol", "").lower()
-    usuario = st.session_state.get("usuario", "").lower()
-
-    # 🔹 Solo miembros, institucional y Dark pueden usar Caja
-    if rol not in ["miembro", "institucional"] and usuario != "dark":
-        st.error("❌ No tiene permisos para acceder a este módulo.")
+    # ------------------------------------------------------
+    #   VALIDACIÓN DE PERMISOS
+    # ------------------------------------------------------
+    if st.session_state["rol"] != "miembro" and st.session_state["usuario"] != "Dark":
+        st.error("🚫 No tienes permisos para acceder al módulo de Caja.")
         return
 
-    # 🔹 Los miembros deben tener grupo sí o sí
-    if rol == "miembro" and not id_grupo:
-        st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
-        return
+    st.title("💵 Módulo de Caja")
 
-    st.title("💰 Formulario de Caja")
+    menu = ["Registrar Movimiento", "Historial"]
+    opcion = st.sidebar.radio("Menú Caja", menu)
 
-    # ===============================
-    # 1. Conexión BD
-    # ===============================
-    conn = obtener_conexion()
-    if not conn:
-        st.error("❌ Error al conectar a la base de datos.")
-        return
-    cursor = conn.cursor(dictionary=True)
+    if opcion == "Registrar Movimiento":
+        mostrar_registro_caja(id_grupo)
+    elif opcion == "Historial":
+        mostrar_historial_caja(id_grupo)
 
-    # ===============================
-    # 2. Fecha
-    # ===============================
-    fecha = st.date_input("📅 Fecha de registro", date.today())
-    st.write("---")
 
-    # ===============================
-    # 3. DINERO QUE ENTRA
-    # ===============================
-    st.subheader("🟩 Dinero que entra")
 
-    multa = st.number_input("Multas pagadas", min_value=0.0, step=0.01)
-    ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
-    otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
-    pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
-    otros_ingresos = st.number_input("Otros ingresos del grupo", min_value=0.0, step=0.01)
+# ------------------------------------------------------
+#     REGISTRAR MOVIMIENTO
+# ------------------------------------------------------
+def mostrar_registro_caja(id_grupo):
 
-    total_entrada = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
-    st.number_input("🔹 Total dinero que entra", value=total_entrada, disabled=True)
+    st.subheader("➕ Registrar Movimiento en Caja")
 
-    # ===============================
-    # 4. DINERO QUE SALE
-    # ===============================
-    st.write("---")
-    st.subheader("🟥 Dinero que sale")
+    tipo = st.selectbox("Tipo de movimiento", ["Ingreso", "Egreso"])
+    monto = st.number_input("Monto ($)", min_value=0.01, format="%.2f")
+    descripcion = st.text_area("Descripción")
 
-    retiro_ahorros = st.number_input("Retiros de ahorros", min_value=0.0, step=0.01)
-    desembolso = st.number_input("Desembolso de préstamos", min_value=0.0, step=0.01)
-    gastos_grupo = st.number_input("Otros gastos del grupo", min_value=0.0, step=0.01)
-
-    total_salida = retiro_ahorros + desembolso + gastos_grupo
-    st.number_input("🔻 Total dinero que sale", value=total_salida, disabled=True)
-
-    # ===============================
-    # 5. Saldo neto
-    # ===============================
-    st.write("---")
-    saldo_neto = total_entrada - total_salida
-    st.number_input("⚖️ Saldo del cierre", value=saldo_neto, disabled=True)
-
-    # ===============================
-    # 6. Guardar registros
-    # ===============================
-    if st.button("💾 Guardar registro de caja"):
-
-        cursor.execute("""
-            INSERT INTO Caja (
-                id_grupo, fecha, multas, ahorros, otras_actividades,
-                pago_prestamos, otros_ingresos, total_entrada,
-                retiro_ahorros, desembolso, gastos_grupo, total_salida,
-                saldo_cierre
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            id_grupo, fecha,
-            multa, ahorros, otras_actividades,
-            pagos_prestamos, otros_ingresos, total_entrada,
-            retiro_ahorros, desembolso, gastos_grupo, total_salida,
-            saldo_neto
-        ))
-
-        conn.commit()
-        st.success("✅ Movimiento de caja guardado con éxito.")
-
-    # ===============================
-    # 7. HISTORIAL ESTILIZADO
-    # ===============================
-    st.write("---")
-    st.subheader("📚 Historial de Caja")
-
-    st.info("Si desea ver todos los registros, deje la fecha vacía.")
-
-    fecha_texto = st.text_input(
-        "📅 Filtrar por fecha (opcional) — Formato: AAAA-MM-DD",
-        placeholder="Ejemplo: 2025-11-20"
-    )
-
-    # Procesar filtro
-    if fecha_texto.strip():
-        try:
-            fecha_filtro = pd.to_datetime(fecha_texto).date()
-        except:
-            st.error("❌ Formato inválido. Use AAAA-MM-DD.")
+    if st.button("Guardar Movimiento", use_container_width=True):
+        if monto <= 0:
+            st.error("❌ El monto debe ser mayor a 0.")
             return
 
-        cursor.execute("""
-            SELECT *
-            FROM Caja
-            WHERE id_grupo = %s AND fecha = %s
-            ORDER BY fecha DESC
-        """, (id_grupo, fecha_filtro))
+        registrar_movimiento_caja(
+            id_grupo=id_grupo,
+            tipo=tipo,
+            monto=monto,
+            descripcion=descripcion,
+            registrado_por=st.session_state["usuario"]
+        )
 
-    else:
-        cursor.execute("""
-            SELECT *
-            FROM Caja
-            WHERE id_grupo = %s
-            ORDER BY fecha DESC
-        """, (id_grupo,))
+        st.success("✅ Movimiento registrado correctamente.")
 
-    registros = cursor.fetchall()
 
-    if not registros:
-        st.warning("No hay registros disponibles para este filtro.")
+
+# ------------------------------------------------------
+#     HISTORIAL DE CAJA
+# ------------------------------------------------------
+def mostrar_historial_caja(id_grupo):
+
+    st.title("📊 Historial de Caja")
+
+    st.info("Si deseas ver todos los registros, deja la fecha vacía.")
+
+    # ---------------------------
+    # FILTRO DE FECHA
+    # ---------------------------
+    fecha_filtro = st.date_input(
+        "📅 Filtrar por fecha (opcional)",
+        value=None,
+        key="filtro_historial_caja"
+    )
+
+    # Obtener movimientos de BD
+    movimientos = obtener_historial_caja(id_grupo)
+
+    if not movimientos:
+        st.warning("No hay movimientos registrados.")
         return
 
-    # ===============================
-    # TARJETAS MODERNAS
-    # ===============================
-    for r in registros:
+    # Convertir a DataFrame
+    df = pd.DataFrame(movimientos)
 
-        saldo_color = "#008000" if r["saldo_cierre"] >= 0 else "#C21818"
+    # Normalizar fecha
+    df["fecha"] = pd.to_datetime(df["fecha"]).dt.date
 
-        st.markdown(f"""
-            <div style="
-                background:#FFFFFF;
-                padding:22px;
-                border-radius:15px;
-                margin-bottom:18px;
-                border: 2px solid #ECECEC;
-                width:100%;
-            ">
-                <h3 style="margin:0; color:#4C3A60;">📅 {r["fecha"]}</h3>
-                <p style="margin:4px 0 12px; color:#6D4C41;">Movimiento registrado</p>
+    # Si el usuario elige una fecha, filtramos
+    if fecha_filtro:
+        df = df[df["fecha"] == fecha_filtro]
 
-                <div style="
-                    display:flex;
-                    flex-wrap:wrap;
-                    gap:20px;
-                    width:100%;
-                ">
+    if df.empty:
+        st.warning("No hay movimientos para la fecha seleccionada.")
+        return
 
-                    <div style="
-                        flex:1;
-                        min-width:280px;
-                        background:#E8FFF3;
-                        padding:15px;
-                        border-radius:12px;
-                        border:1px solid #B6F2D0;
-                    ">
-                        <h4 style="color:#15653B; margin:0;">🟩 Entradas</h4>
-                        <p><b>Multas:</b> ${r["multas"]}</p>
-                        <p><b>Ahorros:</b> ${r["ahorros"]}</p>
-                        <p><b>Otras actividades:</b> ${r["otras_actividades"]}</p>
-                        <p><b>Préstamos pagados:</b> ${r["pago_prestamos"]}</p>
-                        <p><b>Otros ingresos:</b> ${r["otros_ingresos"]}</p>
-                        <p><b>Total entrada:</b> <span style="color:#0B893E;"><b>${r["total_entrada"]}</b></span></p>
-                    </div>
+    # Ordenar por fecha
+    df = df.sort_values(by="fecha", ascending=False)
 
-                    <div style="
-                        flex:1;
-                        min-width:280px;
-                        background:#FFECEC;
-                        padding:15px;
-                        border-radius:12px;
-                        border:1px solid #F7C0C0;
-                    ">
-                        <h4 style="color:#B22424; margin:0;">🟥 Salidas</h4>
-                        <p><b>Retiros ahorros:</b> ${r["retiro_ahorros"]}</p>
-                        <p><b>Desembolsos:</b> ${r["desembolso"]}</p>
-                        <p><b>Gastos del grupo:</b> ${r["gastos_grupo"]}</p>
-                        <p><b>Total salida:</b> <span style="color:#C21818;"><b>${r["total_salida"]}</b></span></p>
-                    </div>
+    # Renombrar columnas para visualización bonita
+    df = df.rename(columns={
+        "fecha": "Fecha",
+        "tipo": "Tipo",
+        "monto": "Monto ($)",
+        "descripcion": "Descripción",
+        "registrado_por": "Registrado por"
+    })
 
-                </div>
+    st.subheader("📄 Movimientos encontrados")
 
-                <h3 style="margin-top:15px;">⚖️ Saldo final:
-                    <span style="color:{saldo_color};">
-                        <b>${r["saldo_cierre"]}</b>
-                    </span>
-                </h3>
-            </div>
-        """, unsafe_allow_html=True)
+    # Mostrar tabla elegante
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=450
+    )
+
+    # Mostrar saldo final
+    saldo = obtener_saldo_caja(id_grupo)
+    st.info(f"💰 **Saldo actual en caja: ${saldo:.2f}**")
 
     # ===============================
     # 8. Regresar
