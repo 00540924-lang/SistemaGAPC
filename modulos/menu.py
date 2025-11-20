@@ -115,6 +115,7 @@ div.stButton > button:hover {
         ("📋 Asistencia", "asistencia", "asistencia_btn"),
         # GAPC (solo usuarios institucionales)
         ("🏛️ GAPC", "GAPC", "gapc_btn"),
+        ("💼 Préstamos", "prestamos", "prestamos_btn"),
     ]
 
     # -----------------------------------------------------
