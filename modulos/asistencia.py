@@ -1,9 +1,7 @@
 import streamlit as st
 import mysql.connector
 from datetime import datetime
-from app import get_connection
-
-
+from modulos.conexion import get_connection
 
 # -------------------------------------------------------
 #   🔹 Obtener el grupo al que pertenece el usuario
