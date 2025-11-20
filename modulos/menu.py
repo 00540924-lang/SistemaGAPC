@@ -105,7 +105,7 @@ div.stButton > button:hover {
     modulos_base = [
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "grupos_btn"),
+        ("📝 Grupos", "grupos_btn", "grupos_btn"),
         ("📜 Reglamento", "reglamento", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("💸 Multas", "multas", "configuracion_btn"),
@@ -116,15 +116,24 @@ div.stButton > button:hover {
     ]
 
     # -----------------------------------------------------
-    #          FILTRO POR ROL
+    #          FILTRO POR ROL (CORREGIDO)
     # -----------------------------------------------------
-    if usuario == "dark" or rol.lower() == "institucional":
+    rol_l = rol.lower()
+
+    # 🔥 Desarrollador
+    if usuario == "dark":
         modulos = modulos_base
 
-    elif rol.lower() == "promotor":
-        modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
+    # 🏛 Institucional: todos excepto Caja
+    elif rol_l == "institucional":
+        modulos = [m for m in modulos_base if m[1] not in ["caja"]]
 
-    elif rol.lower() == "miembro":
+    # 👤 Promotor
+    elif rol_l == "promotor":
+        modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos_btn"]]
+
+    # 👥 Miembro
+    elif rol_l == "miembro":
         modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja"]]
 
     else:
