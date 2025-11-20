@@ -1,95 +1,111 @@
 import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
+import datetime
 import time
 
-# ---------------------------------------------------
-# 1. VERIFICAR GRUPO DEL USUARIO
-# ---------------------------------------------------
-def prestamos():
-    if "id_grupo" not in st.session_state:
+
+# ================================
+#   FORMULARIO DE PRÉSTAMOS
+# ================================
+def pagina_prestamos():
+
+    # --------------------------------------
+    # Validar sesión y grupo
+    # --------------------------------------
+    if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
         return
 
     id_grupo = st.session_state["id_grupo"]
 
-    st.markdown("<h2 style='text-align:center;'>💰 Módulo de Préstamos</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>💲 Registro de Préstamos</h1>", unsafe_allow_html=True)
 
-    mostrar_formulario_prestamo(id_grupo)
-    mostrar_lista_prestamos(id_grupo)
-
-
-# ---------------------------------------------------
-# 2. FORMULARIO PARA CREAR UN PRÉSTAMO
-# ---------------------------------------------------
-def mostrar_formulario_prestamo(id_grupo):
-
-    st.markdown("<h3>➕ Registrar nuevo préstamo</h3>", unsafe_allow_html=True)
-
-    # Obtener miembros del grupo
+    # --------------------------------------
+    # Obtener lista de miembros del grupo
+    # --------------------------------------
     con = obtener_conexion()
     cursor = con.cursor()
     cursor.execute("""
-        SELECT M.id_miembro, M.nombre 
+        SELECT M.id_miembro, M.nombre, M.dui
         FROM Miembros M
-        JOIN Grupomiembros G ON G.id_miembro = M.id_miembro
-        WHERE G.id_grupo = %s
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
     """, (id_grupo,))
     miembros = cursor.fetchall()
     con.close()
 
     if not miembros:
-        st.info("Este grupo todavía no tiene miembros.")
+        st.warning("No hay miembros registrados en este grupo.")
         return
 
-    # Seleccionar miembro
-    opciones = {f"{m[1]} (ID {m[0]})": m[0] for m in miembros}
-    miembro_seleccionado = st.selectbox("Seleccione una socia:", list(opciones.keys()))
-    id_miembro = opciones[miembro_seleccionado]
+    miembros_dict = {f"{m[1]} - {m[2]}": m[0] for m in miembros}
 
-    # Formulario del préstamo
-    with st.form("form_prestamo"):
+    # ================================
+    # FORMULARIO NUEVO PRÉSTAMO
+    # ================================
+    with st.form("form_nuevo_prestamo"):
+        st.subheader("📄 Datos del Préstamo")
+
+        miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
         proposito = st.text_input("Propósito del préstamo")
-        monto = st.number_input("Monto solicitado", min_value=1.0, step=1.0)
-        fecha_desembolso = st.date_input("Fecha de desembolso")
-        fecha_venc = st.date_input("Fecha de vencimiento")
-        firma = st.text_input("Firma (nombre quien autoriza)")
-        enviar = st.form_submit_button("Registrar Préstamo")
+        monto = st.number_input("Monto", min_value=0.01, step=0.01)
+        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
+        fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
+        firma = st.text_input("Firma del solicitante")
+        estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
+
+        enviar = st.form_submit_button("Guardar Préstamo")
 
     if enviar:
         try:
             con = obtener_conexion()
             cursor = con.cursor()
+
             cursor.execute("""
                 INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, firma, estado)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (id_miembro, proposito, monto, fecha_desembolso, fecha_venc, firma, "activo"))
+            """, (
+                miembros_dict[miembro_seleccionado],
+                proposito,
+                monto,
+                fecha_desembolso,
+                fecha_vencimiento,
+                firma,
+                estado
+            ))
+
             con.commit()
-            st.success("✔ Préstamo registrado correctamente")
-            time.sleep(0.5)
+            st.success("✅ Préstamo registrado correctamente")
+            time.sleep(0.6)
             st.experimental_rerun()
+
         finally:
             cursor.close()
             con.close()
 
+    # ================================
+    # MOSTRAR PRÉSTAMOS REGISTRADOS
+    # ================================
+    mostrar_lista_prestamos(id_grupo)
 
-# ---------------------------------------------------
-# 3. MOSTRAR LISTA DE PRÉSTAMOS ACTIVOS
-# ---------------------------------------------------
+
+# ================================
+# TABLA DE PRÉSTAMOS
+# ================================
 def mostrar_lista_prestamos(id_grupo):
-
-    st.markdown("<h3>📋 Préstamos del grupo</h3>", unsafe_allow_html=True)
-
     con = obtener_conexion()
     cursor = con.cursor()
+
     cursor.execute("""
-        SELECT P.id_prestamo, M.nombre, P.monto, P.proposito, P.fecha_desembolso, P.estado
+        SELECT P.id_prestamo, M.nombre, P.proposito, P.monto, P.fecha_desembolso, P.fecha_vencimiento, P.estado
         FROM prestamos P
         JOIN Miembros M ON M.id_miembro = P.id_miembro
-        JOIN Grupomiembros G ON G.id_miembro = M.id_miembro
-        WHERE G.id_grupo = %s
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
         ORDER BY P.id_prestamo DESC
     """, (id_grupo,))
+
     prestamos = cursor.fetchall()
     con.close()
 
@@ -97,39 +113,60 @@ def mostrar_lista_prestamos(id_grupo):
         st.info("No hay préstamos registrados en este grupo.")
         return
 
-    df = pd.DataFrame(prestamos, columns=["ID", "Socia", "Monto", "Propósito", "Desembolso", "Estado"])
+    df = pd.DataFrame(prestamos, columns=[
+        "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", "Fecha Vencimiento", "Estado"
+    ])
+
+    df.insert(0, "No.", range(1, len(df) + 1))
+
+    st.subheader("📋 Préstamos registrados")
     st.dataframe(df, use_container_width=True)
 
-    # Selección de préstamo
-    opciones = {f"Préstamo {row[0]} - {row[1]}": row[0] for row in prestamos}
-    seleccionado = st.selectbox("Selecciona un préstamo para ver pagos:", list(opciones.keys()))
-    id_prestamo = opciones[seleccionado]
+    # Seleccionar préstamo para registrar pagos
+    prestamo_opciones = {f"{row['Miembro']} - ${row['Monto']} (ID {row['ID']})": row["ID"] for _, row in df.iterrows()}
+    prestamo_sel = st.selectbox("Registrar pagos para:", list(prestamo_opciones.keys()))
 
-    mostrar_pagos(id_prestamo)
+    if prestamo_sel:
+        mostrar_formulario_pagos(prestamo_opciones[prestamo_sel])
 
 
-# ---------------------------------------------------
-# 4. MOSTRAR PAGOS DE UN PRÉSTAMO
-# ---------------------------------------------------
-def mostrar_pagos(id_prestamo):
+# ================================
+# FORMULARIO DE PAGOS
+# ================================
+def mostrar_formulario_pagos(id_prestamo):
 
-    st.markdown("<h3>📄 Pagos del préstamo</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>💵 Registrar pago</h3>", unsafe_allow_html=True)
 
-    con = obtener_conexion()
-    cursor = con.cursor()
-    cursor.execute("""
-        SELECT numero_pago, fecha, capital, interes, estado
-        FROM prestamo_pagos
-        WHERE id_prestamo = %s
-        ORDER BY numero_pago
-    """, (id_prestamo,))
-    pagos = cursor.fetchall()
-    con.close()
+    with st.form(f"form_pago_{id_prestamo}"):
 
-    if pagos:
-        df = pd.DataFrame(pagos, columns=["Pago #", "Fecha", "Capital", "Interés", "Estado"])
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("Este préstamo aún no tiene pagos registrados.")
+        numero_pago = st.number_input("Número de pago", min_value=1, step=1)
+        fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
+        capital = st.number_input("Capital", min_value=0.01, step=0.01)
+        interes = st.number_input("Interés", min_value=0.00, step=0.01)
+        estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
 
-    st.warning("⚠ Módulo de pagos próximamente…")
+        guardar = st.form_submit_button("Registrar Pago")
+
+    if guardar:
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+
+            cursor.execute("""
+                INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                id_prestamo,
+                numero_pago,
+                fecha_pago,
+                capital,
+                interes,
+                estado_pago
+            ))
+
+            con.commit()
+            st.success("💰 Pago registrado correctamente")
+
+        finally:
+            cursor.close()
+            con.close()
