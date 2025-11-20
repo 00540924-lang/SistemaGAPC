@@ -55,9 +55,9 @@ elif pagina == "reportes":
     vista_reportes()
 
 # ---- CONFIGURACIÓN ----
-elif pagina == "configuracion":
-    from modulos.configuracion import vista_configuracion
-    vista_configuracion()
+elif pagina == "asistencia":
+    from modulos.asistencia import vista_asistencia
+    vista_asistencia()
 
 # ---- CREDENCIALES ----
 elif pagina == "credenciales":
