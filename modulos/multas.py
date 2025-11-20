@@ -61,10 +61,11 @@ def multas_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
             fecha_str = fecha.strftime("%Y-%m-%d")
+            pagada_val = 1 if pagada == "Sí" else 0  # ✅ Convertir a entero
             cursor.execute("""
                 INSERT INTO Multas (id_miembro, fecha, monto_a_pagar, pagada)
                 VALUES (%s, %s, %s, %s)
-            """, (miembro_dict[miembro_seleccionado], fecha_str, monto, pagada))
+            """, (miembro_dict[miembro_seleccionado], fecha_str, monto, pagada_val))
             con.commit()
             st.success("Multa registrada correctamente ✔️")
             time.sleep(0.5)
@@ -77,7 +78,6 @@ def multas_modulo():
     # TABLA DE MULTAS
     # ================================
     mostrar_tabla_multas(id_grupo)
-
 
 # ================================
 # FUNCIONES AUXILIARES
@@ -95,13 +95,14 @@ def mostrar_tabla_multas(id_grupo):
             ORDER BY MT.id_multa
         """, (id_grupo,))
         resultados = cursor.fetchall()
+        # Convertir pagada a Sí/No para mostrar en tabla
         df = pd.DataFrame(resultados, columns=["ID", "Miembro", "Fecha", "Monto", "Pagada"])
+        df["Pagada"] = df["Pagada"].apply(lambda x: "Sí" if x == 1 else "No")
 
         if df.empty:
             st.info("No hay multas registradas en este grupo.")
             return
 
-        # Numerar filas
         df_display = df.reset_index(drop=True)
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
 
@@ -155,10 +156,11 @@ def editar_multa(multa):
             con = obtener_conexion()
             cursor = con.cursor()
             fecha_str = fecha.strftime("%Y-%m-%d")
+            pagada_val = 1 if pagada == "Sí" else 0
             cursor.execute("""
                 UPDATE Multas SET fecha=%s, monto_a_pagar=%s, pagada=%s
                 WHERE id_multa=%s
-            """, (fecha_str, monto, pagada, multa['ID']))
+            """, (fecha_str, monto, pagada_val, multa['ID']))
             con.commit()
             st.success("Multa actualizada correctamente ✔️")
             time.sleep(0.5)
