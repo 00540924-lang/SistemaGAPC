@@ -7,12 +7,17 @@ import pandas as pd
 def mostrar_caja():
 
     # ===============================
-    # 0. Verificar grupo
+    # 0. Verificar grupo por tipo de usuario
     # ===============================
+    rol = st.session_state.get("rol", "").lower()
+    usuario = st.session_state.get("usuario", "").lower()
     id_grupo = st.session_state.get("id_grupo", None)
-    if not id_grupo:
-        st.error("❌ No se detectó un grupo asignado. Inicie sesión nuevamente.")
-        return
+
+    # 🔹 "dark" y "institucional" pueden entrar aunque no tengan grupo
+    if usuario != "dark" and rol not in ["institucional"]:
+        if not id_grupo:
+            st.error("❌ No tiene un grupo asignado. Pida al administrador que lo agregue a un grupo.")
+            return
 
     st.title("💰 Formulario de Caja")
 
@@ -134,4 +139,3 @@ def mostrar_caja():
 
     cursor.close()
     conn.close()
-
