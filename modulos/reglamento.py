@@ -161,3 +161,10 @@ def mostrar_reglamento():
             st.error(f"Error al guardar: {e}")
 
     conn.close()
+
+# ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
