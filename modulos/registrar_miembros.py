@@ -1,8 +1,3 @@
-import streamlit as st
-import pandas as pd
-from modulos.config.conexion import obtener_conexion
-import time
-
 def registrar_miembros():
     # ================================
     # VALIDAR SESIÓN Y GRUPO
@@ -21,38 +16,45 @@ def registrar_miembros():
     st.markdown("<h1 style='text-align:center;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
     # ================================
-    # FORMULARIO NUEVO MIEMBRO
+    # FORMULARIO NUEVO MIEMBRO SOLO SI NO ESTAMOS EDITANDO
     # ================================
-    with st.form("form_miembro"):
-        nombre = st.text_input("Nombre completo")
-        dui = st.text_input("DUI")
-        telefono = st.text_input("Teléfono")
-        enviar = st.form_submit_button("Registrar")
+    if "editar_miembro" not in st.session_state:
+        with st.form("form_miembro"):
+            nombre = st.text_input("Nombre completo")
+            dui = st.text_input("DUI")
+            telefono = st.text_input("Teléfono")
+            enviar = st.form_submit_button("Registrar")
 
-    if enviar:
-        try:
-            con = obtener_conexion()
-            cursor = con.cursor()
-            cursor.execute(
-                "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
-                (nombre, dui, telefono)
-            )
-            con.commit()
-            id_miembro = cursor.lastrowid
+        if enviar:
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+                cursor.execute(
+                    "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
+                    (nombre, dui, telefono)
+                )
+                con.commit()
+                id_miembro = cursor.lastrowid
 
-            cursor.execute(
-                "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
-                (id_grupo, id_miembro)
-            )
-            con.commit()
+                cursor.execute(
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    (id_grupo, id_miembro)
+                )
+                con.commit()
 
-            st.success("Miembro registrado correctamente ✔️")
-            time.sleep(0.5)
-            st.rerun()  # recarga automática
+                st.success("Miembro registrado correctamente ✔️")
+                time.sleep(0.5)
+                st.rerun()  # recarga automática
 
-        finally:
-            cursor.close()
-            con.close()
+            finally:
+                cursor.close()
+                con.close()
+
+    # ================================
+    # Mostrar tabla y acciones
+    # ================================
+    mostrar_tabla_y_acciones(id_grupo)
+
 
     # ================================
     # Mostrar tabla y acciones
