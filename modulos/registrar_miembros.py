@@ -1,80 +1,105 @@
 import streamlit as st
-import mysql.connector
 import pandas as pd
+from modulos.config.conexion import obtener_conexion
+import time
 
 def registrar_miembros():
     st.title("🧍 Registro de Miembros")
 
-    # ------------------ FORMULARIO ------------------
+    # ================================
+    # VALIDAR SESIÓN Y GRUPO
+    # ================================
+    if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
+        st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
+        return
+    
+    id_grupo = st.session_state["id_grupo"]
+    nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
+
+    st.subheader(f"📌 Registrando miembros para el grupo: **{nombre_grupo}**")
+
+    # ========================
+    # FORMULARIO
+    # ========================
     with st.form("form_miembro"):
         nombre = st.text_input("Nombre completo")
         dui = st.text_input("DUI")
         telefono = st.text_input("Telefono")
         enviar = st.form_submit_button("Registrar")
- # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")  # espaciado
+
+    # ------------------ BOTÓN REGRESAR ------------------
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
 
-    # ------------------ PROCESAR FORMULARIO ------------------
+    # ========================
+    # PROCESAR FORMULARIO
+    # ========================
     if enviar:
         try:
-            conexion = mysql.connector.connect(
-                host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-                user="uiazxdhtd3r8o7uv",
-                password="uGjZ9MXWemv7vPsjOdA5",
-                database="bzn5gsi7ken7lufcglbg"
-            )
-            cursor = conexion.cursor()
+            con = obtener_conexion()
+            cursor = con.cursor()
 
-            # Insertar datos
+            # 1️⃣ Insertar en Miembros
             sql = "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)"
-            datos = (nombre, dui, telefono)
-            cursor.execute(sql, datos)
-            conexion.commit()
-            st.success("Miembro registrado exitosamente ✔️")
+            cursor.execute(sql, (nombre, dui, telefono))
+            con.commit()
 
-            cursor.close()
-            conexion.close()
+            id_miembro = cursor.lastrowid
 
-        except mysql.connector.Error as e:
-            st.error(f"Error MySQL: {e}")
+            # 2️⃣ Insertar relación en Grupomiembros
+            cursor.execute(
+                "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                (id_grupo, id_miembro)
+            )
+            con.commit()
+
+            msg = st.success("Miembro registrado correctamente ✔️")
+
+            # 🕒 Hacer que desaparezca el mensaje
+            time.sleep(2)
+            msg.empty()
+
         except Exception as e:
-            st.error(f"Error general: {e}")
+            st.error(f"Error: {e}")
 
-    # ------------------ MOSTRAR MIEMBROS ------------------
-    st.write("")  # espaciado
-    st.subheader("📝 Miembros Registrados")
+        finally:
+            try:
+                cursor.close()
+                con.close()
+            except:
+                pass
+
+    # ========================
+    # MOSTRAR MIEMBROS DEL GRUPO
+    # ========================
+    st.write("")
+    st.subheader(f"📝 Miembros registrados en {nombre_grupo}")
 
     try:
-        conexion = mysql.connector.connect(
-            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-            user="uiazxdhtd3r8o7uv",
-            password="uGjZ9MXWemv7vPsjOdA5",
-            database="bzn5gsi7ken7lufcglbg"
-        )
-        cursor = conexion.cursor()
-        cursor.execute("SELECT Nombre, DUI, Telefono FROM Miembros")
-        resultados = cursor.fetchall()
-        cursor.close()
-        conexion.close()
+        con = obtener_conexion()
+        cursor = con.cursor()
 
-        # Crear DataFrame y agregar columna No.
+        cursor.execute("""
+            SELECT M.nombre, M.dui, M.telefono
+            FROM Miembros M
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+        """, (id_grupo,))
+
+        resultados = cursor.fetchall()
+
         if resultados:
             df = pd.DataFrame(resultados, columns=["Nombre", "DUI", "Teléfono"])
-            df.index = df.index + 1  # empieza en 1
+            df.index = df.index + 1
             df.index.name = "No."
-            st.dataframe(df.style.set_properties(**{'text-align': 'center'}).set_table_styles(
-                [{'selector': 'th', 'props': [('text-align', 'center')]}]
-            ))
+            st.dataframe(df)
         else:
-            st.info("No hay miembros registrados.")
+            st.info("Aún no hay miembros en este grupo.")
 
-    except mysql.connector.Error as e:
-        st.error(f"Error MySQL al mostrar miembros: {e}")
+        cursor.close()
+        con.close()
+
     except Exception as e:
-        st.error(f"Error general al mostrar miembros: {e}")
-
-   
+        st.error(f"Error al mostrar miembros: {e}")
 
