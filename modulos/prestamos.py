@@ -1,7 +1,6 @@
 import streamlit as st
 import mysql.connector
 from datetime import date
-from datetime import datetime
 
 # ==========================================
 # CONEXIÓN A BASE DE DATOS
@@ -22,7 +21,7 @@ def prestamos_modulo():
     st.title("📄 Registro de Préstamos")
 
     # ==============================
-    # Validar que existe un grupo
+    # Validar grupo del usuario
     # ==============================
     id_grupo = st.session_state.get("id_grupo", None)
     if not id_grupo:
@@ -37,20 +36,21 @@ def prestamos_modulo():
 
     cursor.execute("""
         SELECT miembros.id, miembros.nombre
-        FROM grupomiembros
-        JOIN miembros ON grupomiembros.id_miembro = miembros.id
-        WHERE grupomiembros.id_grupo = %s
+        FROM GrupoMiembros
+        JOIN miembros ON GrupoMiembros.id_miembro = miembros.id
+        WHERE GrupoMiembros.id_grupo = %s
     """, (id_grupo,))
     miembros = cursor.fetchall()
 
     if not miembros:
         st.warning("⚠ No hay miembros registrados en tu grupo.")
+        conn.close()
         return
 
     miembros_dict = {m[1]: m[0] for m in miembros}  # nombre → id
 
     # ======================================
-    # CREAR FORMULARIO
+    # FORMULARIO DE PRÉSTAMO
     # ======================================
     with st.form("form_prestamo"):
         st.subheader("🧾 Datos del Préstamo")
@@ -58,8 +58,6 @@ def prestamos_modulo():
         nombre_miembro = st.selectbox("Seleccione un miembro:", list(miembros_dict.keys()))
         monto = st.number_input("Monto del préstamo:", min_value=1.0, step=1.0)
         fecha = st.date_input("Fecha del préstamo:", value=date.today())
-
-        # Guardar la cantidad de pagos
         cantidad_pagos = st.number_input("Cantidad de pagos:", min_value=1, step=1)
 
         submitted = st.form_submit_button("💾 Guardar Préstamo")
@@ -71,7 +69,6 @@ def prestamos_modulo():
 
         id_miembro = miembros_dict[nombre_miembro]
 
-        # Insertar préstamo
         cursor.execute("""
             INSERT INTO prestamos (id_miembro, monto, fecha, cantidad_pagos)
             VALUES (%s, %s, %s, %s)
@@ -96,7 +93,6 @@ def prestamos_modulo():
     if col_b.button("➖ Quitar fila") and st.session_state.pagos > 1:
         st.session_state.pagos -= 1
 
-    # Mostrar tabla simple
     st.write("### Tabla de Pagos")
     for i in range(st.session_state.pagos):
         c1, c2 = st.columns(2)
