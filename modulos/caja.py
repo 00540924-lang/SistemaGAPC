@@ -1,53 +1,137 @@
 import streamlit as st
+import mysql.connector
+from datetime import date
+from modulos.config.conexion import obtener_conexion
+import pandas as pd
 
-def caja():
-    st.title("📦 Formulario de Caja")
+def mostrar_caja():
 
-    st.write("Complete los datos correspondientes al movimiento de caja del día.")
+    # ===============================
+    # 0. Verificar grupo
+    # ===============================
+    id_grupo = st.session_state.get("id_grupo", None)
+    if not id_grupo:
+        st.error("❌ No se detectó un grupo asignado. Inicie sesión nuevamente.")
+        return
 
-    # ----- Datos de encabezado -----
-    st.subheader("Encabezado")
-    col1, col2 = st.columns(2)
-    with col1:
-        firma = st.text_input("Firma:")
-        t = st.text_input("T:")
-    with col2:
-        saldo_apertura = st.number_input("Saldo de apertura:", min_value=0.0, step=0.01)
+    st.title("💰 Formulario de Caja")
 
-    st.markdown("---")
+    # ===============================
+    # 1. Conexión BD
+    # ===============================
+    conn = obtener_conexion()
+    if not conn:
+        st.error("❌ Error al conectar a la base de datos.")
+        return
+    cursor = conn.cursor(dictionary=True)
 
-    # ----- DINERO QUE ENTRA -----
-    st.subheader("Dinero que entra")
+    # ===============================
+    # 2. Seleccionar fecha
+    # ===============================
+    fecha = st.date_input("📅 Fecha de registro", date.today())
+    st.write("---")
 
-    multa = st.number_input("Multas pagadas:", min_value=0.0, step=0.01)
-    ahorros = st.number_input("Ahorros:", min_value=0.0, step=0.01)
-    otras_actividades = st.number_input("Otras actividades:", min_value=0.0, step=0.01)
-    pagos_prestamos = st.number_input("Pago de préstamos (capital e interés):", min_value=0.0, step=0.01)
-    otros_ingresos = st.number_input("Otros ingresos del grupo:", min_value=0.0, step=0.01)
+    # ===============================
+    # 3. Formulario DINERO QUE ENTRA
+    # ===============================
+    st.subheader("🟩 Dinero que entra")
 
-    total_entra = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
-    st.number_input("Total dinero que entra:", value=total_entra, disabled=True)
+    multa = st.number_input("Multas pagadas", min_value=0.0, step=0.01)
+    ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
+    otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
+    pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
+    otros_ingresos = st.number_input("Otros ingresos del grupo", min_value=0.0, step=0.01)
 
-    saldo_despues_entrada = saldo_apertura + total_entra
-    st.number_input("Saldo después de entrada:", value=saldo_despues_entrada, disabled=True)
+    total_entrada = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
+    st.number_input("🔹 Total dinero que entra", value=total_entrada, disabled=True)
 
-    st.markdown("---")
+    # ===============================
+    # 4. Formulario DINERO QUE SALE
+    # ===============================
+    st.write("---")
+    st.subheader("🟥 Dinero que sale")
 
-    # ----- DINERO QUE SALE -----
-    st.subheader("Dinero que sale")
+    retiro_ahorros = st.number_input("Retiros de ahorros", min_value=0.0, step=0.01)
+    desembolso = st.number_input("Desembolso de préstamos", min_value=0.0, step=0.01)
+    gastos_grupo = st.number_input("Otros gastos del grupo", min_value=0.0, step=0.01)
 
-    retiro_ahorros = st.number_input("Retiro de ahorros:", min_value=0.0, step=0.01)
-    desembolso = st.number_input("Desembolso de préstamos:", min_value=0.0, step=0.01)
-    gastos_grupo = st.number_input("Otros gastos del grupo:", min_value=0.0, step=0.01)
+    total_salida = retiro_ahorros + desembolso + gastos_grupo
+    st.number_input("🔻 Total dinero que sale", value=total_salida, disabled=True)
 
-    total_sale = retiro_ahorros + desembolso + gastos_grupo
-    st.number_input("Total dinero que sale:", value=total_sale, disabled=True)
+    # ===============================
+    # 5. Calcular saldo neto
+    # ===============================
+    st.write("---")
+    saldo_neto = total_entrada - total_salida
+    st.number_input("⚖️ Saldo del cierre", value=saldo_neto, disabled=True)
 
-    saldo_cierre = saldo_despues_entrada - total_sale
-    st.number_input("Saldo de cierre:", value=saldo_cierre, disabled=True)
+    # ===============================
+    # 6. Guardar registros
+    # ===============================
+    if st.button("💾 Guardar registro de caja"):
 
-    st.markdown("---")
+        cursor.execute("""
+            INSERT INTO Caja (
+                id_grupo, fecha, multas, ahorros, otras_actividades, 
+                pago_prestamos, otros_ingresos, total_entrada,
+                retiro_ahorros, desembolso, gastos_grupo, total_salida,
+                saldo_cierre
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            id_grupo, fecha,
+            multa, ahorros, otras_actividades,
+            pagos_prestamos, otros_ingresos, total_entrada,
+            retiro_ahorros, desembolso, gastos_grupo, total_salida,
+            saldo_neto
+        ))
 
-    if st.button("Guardar Movimiento"):
-        st.success("Movimiento de caja guardado correctamente (placeholder).")
+        conn.commit()
+        st.success("✅ Movimiento de caja guardado con éxito.")
+
+    # ===============================
+    # 7. HISTORIAL
+    # ===============================
+    st.write("---")
+    st.subheader("📚 Historial de Caja")
+
+    fecha_filtro = st.date_input(
+        "📅 Filtrar por fecha",
+        value=None,
+        key="filtro_caja"
+    )
+
+    if fecha_filtro:
+        cursor.execute("""
+            SELECT *
+            FROM Caja
+            WHERE id_grupo = %s AND fecha = %s
+            ORDER BY fecha DESC
+        """, (id_grupo, fecha_filtro))
+    else:
+        cursor.execute("""
+            SELECT *
+            FROM Caja
+            WHERE id_grupo = %s
+            ORDER BY fecha DESC
+        """, (id_grupo,))
+
+    registros = cursor.fetchall()
+
+    if registros:
+        df = pd.DataFrame(registros)
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("No hay registros para mostrar.")
+
+    # ===============================
+    # 8. Botón regresar
+    # ===============================
+    st.write("---")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+
+    cursor.close()
+    conn.close()
 
