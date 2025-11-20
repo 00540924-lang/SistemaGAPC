@@ -2,6 +2,7 @@ import streamlit as st
 
 def mostrar_menu():
     rol = st.session_state.get("rol", None)
+    usuario = st.session_state.get("usuario", "").lower()
 
     if not rol:
         st.error("❌ No se detectó un rol en la sesión. Inicie sesión nuevamente.")
@@ -76,19 +77,27 @@ div.stButton > button:hover {
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
-    #           NOMBRE DEL USUARIO Y GRUPO
+    #     NOMBRE DEL USUARIO (Y GRUPO O DESARROLLADOR)
     # -----------------------------------------------------
-    if "usuario" in st.session_state:
+    st.markdown(
+        f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
+        unsafe_allow_html=True
+    )
+
+    # Si es Dark → mostrar solo “Desarrollador”
+    if usuario == "dark":
         st.markdown(
-            f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
+            "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Desarrollador</p>",
             unsafe_allow_html=True
         )
 
-    if "nombre_grupo" in st.session_state and st.session_state["nombre_grupo"]:
-        st.markdown(
-            f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
-            unsafe_allow_html=True
-        )
+    # Si NO es Dark → mostrar grupo normal
+    else:
+        if st.session_state.get("nombre_grupo"):
+            st.markdown(
+                f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
+                unsafe_allow_html=True
+            )
 
     # -----------------------------------------------------
     #                   MÓDULOS BASE
@@ -103,13 +112,15 @@ div.stButton > button:hover {
     ]
 
     # -----------------------------------------------------
-    #               FILTRO POR ROL (CORREGIDO)
+    #          FILTRO POR ROL (DARK TIENE TODO)
     # -----------------------------------------------------
-    if rol == "institucional":
+    if usuario == "dark":
+        modulos = modulos_base  # acceso total
+
+    elif rol == "institucional":
         modulos = modulos_base
 
     elif rol == "promotor":
-        # Los módulos que realmente quieres permitir
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
 
     elif rol == "miembro":
@@ -120,19 +131,19 @@ div.stButton > button:hover {
         return
 
     # -----------------------------------------------------
-    #               GRID DE BOTONES (CORREGIDO)
+    #               GRID DE BOTONES
     # -----------------------------------------------------
     cols = st.columns(3)
 
     for i, (texto, modulo, css_id) in enumerate(modulos):
         with cols[i % 3]:
-            container = st.container()
-            with container:
-                container.markdown(f"<div id='{css_id}'>", unsafe_allow_html=True)
+            cont = st.container()
+            with cont:
+                cont.markdown(f"<div id='{css_id}'>", unsafe_allow_html=True)
                 if st.button(texto, key=f"btn_{modulo}"):
                     st.session_state.page = modulo
                     st.rerun()
-            container.markdown("</div>", unsafe_allow_html=True)
+            cont.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN
@@ -144,5 +155,3 @@ div.stButton > button:hover {
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
-        logout_container.markdown("</div>", unsafe_allow_html=True)
-
