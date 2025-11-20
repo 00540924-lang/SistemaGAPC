@@ -1,9 +1,9 @@
 import streamlit as st
 import mysql.connector
 from datetime import datetime
-from reportlab.pdfgen import canvas
 import pandas as pd
 import os
+from reportlab.pdfgen import canvas
 
 # ========== CONFIGURACIÓN DB ==========
 def get_connection():
@@ -44,7 +44,7 @@ def generar_pdf(reglamento, nombre_grupo):
     return ruta_pdf
 
 
-# ========== VISTA ==========
+# ========== PARTE: VISTA MEJORADA ==========
 def mostrar_reglamento_guardado(reglamento):
     st.subheader("Vista previa del reglamento")
 
@@ -66,7 +66,7 @@ def mostrar_reglamento_guardado(reglamento):
         st.markdown(texto)
 
 
-# ========== PRINCIPAL ==========
+# ========== PARTE PRINCIPAL DEL MÓDULO ==========
 def mostrar_reglamento():
 
     if "id_grupo" not in st.session_state:
@@ -83,7 +83,7 @@ def mostrar_reglamento():
         return
     cursor = conn.cursor(dictionary=True)
 
-    # =================== CONSULTA ===================
+    # =================== CONSULTAR REGLAMENTO EXISTENTE ===================
     cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
     reglamento = cursor.fetchone()
 
@@ -131,7 +131,7 @@ def mostrar_reglamento():
     fecha_inicio_ciclo = st.date_input("Fecha de inicio de ciclo",
                                        value=reglamento["fecha_inicio_ciclo"] if reglamento else datetime.now())
 
-    # =================== GUARDAR ===================
+    # =================== BOTÓN GUARDAR ===================
     if st.button("Guardar reglamento"):
         datos = (
             id_grupo,
@@ -181,7 +181,7 @@ def mostrar_reglamento():
         st.success("Reglamento guardado correctamente.")
         st.rerun()
 
-    # =================== PREVIEW ===================
+    # =================== MOSTRAR VISTA PREVIA ===================
     if reglamento:
         mostrar_reglamento_guardado(reglamento)
 
@@ -194,4 +194,7 @@ def mostrar_reglamento():
                     file_name=f"Reglamento_{nombre_grupo}.pdf",
                     mime="application/pdf"
                 )
+
+    cursor.close()
+    conn.close()
 
