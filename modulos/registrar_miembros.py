@@ -46,6 +46,7 @@ def registrar_miembros():
             con.commit()
             st.success("Miembro registrado correctamente ✔️")
             time.sleep(0.5)
+            st.experimental_rerun()  # recarga automática
         finally:
             cursor.close()
             con.close()
@@ -66,7 +67,7 @@ def mostrar_tabla_y_acciones(id_grupo):
             FROM Miembros M
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s
-            ORDER BY M.nombre
+            ORDER BY M.id_miembro
         """, (id_grupo,))
         resultados = cursor.fetchall()
         df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
@@ -81,7 +82,7 @@ def mostrar_tabla_y_acciones(id_grupo):
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
         # -------------------------------
-        # Numeración
+        # Numeración desde 1
         # -------------------------------
         df_display = df.copy()
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
@@ -97,17 +98,14 @@ def mostrar_tabla_y_acciones(id_grupo):
             miembro = miembro_dict[seleccionado]
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Editar Miembro"):
+                if st.button(f"Editar Miembro {miembro['ID']}"):
                     editar_miembro(miembro)
-                    # Actualizar tabla inmediatamente
-                    mostrar_tabla_y_acciones(id_grupo)
             with col2:
-                if st.button("Eliminar Miembro"):
+                if st.button(f"Eliminar Miembro {miembro['ID']}"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(0.5)
-                    # Actualizar tabla inmediatamente
-                    mostrar_tabla_y_acciones(id_grupo)
+                    st.experimental_rerun()  # recarga automática
 
     finally:
         cursor.close()
@@ -158,6 +156,7 @@ def editar_miembro(row):
             con.commit()
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(0.5)
+            st.experimental_rerun()  # recarga automática
         finally:
             cursor.close()
             con.close()
