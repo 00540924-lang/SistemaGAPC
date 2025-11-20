@@ -331,6 +331,20 @@ def mostrar_reglamento():
                 file_name="Reglamento.pdf",
                 mime="application/pdf"
             )
+# ============================================================
+# BOTÓN PARA BORRAR EL REGLAMENTO
+# ============================================================
+st.write("---")
+st.subheader("⚠️ Opciones avanzadas")
+
+if st.button("🗑️ Borrar reglamento"):
+    try:
+        cursor.execute("DELETE FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
+        conn.commit()
+        st.success("Reglamento eliminado correctamente.")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error al eliminar: {e}")
 
     # -------------------------
     # BOTÓN REGRESAR
