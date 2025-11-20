@@ -64,12 +64,16 @@ elif pagina == "credenciales":
     from modulos.credenciales import pagina_credenciales
     pagina_credenciales()
 
-# ---- REGLAMENTO (NUEVO MÓDULO) ----
+# ---- REGLAMENTO ----
 elif pagina == "reglamento":
     from modulos.reglamento import mostrar_reglamento
     mostrar_reglamento()
 
+# ---- MULTAS (NUEVO MÓDULO) ----
+elif pagina == "multas":
+    from modulos.multas import multas_modulo
+    multas_modulo()
+
 # ---- ERROR SI NO EXISTE LA PÁGINA ----
 else:
     st.error("❌ Página no encontrada.")
-
