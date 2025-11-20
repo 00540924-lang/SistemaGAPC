@@ -94,7 +94,10 @@ elif pagina == "caja":
     rol = st.session_state.get("rol")
     id_grupo = st.session_state.get("id_grupo")
 
-    if rol != "miembro":
+    # Normalizar el rol
+    rol_normalizado = rol.strip().lower() if rol else None
+
+    if rol_normalizado != "miembro":
         st.error("❌ No tiene permisos para acceder a este módulo.")
     else:
         if not id_grupo:
@@ -102,6 +105,7 @@ elif pagina == "caja":
         else:
             from modulos.caja import mostrar_caja
             mostrar_caja(id_grupo)
+
 
 # ---- ERROR SI NO EXISTE ----
 else:
