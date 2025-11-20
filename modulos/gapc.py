@@ -1,17 +1,17 @@
 import streamlit as st
-import mysql.connector
 from modulos.config.conexion import obtener_conexion
 
 def mostrar_gapc():
     # ===============================
     # 0. Verificar usuario logueado y rol
     # ===============================
-    if 'usuario' not in st.session_state:
+    if 'usuario' not in st.session_state or 'rol' not in st.session_state:
         st.warning("Debes iniciar sesión para acceder a este módulo.")
         return
-    
-    usuario = st.session_state['usuario']
-    if usuario.get("Rol") != "Institucional":
+
+    rol = st.session_state['rol']
+
+    if rol != "Institucional":
         st.error("❌ No tienes permisos para ver este módulo.")
         return
 
