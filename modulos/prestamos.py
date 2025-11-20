@@ -39,9 +39,9 @@ def prestamos_modulo():
 
         cursor.execute("""
             SELECT Miembros.id_miembro, Miembros.Nombre
-            FROM GrupoMiembros
-            INNER JOIN Miembros ON GrupoMiembros.id_miembro = Miembros.id_miembro
-            WHERE GrupoMiembros.id_grupo = %s
+            FROM Grupomiembros
+            INNER JOIN Miembros ON Grupomiembros.id_miembro = Miembros.id_miembro
+            WHERE Grupomiembros.id_grupo = %s
         """, (id_grupo,))
 
         miembros = cursor.fetchall()
