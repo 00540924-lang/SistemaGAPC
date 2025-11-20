@@ -5,7 +5,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 
-
 # ============================================================
 # FUNCIÓN PARA GENERAR PDF
 # ============================================================
@@ -18,34 +17,21 @@ def generar_pdf(reglamento, nombre_grupo):
     story.append(Paragraph(f"<b>Reglamento Interno - {nombre_grupo}</b>", styles["Title"]))
     story.append(Paragraph("<br/>", styles["Normal"]))
 
-    # Campos que NO deben mostrarse
-    ocultar = {"id", "id_grupo"}
+    # Convertir campos booleanos a "Sí"/"No" para PDF
+    def format_val(k, v):
+        if k in ("un_solo_prestamo", "evaluacion_monto_plazo"):
+            return "Sí" if v else "No"
+        return v
 
     for k, v in reglamento.items():
-
-        if k in ocultar:
-            continue  # Omitir id e id_grupo
-
-        # Convertir booleanos 1/0 → Sí / No
-        if k in ("un_solo_prestamo", "evaluacion_monto_plazo"):
-            v = "Sí" if str(v) in ("1", "True", "true") else "No"
-
-        # Convertir Decimal('x') → número
-        if "Decimal" in str(v):
-            v = float(str(v).replace("Decimal('", "").replace("')", ""))
-
-        story.append(
-            Paragraph(
-                f"<b>{k.replace('_', ' ').title()}:</b> {v}",
-                styles["Normal"]
-            )
-        )
+        if k in ("id", "id_grupo"):  # Excluir campos internos
+            continue
+        story.append(Paragraph(f"<b>{k.replace('_', ' ').title()}:</b> {format_val(k, v)}", styles["Normal"]))
 
     doc = SimpleDocTemplate(ruta_pdf, pagesize=letter)
     doc.build(story)
 
     return ruta_pdf
-
 
 # ============================================================
 # FUNCIÓN PRINCIPAL
@@ -113,7 +99,6 @@ def mostrar_reglamento():
         fecha_formacion = st.date_input("Fecha de formación:", fecha_valida("fecha_formacion"))
 
         st.subheader("📅 Reuniones")
-
         dias_lista = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
         dias_guardados = val("dia_reunion").split(",") if val("dia_reunion") else []
         dia_reunion = st.multiselect("Día(s) de reunión:", dias_lista, default=dias_guardados)
@@ -122,7 +107,6 @@ def mostrar_reglamento():
             hora_guardada = datetime.datetime.strptime(val("hora_reunion"), "%H:%M").time()
         except:
             hora_guardada = datetime.datetime.now().time()
-
         hora_reunion_obj = st.time_input("Hora:", value=hora_guardada)
         hora_reunion = hora_reunion_obj.strftime("%H:%M")
 
@@ -144,7 +128,6 @@ def mostrar_reglamento():
         interes_por_10 = st.number_input("Interés por cada $10 (%):", value=float(val("interes_por_10", 0)))
         max_prestamo = st.number_input("Monto máximo:", value=float(val("max_prestamo", 0)))
         max_plazo = st.text_input("Plazo máximo:", val("max_plazo"))
-
         un_solo_prestamo = st.checkbox("Un solo préstamo activo", value=bool(val("un_solo_prestamo", 0)))
         evaluacion_monto_plazo = st.checkbox("Evaluar monto y plazo", value=bool(val("evaluacion_monto_plazo", 0)))
 
@@ -201,7 +184,6 @@ def mostrar_reglamento():
                     evaluacion_monto_plazo, fecha_inicio_ciclo, fecha_fin_ciclo, meta_social,
                     otras_reglas
                 ))
-
             conn.commit()
             st.success("Reglamento guardado correctamente 🎉")
             st.rerun()
@@ -223,7 +205,8 @@ def mostrar_reglamento():
         # -------------------------
         # ESTILOS
         # -------------------------
-        st.markdown("""
+        st.markdown(
+            """
             <style>
                 .regla-box {
                     background: #fdfdfd;
@@ -247,7 +230,9 @@ def mostrar_reglamento():
                     color: #34495e;
                 }
             </style>
-        """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
 
         st.markdown(
             f"<div class='regla-box'>"
@@ -255,23 +240,23 @@ def mostrar_reglamento():
             unsafe_allow_html=True
         )
 
+        # -------------------------
+        # FUNCIÓN PARA IMPRIMIR BONITO
+        # -------------------------
         def mostrar_item(label, valor):
             if valor not in (None, "", "0", "Decimal('0')"):
-                # Convertir Decimal
                 if "Decimal" in str(valor):
                     valor = float(str(valor).replace("Decimal('", "").replace("')", ""))
-
+                if isinstance(valor, int) and label in ("Un solo préstamo activo", "Evaluación de monto y plazo"):
+                    valor = "Sí" if valor else "No"
                 st.markdown(
                     f"<div class='regla-item'><span class='regla-label'>{label}:</span> {valor}</div>",
                     unsafe_allow_html=True
                 )
 
-        bool1 = lambda x: "Sí" if str(x) in ("1", "True", "true") else "No"
-
         # ======================
         # SECCIONES
         # ======================
-
         mostrar_item("Comunidad", reglamento.get("comunidad"))
         mostrar_item("Fecha de formación", reglamento.get("fecha_formacion"))
         mostrar_item("Días de reunión", reglamento.get("dia_reunion"))
@@ -281,7 +266,6 @@ def mostrar_reglamento():
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>🏛 Comité</div>", unsafe_allow_html=True)
-
         mostrar_item("Presidenta", reglamento.get("presidenta"))
         mostrar_item("Secretaria", reglamento.get("secretaria"))
         mostrar_item("Tesorera", reglamento.get("tesorera"))
@@ -289,23 +273,20 @@ def mostrar_reglamento():
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>🧾 Asistencia</div>", unsafe_allow_html=True)
-
         mostrar_item("Multa por ausencia", reglamento.get("multa_ausencia"))
         mostrar_item("Razones sin multa", reglamento.get("razones_sin_multa"))
         mostrar_item("Depósito mínimo", reglamento.get("deposito_minimo"))
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>💰 Préstamos</div>", unsafe_allow_html=True)
-
         mostrar_item("Interés por cada $10", reglamento.get("interes_por_10"))
         mostrar_item("Monto máximo", reglamento.get("max_prestamo"))
         mostrar_item("Plazo máximo", reglamento.get("max_plazo"))
-        mostrar_item("Un solo préstamo activo", bool1(reglamento.get("un_solo_prestamo")))
-        mostrar_item("Evaluación de monto y plazo", bool1(reglamento.get("evaluacion_monto_plazo")))
+        mostrar_item("Un solo préstamo activo", reglamento.get("un_solo_prestamo"))
+        mostrar_item("Evaluación de monto y plazo", reglamento.get("evaluacion_monto_plazo"))
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>🔄 Ciclo</div>", unsafe_allow_html=True)
-
         mostrar_item("Inicio del ciclo", reglamento.get("fecha_inicio_ciclo"))
         mostrar_item("Fin del ciclo", reglamento.get("fecha_fin_ciclo"))
 
@@ -323,7 +304,6 @@ def mostrar_reglamento():
         # DESCARGAR PDF
         # -------------------------
         ruta_pdf = generar_pdf(reglamento, nombre_grupo)
-
         with open(ruta_pdf, "rb") as f:
             st.download_button(
                 label="⬇️ Descargar reglamento en PDF",
@@ -331,20 +311,20 @@ def mostrar_reglamento():
                 file_name="Reglamento.pdf",
                 mime="application/pdf"
             )
-# ============================================================
-# BOTÓN PARA BORRAR EL REGLAMENTO
-# ============================================================
-st.write("---")
-st.subheader("⚠️ Opciones avanzadas")
 
-if st.button("🗑️ Borrar reglamento"):
-    try:
-        cursor.execute("DELETE FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
-        conn.commit()
-        st.success("Reglamento eliminado correctamente.")
-        st.rerun()
-    except Exception as e:
-        st.error(f"Error al eliminar: {e}")
+        # ============================================================
+        # BOTÓN PARA BORRAR EL REGLAMENTO
+        # ============================================================
+        st.write("---")
+        st.subheader("⚠️ Opciones avanzadas")
+        if st.button("🗑️ Borrar reglamento"):
+            try:
+                cursor.execute("DELETE FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
+                conn.commit()
+                st.success("Reglamento eliminado correctamente.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error al eliminar: {e}")
 
     # -------------------------
     # BOTÓN REGRESAR
