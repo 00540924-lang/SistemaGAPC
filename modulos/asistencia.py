@@ -1,7 +1,8 @@
 import streamlit as st
 import mysql.connector
 from datetime import datetime
-from modulos.db import get_connection  # Ajusta esta ruta si tu función está en otro lado
+from app import get_connection
+
 
 
 # -------------------------------------------------------
