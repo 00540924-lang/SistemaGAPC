@@ -79,7 +79,13 @@ def registrar_miembros():
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
             return
-
+  # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
+        
         # ================================
         # TÍTULO DE LA LISTA
         # ================================
