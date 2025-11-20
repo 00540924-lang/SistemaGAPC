@@ -55,6 +55,9 @@ div.stButton > button:hover {
 #reportes_btn > button { background-color: #43A047 !important; }
 #configuracion_btn > button { background-color: #6D4C41 !important; }
 
+/* Nuevo botón Asistencia */
+#asistencia_btn > button { background-color: #FF7043 !important; }
+
 /* Logout */
 #logout_btn > button {
     width: 200px !important;
@@ -84,14 +87,11 @@ div.stButton > button:hover {
         unsafe_allow_html=True
     )
 
-    # Si es Dark → mostrar solo “Desarrollador”
     if usuario == "dark":
         st.markdown(
             "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Desarrollador</p>",
             unsafe_allow_html=True
         )
-
-    # Si NO es Dark → mostrar grupo normal
     else:
         if st.session_state.get("nombre_grupo"):
             st.markdown(
@@ -109,10 +109,13 @@ div.stButton > button:hover {
         ("📜 Reglamento", "reglamento", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("💸 Multas", "multas", "configuracion_btn"),
+
+        # 👉 NUEVO MÓDULO
+        ("📋 Asistencia", "asistencia", "asistencia_btn"),
     ]
 
     # -----------------------------------------------------
-    #          FILTRO POR ROL (DARK TIENE TODO)
+    #          FILTRO POR ROL (solo miembro ve Asistencia)
     # -----------------------------------------------------
     if usuario == "dark":
         modulos = modulos_base  # acceso total
@@ -124,7 +127,7 @@ div.stButton > button:hover {
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
 
     elif rol == "miembro":
-        modulos = [m for m in modulos_base if m[1] == "reglamento"]
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia"]]
 
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
@@ -155,3 +158,4 @@ div.stButton > button:hover {
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
+
