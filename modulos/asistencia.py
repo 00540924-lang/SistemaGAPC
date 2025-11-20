@@ -53,6 +53,54 @@ def mostrar_asistencia():
     # ===============================
     # 3.1 Obtener nombre del grupo
     # ===============================
-    cursor.execute("SELECT nombre FROM Grupos WHERE id_grupo = %s", (id_grupo,))
+    cursor.execute("SELECT Nombre_grupo FROM Grupos WHERE id_grupo = %s", (id_grupo,))
     grupo_nombre = cursor.fetchone()
-    grupo_nombre = g_
+    grupo_nombre = grupo_nombre["Nombre_grupo"] if grupo_nombre else f"ID {id_grupo}"
+
+    # ===============================
+    # 4. Crear DataFrame editable
+    # ===============================
+    df_asistencia = pd.DataFrame(miembros)
+    df_asistencia = df_asistencia.rename(columns={"Nombre": "Miembro"})
+    df_asistencia["Asistencia"] = "Presente"  # valor por defecto
+
+    st.subheader(f"🧑‍🤝‍🧑 Miembros del grupo ({grupo_nombre})")
+
+    tabla_editada = st.data_editor(
+        df_asistencia,
+        column_config={
+            "Asistencia": st.column_config.SelectboxColumn(
+                "Asistencia",
+                options=["Presente", "Ausente"],
+                required=True
+            ),
+            "id_miembro": None  # OCULTAR COLUMNA
+        },
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    st.write("---")
+
+    # ===============================
+    # 5. Guardar asistencia
+    # ===============================
+    if st.button("💾 Guardar asistencia"):
+
+        for _, row in tabla_editada.iterrows():
+            cursor.execute("""
+                INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
+                VALUES (%s, %s, %s, %s)
+            """, (id_grupo, fecha, row["id_miembro"], row["Asistencia"]))
+
+        conn.commit()
+        st.success("✅ Asistencia registrada con éxito")
+
+    # ===============================
+    # 6. Historial
+    # ===============================
+    st.write("---")
+    st.subheader("📚 Historial de Asistencias")
+
+    cursor.execute("""
+        SELECT A.fecha, M.Nombre
