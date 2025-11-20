@@ -1,7 +1,7 @@
 import streamlit as st
 import mysql.connector
 from datetime import date
-from app import get_connection
+from modulos.db import get_connection
 
 
 def mostrar_asistencia():
