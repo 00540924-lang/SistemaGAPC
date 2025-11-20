@@ -47,63 +47,31 @@ def mostrar_asistencia():
         st.warning("⚠️ No hay miembros registrados en este grupo.")
         return
 
+    # Convertimos la lista a un dataframe manipulable
+    import pandas as pd
+    df_asistencia = pd.DataFrame(miembros)
+    df_asistencia["Asistencia"] = "Presente"  # Valor por defecto
+    df_asistencia = df_asistencia.rename(columns={
+        "Nombre": "Miembro"
+    })
+
+    st.subheader("🧑‍🤝‍🧑 Registro de asistencia en tabla")
+
     # ===============================
-    # 4. Mostrar controles de asistencia (UI Mejorada)
+    # 4. Tabla editable para marcar asistencia
     # ===============================
-    st.subheader("🧑‍🤝‍🧑 Lista de Miembros")
-
-    # CSS para estilizar
-    st.markdown("""
-    <style>
-    .member-card {
-        padding: 15px;
-        border-radius: 10px;
-        background-color: #f7f7f9;
-        border: 1px solid #ddd;
-        margin-bottom: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .member-name {
-        font-size: 16px;
-        font-weight: 600;
-        color: #333;
-    }
-
-    .stRadio > div {
-        display: flex !important;
-        gap: 10px;
-        justify-content: center;
-    }
-
-    </style>
-    """, unsafe_allow_html=True)
-
-    estado_asistencia = {}
-
-    cols = st.columns(2)  # Se mostrará en dos columnas para mejor organización
-
-    for idx, m in enumerate(miembros):
-        col = cols[idx % 2]
-
-        with col:
-            st.markdown(f"""
-            <div class="member-card">
-                <span class="member-name">{m['Nombre']}</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-            estado = st.radio(
-                f"Estado_{m['id_miembro']}",
-                ["Presente", "Ausente"],
-                key=f"asistencia_{m['id_miembro']}",
-                horizontal=True,
-                label_visibility="collapsed"
+    tabla_editada = st.data_editor(
+        df_asistencia,
+        column_config={
+            "Asistencia": st.column_config.SelectboxColumn(
+                "Asistencia",
+                options=["Presente", "Ausente"],
+                required=True
             )
-
-            estado_asistencia[m["id_miembro"]] = estado
+        },
+        hide_index=True,
+        use_container_width=True,
+    )
 
     st.write("---")
 
@@ -111,12 +79,11 @@ def mostrar_asistencia():
     # 5. Guardar asistencia
     # ===============================
     if st.button("💾 Guardar asistencia"):
-
-        for id_miembro, estado in estado_asistencia.items():
+        for _, row in tabla_editada.iterrows():
             cursor.execute("""
                 INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
                 VALUES (%s, %s, %s, %s)
-            """, (id_grupo, fecha, id_miembro, estado))
+            """, (id_grupo, fecha, row["id_miembro"], row["Asistencia"]))
 
         conn.commit()
         st.success("✅ Asistencia registrada con éxito")
@@ -138,7 +105,7 @@ def mostrar_asistencia():
     registros = cursor.fetchall()
 
     if registros:
-        st.dataframe(registros)
+        st.dataframe(registros, use_container_width=True)
     else:
         st.info("No hay registros todavía.")
 
