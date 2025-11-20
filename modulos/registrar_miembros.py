@@ -54,7 +54,7 @@ def registrar_miembros():
             con.close()
 
     # ================================
-    # MOSTRAR MIEMBROS
+    # MOSTRAR MIEMBROS COMO TABLA
     # ================================
     try:
         con = obtener_conexion()
@@ -71,50 +71,27 @@ def registrar_miembros():
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
         else:
-            # ================================
-            # TABLA HTML
-            # ================================
-            tabla_html = """
-            <style>
-                table { width: 100%; border-collapse: collapse; font-size: 16px; }
-                th, td { border: 1px solid #cfcfcf; padding: 8px; text-align: center; }
-                th { background-color: #f5f5f5; font-weight: bold; }
-            </style>
-            <table>
-                <tr>
-                    <th>No.</th>
-                    <th>Nombre</th>
-                    <th>DUI</th>
-                    <th>Teléfono</th>
-                    <th>Acciones</th>
-                </tr>
-            """
+            # -------------------------------
+            # Cabecera de la tabla
+            # -------------------------------
+            cols = st.columns([1, 3, 2, 2, 2])
+            headers = ["No.", "Nombre", "DUI", "Teléfono", "Acciones"]
+            for col, header in zip(cols, headers):
+                col.markdown(f"**{header}**")
 
+            # -------------------------------
+            # Filas de la tabla
+            # -------------------------------
             for idx, row in df.iterrows():
-                tabla_html += f"""
-                <tr>
-                    <td>{idx+1}</td>
-                    <td>{row['Nombre']}</td>
-                    <td>{row['DUI']}</td>
-                    <td>{row['Teléfono']}</td>
-                    <td>Botones aquí</td>
-                </tr>
-                """
-            tabla_html += "</table>"
-            st.markdown(tabla_html, unsafe_allow_html=True)
-
-            # ================================
-            # BOTONES DE STREAMLIT SIMULANDO LA TABLA
-            # ================================
-            st.markdown("<br>", unsafe_allow_html=True)  # Espacio entre tabla y botones
-            st.markdown("<b>Acciones:</b>", unsafe_allow_html=True)
-            for idx, row in df.iterrows():
-                col1, col2 = st.columns([1,1])
-                with col1:
+                cols = st.columns([1, 3, 2, 2, 2])
+                cols[0].markdown(f"{idx+1}")
+                cols[1].markdown(row["Nombre"])
+                cols[2].markdown(row["DUI"])
+                cols[3].markdown(row["Teléfono"])
+                with cols[4]:
                     if st.button(f"Editar {row['ID']}", key=f"editar_{row['ID']}"):
                         editar_miembro(row)
                         st.experimental_rerun()
-                with col2:
                     if st.button(f"Eliminar {row['ID']}", key=f"eliminar_{row['ID']}"):
                         eliminar_miembro(row["ID"], id_grupo)
                         st.experimental_rerun()
@@ -142,8 +119,6 @@ def eliminar_miembro(id_miembro, id_grupo):
         )
         con.commit()
         st.success("Miembro eliminado ✔️")
-    except Exception as e:
-        st.error(f"Error al eliminar miembro: {e}")
     finally:
         cursor.close()
         con.close()
@@ -172,8 +147,7 @@ def editar_miembro(row):
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(1)
             st.experimental_rerun()
-        except Exception as e:
-            st.error(f"Error al actualizar miembro: {e}")
         finally:
             cursor.close()
             con.close()
+
