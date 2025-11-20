@@ -1,279 +1,459 @@
-# modulo_prestamo.py
+# modulos/prestamos/prestamos.py
 import streamlit as st
-import mysql.connector
-from mysql.connector import Error
-from datetime import date, datetime
+import pandas as pd
+import time
+from datetime import date
+from modulos.config.conexion import obtener_conexion
 
-# --------------------------
-# CONFIG - cambia según tu entorno
-# --------------------------
-DB_CONFIG = {
-    "host": "bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-    "user": "uiazxdhtd3r8o7uv",
-    "password": "uGjZ9MXWemv7vPsjOdA5",
-    "database": "bzn5gsi7ken7lufcglbg"
-}
+# ================================
+# MÓDULO PRESTAMOS
+# ================================
+def prestamos_modulo():
+    # ============= validar sesión y grupo =============
+    if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
+        st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
+        return
 
-# --------------------------
-# UTIL: conexión
-# --------------------------
-def get_db_connection():
+    id_grupo = st.session_state["id_grupo"]
+    nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
+
+    st.markdown(f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>🏦 Gestión de Préstamos</h1>", unsafe_allow_html=True)
+
+    # imagen de referencia (opcional; se ignora si no existe)
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        return conn
-    except Error as e:
-        st.error(f"Error conectando a la base de datos: {e}")
-        return None
+        st.image("/mnt/data/2013d973-988f-4087-ad4d-c93023046c52.png", use_column_width=True)
+    except Exception:
+        pass
 
-# --------------------------
-# UTIL: asegurar tablas
-# --------------------------
-def ensure_tables(conn):
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS prestamos (
-        id_prestamo INT AUTO_INCREMENT PRIMARY KEY,
-        id_miembro INT NOT NULL,
-        monto DECIMAL(15,2) NOT NULL,
-        proposito VARCHAR(255),
-        fecha_desembolso DATE,
-        fecha_vencimiento DATE,
-        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB;
-    """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS prestamo_pagos (
-        id_pago INT AUTO_INCREMENT PRIMARY KEY,
-        id_prestamo INT NOT NULL,
-        numero_pago INT NOT NULL,
-        fecha_programada DATE,
-        capital DECIMAL(15,2),
-        interes DECIMAL(15,2),
-        estado ENUM('a pagar','pagado') DEFAULT 'a pagar',
-        fecha_pagado DATE NULL,
-        capital_pagado DECIMAL(15,2) DEFAULT 0,
-        interes_pagado DECIMAL(15,2) DEFAULT 0,
-        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (id_prestamo) REFERENCES prestamos(id_prestamo) ON DELETE CASCADE
-    ) ENGINE=InnoDB;
-    """)
-    conn.commit()
-    cursor.close()
+    # ============= editar préstamo (flujo) =============
+    if "editar_prestamo" in st.session_state:
+        editar_prestamo(st.session_state["editar_prestamo"])
+        return
 
-# --------------------------
-# Obtener miembros del grupo
-# --------------------------
-def fetch_miembros_por_grupo(conn, id_grupo):
-    cursor = conn.cursor(dictionary=True)
-    query = """
-        SELECT m.id_miembro, m.Nombre
-        FROM Miembros m
-        JOIN Grupomiembros gm ON m.id_miembro = gm.id_miembro
-        WHERE gm.id_grupo = %s
-        ORDER BY m.Nombre
-    """
-    cursor.execute(query, (id_grupo,))
-    rows = cursor.fetchall()
-    cursor.close()
-    return rows
+    # ============= asegurar tablas en BD =============
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        # tabla prestamos
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prestamos (
+            id_prestamo INT AUTO_INCREMENT PRIMARY KEY,
+            id_miembro INT NOT NULL,
+            proposito VARCHAR(255),
+            monto DECIMAL(14,2) NOT NULL,
+            fecha_desembolso DATE NOT NULL,
+            fecha_vencimiento DATE NOT NULL,
+            firma VARCHAR(255),
+            estado ENUM('activo','finalizado') DEFAULT 'activo',
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB;
+        """)
+        # tabla prestamo_pagos
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prestamo_pagos (
+            id_pago INT AUTO_INCREMENT PRIMARY KEY,
+            id_prestamo INT NOT NULL,
+            numero_pago INT NOT NULL,
+            fecha DATE,
+            capital DECIMAL(14,2) DEFAULT 0,
+            interes DECIMAL(14,2) DEFAULT 0,
+            estado ENUM('a pagar','pagado') DEFAULT 'a pagar',
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (id_prestamo) REFERENCES prestamos(id_prestamo) ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB;
+        """)
+        con.commit()
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            con.close()
+        except:
+            pass
 
-# --------------------------
-# Insertar prestamo y pagos
-# --------------------------
-def insertar_prestamo_y_pagos(conn, id_miembro, monto, proposito, fecha_desembolso, fecha_vencimiento, pagos):
-    cursor = conn.cursor()
-    insert_prestamo = """
-        INSERT INTO prestamos (id_miembro, monto, proposito, fecha_desembolso, fecha_vencimiento)
-        VALUES (%s, %s, %s, %s, %s)
-    """
-    cursor.execute(insert_prestamo, (id_miembro, monto, proposito, fecha_desembolso, fecha_vencimiento))
-    id_prestamo = cursor.lastrowid
+    # ============= cargar miembros del grupo =============
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT M.id_miembro, M.nombre
+            FROM Miembros M
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            ORDER BY M.nombre
+        """, (id_grupo,))
+        miembros = cursor.fetchall()  # lista de tuplas (id, nombre)
+        # convertir a dict {nombre: id}
+        miembro_dict = {nombre: id_miembro for id_miembro, nombre in miembros}
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            con.close()
+        except:
+            pass
 
-    insert_pago = """
-        INSERT INTO prestamo_pagos
-        (id_prestamo, numero_pago, fecha_programada, capital, interes, estado, fecha_pagado, capital_pagado, interes_pagado)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """
-    for p in pagos:
-        cursor.execute(insert_pago, (
-            id_prestamo,
-            p["numero"],
-            p["fecha_programada"] if p["fecha_programada"] else None,
-            p["capital"] if p["capital"] is not None else 0,
-            p["interes"] if p["interes"] is not None else 0,
-            p["estado"],
-            p["fecha_pagado"] if p.get("fecha_pagado") else None,
-            p.get("capital_pagado", 0),
-            p.get("interes_pagado", 0)
-        ))
-    conn.commit()
-    cursor.close()
-    return id_prestamo
-
-# --------------------------
-# INTERFAZ STREAMLIT
-# --------------------------
-def modulo_prestamo():
-
-    st.header("📄 Módulo de Préstamo (con plan de pagos variable)")
-
-    # Requiere que el sistema haya guardado el grupo del usuario en session_state
-    grupo_usuario = st.session_state.get("grupo", None)
-    if not grupo_usuario:
-        st.error("No se detectó el grupo del usuario en session_state. Asegúrate de iniciar sesión correctamente.")
-        st.stop()
-
-    conn = get_db_connection()
-    if not conn:
-        st.stop()
-
-    ensure_tables(conn)
-
-    # Obtener lista de miembros del grupo
-    miembros = fetch_miembros_por_grupo(conn, grupo_usuario)
     if not miembros:
-        st.warning("No se encontraron miembros para tu grupo.")
-        conn.close()
-        st.stop()
+        st.info("No hay miembros en este grupo para crear préstamos.")
+        return
 
-    # Map id <-> nombre
-    miembros_map = {m["Nombre"]: m["id_miembro"] for m in miembros}
-    nombres = list(miembros_map.keys())
-
-    # Formulario principal
-    with st.form("form_prestamo_general"):
+    # ============= formulario principal (crear préstamo) =============
+    st.markdown("### 📄 Nuevo préstamo")
+    with st.form("form_prestamo"):
         col1, col2 = st.columns(2)
         with col1:
-            socio_nombre = st.selectbox("Seleccione el socio/miembro", nombres)
+            miembro_sel = st.selectbox("Selecciona un miembro", options=list(miembro_dict.keys()))
             monto = st.number_input("Monto del préstamo", min_value=0.0, step=0.01, format="%.2f")
             proposito = st.text_input("Propósito")
         with col2:
             fecha_desembolso = st.date_input("Fecha de desembolso", value=date.today())
             fecha_vencimiento = st.date_input("Fecha de vencimiento", value=date.today())
-            id_socio_selected = miembros_map[socio_nombre]
+            firma = st.text_input("Firma (opcional)")
 
-        # Control de número de cuotas (variable)
-        st.markdown("### Configurar cuotas / pagos")
-        num_default = st.session_state.get("num_pagos_default", 6)
-        columnas = st.columns(3)
-        numero_pagos = columnas[0].number_input("Número de pagos (filas)", min_value=1, value=num_default, step=1)
-        columnas[1].button("Usar valor por defecto (6)", on_click=lambda: st.session_state.update(num_pagos_default=6))
-        columnas[2].info("Puedes cambiar el número aquí y luego editar cada fila abajo.")
+        st.markdown("#### Plan de pagos (dinámico)")
+        # inicializar lista de pagos temporal en session_state si no existe
+        if "prestamo_pagos_temp" not in st.session_state:
+            st.session_state["prestamo_pagos_temp"] = []
 
-        submit_main = st.form_submit_button("✔️ Crear plan de pagos editable")
-
-    # Inicializar la estructura de pagos en session_state si no existe o si cambió el número de pagos
-    if "pagos" not in st.session_state or len(st.session_state["pagos"]) != int(numero_pagos):
-        # crear lista de pagos con valores por defecto
-        pagos_init = []
-        for i in range(1, int(numero_pagos) + 1):
-            pagos_init.append({
-                "numero": i,
-                "fecha_programada": None,
-                "capital": round(monto / int(numero_pagos) if numero_pagos else 0, 2),
+        # controles para añadir/quitar filas
+        c1, c2, c3 = st.columns([1,1,2])
+        if c1.button("➕ Agregar fila de pago"):
+            lista = st.session_state["prestamo_pagos_temp"]
+            numero = len(lista) + 1
+            lista.append({
+                "numero": numero,
+                "fecha": date.today(),
+                "capital": 0.0,
                 "interes": 0.0,
-                "estado": "a pagar",
-                "fecha_pagado": None,
-                "capital_pagado": 0.0,
-                "interes_pagado": 0.0
+                "estado": "a pagar"
             })
-        st.session_state["pagos"] = pagos_init
+            st.session_state["prestamo_pagos_temp"] = lista
+            st.experimental_rerun()
+        if c2.button("➖ Quitar última fila"):
+            lista = st.session_state["prestamo_pagos_temp"]
+            if lista:
+                lista.pop()
+                # reenumerar
+                for idx, item in enumerate(lista, start=1):
+                    item["numero"] = idx
+                st.session_state["prestamo_pagos_temp"] = lista
+            st.experimental_rerun()
+        c3.info("Agrega tantas filas de pago como necesites. Luego edítalas abajo.")
 
-    st.markdown("---")
-    st.subheader("✏️ Edición de cada pago")
+        submitted = st.form_submit_button("💾 Crear préstamo")
 
-    # Mostrar y editar cada fila de pago
-    pagos = st.session_state["pagos"]
-    suma_total_programado = 0.0
-    suma_total_pagado = 0.0
+    # mostrar edición de filas de pagos fuera del form para permitir inputs dinámicos
+    if st.session_state.get("prestamo_pagos_temp"):
+        st.markdown("---")
+        st.subheader("✏️ Editar plan de pagos")
+        pagos = st.session_state["prestamo_pagos_temp"]
+        suma_prog = 0.0
+        for idx, p in enumerate(pagos):
+            st.markdown(f"**Pago #{p['numero']}**")
+            a, b, c, d = st.columns([2,2,2,1])
+            with a:
+                fecha_val = st.date_input(f"Fecha #{p['numero']}", value=p.get("fecha", date.today()), key=f"fecha_pago_{idx}")
+                pagos[idx]["fecha"] = fecha_val
+            with b:
+                cap = st.number_input(f"Capital #{p['numero']}", min_value=0.0, value=float(p.get("capital", 0.0)), step=0.01, format="%.2f", key=f"cap_{idx}")
+                pagos[idx]["capital"] = cap
+            with c:
+                inte = st.number_input(f"Interés #{p['numero']}", min_value=0.0, value=float(p.get("interes", 0.0)), step=0.01, format="%.2f", key=f"int_{idx}")
+                pagos[idx]["interes"] = inte
+            with d:
+                estado = st.selectbox(f"Estado #{p['numero']}", options=["a pagar","pagado"], index=0 if p.get("estado","a pagar")=="a pagar" else 1, key=f"estado_{idx}")
+                pagos[idx]["estado"] = estado
 
-    for idx, p in enumerate(pagos):
-        st.markdown(f"**Pago #{p['numero']}**")
-        c1, c2, c3, c4 = st.columns([2,2,2,1])
+            total_row = float(pagos[idx]["capital"]) + float(pagos[idx]["interes"])
+            st.markdown(f"- **Total (fila #{p['numero']}):** {total_row:.2f}")
+            suma_prog += total_row
+            st.markdown("---")
 
-        with c1:
-            fecha_prog = st.date_input(f"Fecha programada #{p['numero']}", value=(p["fecha_programada"] or date.today()), key=f"fecha_prog_{idx}")
-            pagos[idx]["fecha_programada"] = fecha_prog
+        st.subheader("📊 Resumen del plan")
+        st.write(f"Suma total programada (capital + interés): {suma_prog:.2f}")
 
-        with c2:
-            cap = st.number_input(f"Capital (programado) #{p['numero']}", min_value=0.0, value=float(p["capital"]), step=0.01, format="%.2f", key=f"cap_prog_{idx}")
-            pagos[idx]["capital"] = cap
-
-        with c3:
-            inte = st.number_input(f"Interés (programado) #{p['numero']}", min_value=0.0, value=float(p["interes"]), step=0.01, format="%.2f", key=f"int_prog_{idx}")
-            pagos[idx]["interes"] = inte
-
-        with c4:
-            estado = st.selectbox(f"Estado #{p['numero']}", options=["a pagar", "pagado"], index=0 if p["estado"] == "a pagar" else 1, key=f"estado_{idx}")
-            pagos[idx]["estado"] = estado
-
-        # Si está pagado, permitir ingresar fecha y montos pagados
-        if pagos[idx]["estado"] == "pagado":
-            d1, d2, d3 = st.columns(3)
-            with d1:
-                fecha_pag = st.date_input(f"Fecha pagado #{p['numero']}", value=(p.get("fecha_pagado") or date.today()), key=f"fecha_pag_{idx}")
-                pagos[idx]["fecha_pagado"] = fecha_pag
-            with d2:
-                cap_pag = st.number_input(f"Capital pagado #{p['numero']}", min_value=0.0, value=float(p.get("capital_pagado", 0.0)), step=0.01, format="%.2f", key=f"cap_pag_{idx}")
-                pagos[idx]["capital_pagado"] = cap_pag
-            with d3:
-                int_pag = st.number_input(f"Interés pagado #{p['numero']}", min_value=0.0, value=float(p.get("interes_pagado", 0.0)), step=0.01, format="%.2f", key=f"int_pag_{idx}")
-                pagos[idx]["interes_pagado"] = int_pag
+    # ============= procesar creación =============
+    if submitted:
+        if monto <= 0:
+            st.error("El monto del préstamo debe ser mayor que 0.")
         else:
-            # limpiar valores de pagado si vuelve a 'a pagar'
-            pagos[idx]["fecha_pagado"] = None
-            pagos[idx]["capital_pagado"] = 0.0
-            pagos[idx]["interes_pagado"] = 0.0
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+                # insertar prestamo
+                cursor.execute("""
+                    INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, firma)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (miembro_dict[miembro_sel], proposito, monto, fecha_desembolso.strftime("%Y-%m-%d"),
+                      fecha_vencimiento.strftime("%Y-%m-%d"), firma))
+                id_prestamo = cursor.lastrowid
 
-        total_programado = float(pagos[idx]["capital"]) + float(pagos[idx]["interes"])
-        total_pagado_row = float(pagos[idx].get("capital_pagado", 0.0)) + float(pagos[idx].get("interes_pagado", 0.0))
+                # insertar pagos
+                pagos_para_bd = st.session_state.get("prestamo_pagos_temp", [])
+                if pagos_para_bd:
+                    for p in pagos_para_bd:
+                        cursor.execute("""
+                            INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        """, (id_prestamo, p["numero"], p["fecha"].strftime("%Y-%m-%d"),
+                              float(p["capital"]), float(p["interes"]), p["estado"]))
+                else:
+                    # Si no hay filas creadas, crear 1 fila por defecto con todo el monto
+                    cursor.execute("""
+                        INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (id_prestamo, 1, date.today().strftime("%Y-%m-%d"), float(monto), 0.0, "a pagar"))
 
-        st.markdown(f"- **Total programado (fila #{p['numero']}):** {total_programado:.2f}  —  **Total pagado (fila #{p['numero']}):** {total_pagado_row:.2f}")
-        suma_total_programado += total_programado
-        suma_total_pagado += total_pagado_row
+                con.commit()
+                st.success("Préstamo y plan de pagos guardados correctamente ✔️")
+                # limpiar temp
+                st.session_state.pop("prestamo_pagos_temp", None)
+                time.sleep(0.5)
+                st.experimental_rerun()
+            finally:
+                try:
+                    cursor.close()
+                except:
+                    pass
+                try:
+                    con.close()
+                except:
+                    pass
+
+    # ============= botones regresar =============
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.experimental_rerun()
+
+    st.write("---")
+    # ============= mostrar tabla de prestamos =============
+    mostrar_tabla_prestamos(id_grupo)
+
+
+# ============================= FUNCIONES AUXILIARES =============================
+def mostrar_tabla_prestamos(id_grupo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT P.id_prestamo, M.nombre, P.proposito, P.monto, P.fecha_desembolso, P.fecha_vencimiento, P.firma, P.estado
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            ORDER BY P.id_prestamo DESC
+        """, (id_grupo,))
+        rows = cursor.fetchall()
+        if not rows:
+            st.info("No hay préstamos registrados en este grupo.")
+            return
+
+        df = pd.DataFrame(rows, columns=["ID", "Miembro", "Propósito", "Monto", "Fecha desemb.", "Fecha vencim.", "Firma", "Estado"])
+        df_display = df.reset_index(drop=True)
+        df_display.insert(0, "No.", range(1, len(df_display) + 1))
+
+        st.markdown("<h3 style='text-align:center;'>📄 Préstamos Registrados</h3>", unsafe_allow_html=True)
+        st.dataframe(df_display[["No.", "Miembro", "Propósito", "Monto", "Fecha desemb.", "Fecha vencim.", "Estado"]].style.hide(axis="index"), use_container_width=True)
+
+        # selección para acciones (ver detalle / editar / eliminar)
+        prestamo_dict = {f"{row['Miembro']} - {row['Propósito']} - {row['Fecha desemb.']}": row for _, row in df.iterrows()}
+        seleccionado = st.selectbox("Selecciona un préstamo", options=list(prestamo_dict.keys()))
+
+        if seleccionado:
+            prest = prestamo_dict[seleccionado]
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("🔎 Ver detalle", key=f"ver_{prest['ID']}"):
+                    mostrar_detalle_prestamo(prest["ID"])
+            with col2:
+                if st.button("✏️ Editar", key=f"editar_{prest['ID']}"):
+                    # cargar datos para editar
+                    st.session_state["editar_prestamo"] = prest
+                    st.experimental_rerun()
+            with col3:
+                if st.button("🗑️ Eliminar", key=f"eliminar_{prest['ID']}"):
+                    eliminar_prestamo(prest["ID"])
+                    st.success("Préstamo eliminado ✔️")
+                    time.sleep(0.5)
+                    st.experimental_rerun()
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            con.close()
+        except:
+            pass
+
+def mostrar_detalle_prestamo(id_prestamo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT P.id_prestamo, M.nombre, P.proposito, P.monto, P.fecha_desembolso, P.fecha_vencimiento, P.firma, P.estado
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            WHERE P.id_prestamo = %s
+        """, (id_prestamo,))
+        prest = cursor.fetchone()
+        if not prest:
+            st.error("Préstamo no encontrado.")
+            return
+
+        st.markdown(f"### 📌 Detalle préstamo ID {prest[0]}")
+        st.write(f"**Miembro:** {prest[1]}")
+        st.write(f"**Propósito:** {prest[2]}")
+        st.write(f"**Monto:** {float(prest[3]):.2f}")
+        st.write(f"**Fecha desembolso:** {prest[4]}")
+        st.write(f"**Fecha vencimiento:** {prest[5]}")
+        st.write(f"**Firma:** {prest[6]}")
+        st.write(f"**Estado:** {prest[7]}")
+
+        # traer pagos
+        cursor.execute("""
+            SELECT numero_pago, fecha, capital, interes, estado
+            FROM prestamo_pagos
+            WHERE id_prestamo = %s
+            ORDER BY numero_pago
+        """, (id_prestamo,))
+        pagos = cursor.fetchall()
+        if pagos:
+            dfp = pd.DataFrame(pagos, columns=["No.", "Fecha", "Capital", "Interés", "Estado"])
+            st.markdown("#### 📋 Plan de pagos")
+            st.dataframe(dfp.style.hide(axis="index"), use_container_width=True)
+        else:
+            st.info("No hay pagos registrados para este préstamo.")
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            con.close()
+        except:
+            pass
+
+def eliminar_prestamo(id_prestamo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("DELETE FROM prestamos WHERE id_prestamo = %s", (id_prestamo,))
+        con.commit()
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            con.close()
+        except:
+            pass
+
+def editar_prestamo(prest):
+    # prest es una fila del df con columnas ID, Miembro, Propósito, ...
+    st.markdown(f"<h3>✏️ Editando préstamo ID {prest['ID']} - {prest['Miembro']}</h3>", unsafe_allow_html=True)
+
+    try:
+        # obtener datos actuales del préstamo y sus pagos
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("SELECT id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, firma, estado FROM prestamos WHERE id_prestamo = %s", (prest['ID'],))
+        row = cursor.fetchone()
+        if not row:
+            st.error("No se encontró el préstamo.")
+            return
+        id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, firma, estado = row
+
+        # obtener pagos existentes
+        cursor.execute("SELECT id_pago, numero_pago, fecha, capital, interes, estado FROM prestamo_pagos WHERE id_prestamo = %s ORDER BY numero_pago", (prest['ID'],))
+        pagos_bd = cursor.fetchall()
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            con.close()
+        except:
+            pass
+
+    # mostrar formulario de edición
+    col1, col2 = st.columns(2)
+    with col1:
+        proposito_n = st.text_input("Propósito", value=proposito)
+        monto_n = st.number_input("Monto", min_value=0.0, value=float(monto), step=0.01, format="%.2f")
+    with col2:
+        fecha_desembolso_n = st.date_input("Fecha desembolso", value=pd.to_datetime(fecha_desembolso).date())
+        fecha_vencimiento_n = st.date_input("Fecha vencimiento", value=pd.to_datetime(fecha_vencimiento).date())
+        firma_n = st.text_input("Firma", value=firma or "")
+        estado_n = st.selectbox("Estado del préstamo", options=["activo","finalizado"], index=0 if estado=="activo" else 1)
+
+    st.markdown("#### Pagos (edite los campos que necesite)")
+    pagos_temp = []
+    for p in pagos_bd:
+        id_pago, numero_pago, fecha_p, capital_p, interes_p, estado_p = p
+        st.markdown(f"**Pago #{numero_pago}**")
+        fcol1, fcol2, fcol3, fcol4 = st.columns([2,2,2,1])
+        with fcol1:
+            fecha_p_n = st.date_input(f"Fecha pago #{numero_pago}", value=pd.to_datetime(fecha_p).date(), key=f"edit_fecha_{id_pago}")
+        with fcol2:
+            cap_p_n = st.number_input(f"Capital #{numero_pago}", min_value=0.0, value=float(capital_p), step=0.01, format="%.2f", key=f"edit_cap_{id_pago}")
+        with fcol3:
+            int_p_n = st.number_input(f"Interés #{numero_pago}", min_value=0.0, value=float(interes_p), step=0.01, format="%.2f", key=f"edit_int_{id_pago}")
+        with fcol4:
+            est_p_n = st.selectbox(f"Estado #{numero_pago}", options=["a pagar","pagado"], index=0 if estado_p=="a pagar" else 1, key=f"edit_est_{id_pago}")
+
+        pagos_temp.append({
+            "id_pago": id_pago,
+            "numero_pago": numero_pago,
+            "fecha": fecha_p_n,
+            "capital": cap_p_n,
+            "interes": int_p_n,
+            "estado": est_p_n
+        })
         st.markdown("---")
 
-    # Mostrar resumen
-    st.subheader("📊 Resumen")
-    st.write(f"Monto del préstamo: {monto:.2f}")
-    st.write(f"Suma total programada (capital+interés): {suma_total_programado:.2f}")
-    st.write(f"Suma total efectivamente pagada: {suma_total_pagado:.2f}")
-
-    # Botones globales para guardar en BD
-    if st.button("💾 Guardar préstamo y pagos en la base de datos"):
+    if st.button("💾 Actualizar préstamo"):
         try:
-            conn = get_db_connection()
-            if not conn:
-                st.error("No se pudo conectar a la base de datos.")
-            else:
-                ensure_tables(conn)
-                # preparar lista de pagos para insertar (usar valores actuales en session_state)
-                pagos_para_bd = []
-                for p in st.session_state["pagos"]:
-                    pagos_para_bd.append({
-                        "numero": p["numero"],
-                        "fecha_programada": p["fecha_programada"],
-                        "capital": float(p["capital"]) if p["capital"] is not None else 0.0,
-                        "interes": float(p["interes"]) if p["interes"] is not None else 0.0,
-                        "estado": p["estado"],
-                        "fecha_pagado": p.get("fecha_pagado"),
-                        "capital_pagado": float(p.get("capital_pagado", 0.0)),
-                        "interes_pagado": float(p.get("interes_pagado", 0.0))
-                    })
+            con = obtener_conexion()
+            cursor = con.cursor()
+            # actualizar préstamo
+            cursor.execute("""
+                UPDATE prestamos
+                SET proposito=%s, monto=%s, fecha_desembolso=%s, fecha_vencimiento=%s, firma=%s, estado=%s
+                WHERE id_prestamo=%s
+            """, (proposito_n, monto_n, fecha_desembolso_n.strftime("%Y-%m-%d"), fecha_vencimiento_n.strftime("%Y-%m-%d"), firma_n, estado_n, prest['ID']))
 
-                id_prestamo = insertar_prestamo_y_pagos(
-                    conn,
-                    id_socio_selected,
-                    float(monto),
-                    proposito,
-                    fecha_desembolso,
-                    fecha_vencimiento,
-                    pagos_para_bd
-                )
-                st.success(f"Préstamo guardado con éxito. ID préstamo: {id_prestamo}")
-        except Exception as e:
-            st.error(f"Ocurrió un error al guardar: {e}")
+            # actualizar pagos
+            for p in pagos_temp:
+                cursor.execute("""
+                    UPDATE prestamo_pagos
+                    SET fecha=%s, capital=%s, interes=%s, estado=%s
+                    WHERE id_pago=%s
+                """, (p["fecha"].strftime("%Y-%m-%d"), float(p["capital"]), float(p["interes"]), p["estado"], p["id_pago"]))
 
-    # Cerrar conexión
-    if conn and conn.is_connected():
-        conn.close()
+            con.commit()
+            st.success("Préstamo actualizado ✔️")
+            time.sleep(0.5)
+            del st.session_state["editar_prestamo"]
+            st.experimental_rerun()
+        finally:
+            try:
+                cursor.close()
+            except:
+                pass
+            try:
+                con.close()
+            except:
+                pass
+
+    if st.button("⬅️ Cancelar edición"):
+        del st.session_state["editar_prestamo"]
+        st.experimental_rerun()
