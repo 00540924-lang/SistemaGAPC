@@ -58,8 +58,8 @@ elif pagina == "reportes":
 
 # ---- ASISTENCIA (NUEVO MÓDULO) ----
 elif pagina == "asistencia":
-    from modulos.asistencia import vista_asistencia
-    vista_asistencia()
+    from modulos.asistencia import mostrar_asistencia
+    mostrar_asistencia()
 
 # ---- CREDENCIALES ----
 elif pagina == "credenciales":
