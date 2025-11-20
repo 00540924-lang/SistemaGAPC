@@ -193,71 +193,30 @@ def mostrar_reglamento():
         except Exception as e:
             st.error(f"Error al guardar: {e}")
 
-   # ============================================================
-# MOSTRAR REGLAMENTO DEBAJO DEL FORMULARIO
-# ============================================================
-st.write("---")
-st.subheader("📄 Vista previa del reglamento")
+    # ============================================================
+    # MOSTRAR REGLAMENTO DEBAJO DEL FORMULARIO
+    # ============================================================
+    st.write("---")
+    st.subheader("📄 Vista previa del reglamento")
 
-cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
-reglamento = cursor.fetchone()
+    cursor.execute("SELECT * FROM Reglamento WHERE id_grupo = %s LIMIT 1", (id_grupo,))
+    reglamento = cursor.fetchone()
 
-if reglamento:
+    if reglamento:
+        st.json(reglamento)
 
-    # =============================
-    # FORMATO LINDO EN TARJETA
-    # =============================
-    st.markdown("""
-        <style>
-        .regla-card {
-            background: #f8f9fa;
-            padding: 18px;
-            border-radius: 10px;
-            border: 1px solid #e5e5e5;
-            margin-bottom: 15px;
-        }
-        .regla-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .regla-text {
-            font-size: 15px;
-            color: #444;
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+        # -------------------------
+        # DESCARGAR PDF
+        # -------------------------
+        ruta_pdf = generar_pdf(reglamento, nombre_grupo)
 
-    st.markdown(f"""
-        <div class="regla-card">
-            <div class="regla-title">📘 Reglamento del grupo: {nombre_grupo}</div>
-            <div class="regla-text">
-                <strong>ID Reglamento:</strong> {reglamento[0]}<br>
-                <strong>ID Grupo:</strong> {reglamento[1]}<br><br>
-                <strong>Contenido:</strong><br>
-                {reglamento[2]}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # -------------------------
-    # DESCARGAR PDF
-    # -------------------------
-    ruta_pdf = generar_pdf(reglamento, nombre_grupo)
-
-    with open(ruta_pdf, "rb") as f:
-        st.download_button(
-            label="⬇️ Descargar reglamento en PDF",
-            data=f,
-            file_name="Reglamento.pdf",
-            mime="application/pdf",
-            type="primary"
-        )
-else:
-    st.info("⚠️ No se encontró un reglamento registrado para este grupo.")
+        with open(ruta_pdf, "rb") as f:
+            st.download_button(
+                label="⬇️ Descargar reglamento en PDF",
+                data=f,
+                file_name="Reglamento.pdf",
+                mime="application/pdf"
+            )
 
     # -------------------------
     # BOTÓN REGRESAR
