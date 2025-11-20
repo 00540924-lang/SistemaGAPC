@@ -102,3 +102,13 @@ def mostrar_asistencia():
 
     cursor.close()
     conn.close()
+    
+ # -------------------------
+    # BOTÓN REGRESAR
+    # -------------------------
+    st.write("---")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+
+    conn.close()
