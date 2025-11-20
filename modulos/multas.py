@@ -55,7 +55,12 @@ def multas_modulo():
     fecha = st.date_input("Fecha de la multa")
     monto = st.number_input("Monto a pagar", min_value=0.0, step=0.01)
     pagada = st.selectbox("¿Pagada?", options=["No", "Sí"])
-
+  # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
     if st.button("💾 Registrar Multa"):
         try:
             con = obtener_conexion()
