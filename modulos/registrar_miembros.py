@@ -82,13 +82,18 @@ def mostrar_tabla_y_acciones(id_grupo):
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
         # -------------------------------
-        # Numeración desde 1 y eliminar columna extra
+        # Numeración desde 1 y eliminar índice
         # -------------------------------
-        df_display = df.reset_index(drop=True)  # eliminar índice antiguo
+        df_display = df.reset_index(drop=True)
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
 
-        # Mostrar solo las columnas necesarias
-        st.dataframe(df_display[["No.", "Nombre", "DUI", "Teléfono"]], use_container_width=True)
+        # -------------------------------
+        # Mostrar tabla SIN el índice ✔️
+        # -------------------------------
+        st.dataframe(
+            df_display[["No.", "Nombre", "DUI", "Teléfono"]].style.hide(axis="index"),
+            use_container_width=True
+        )
 
         # -------------------------------
         # Selección de miembro
@@ -107,7 +112,7 @@ def mostrar_tabla_y_acciones(id_grupo):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(0.5)
-                    st.experimental_rerun()  # recarga automática
+                    st.experimental_rerun()
 
     finally:
         cursor.close()
@@ -158,7 +163,8 @@ def editar_miembro(row):
             con.commit()
             st.success("Miembro actualizado correctamente ✔️")
             time.sleep(0.5)
-            st.experimental_rerun()  # recarga automática
+            st.experimental_rerun()
         finally:
             cursor.close()
             con.close()
+
