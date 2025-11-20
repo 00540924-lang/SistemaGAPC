@@ -3,12 +3,6 @@ import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import time
 
-# ================================
-# VARIABLE DE CONTROL PARA RECARGA
-# ================================
-if "recargar" not in st.session_state:
-    st.session_state["recargar"] = False
-
 def registrar_miembros():
     # ================================
     # VALIDAR SESIÓN Y GRUPO
@@ -51,18 +45,19 @@ def registrar_miembros():
             )
             con.commit()
             st.success("Miembro registrado correctamente ✔️")
-            time.sleep(1)
-            # Marcamos que necesitamos recargar
-            st.session_state["recargar"] = True
-        except Exception as e:
-            st.error(f"Error: {e}")
+            time.sleep(0.5)
         finally:
             cursor.close()
             con.close()
 
     # ================================
-    # MOSTRAR MIEMBROS
+    # Mostrar tabla y acciones
     # ================================
+    mostrar_tabla_y_acciones(id_grupo)
+
+
+def mostrar_tabla_y_acciones(id_grupo):
+    """Función para mostrar la tabla y los botones de editar/eliminar"""
     try:
         con = obtener_conexion()
         cursor = con.cursor()
@@ -79,28 +74,22 @@ def registrar_miembros():
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
             return
-  # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
-    st.write("---")
-        
-        # ================================
-        # TÍTULO DE LA LISTA
-        # ================================
+
+        # -------------------------------
+        # Título
+        # -------------------------------
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
-        # ================================
-        # Añadir columna No. comenzando desde 1
-        # ================================
+        # -------------------------------
+        # Numeración
+        # -------------------------------
         df_display = df.copy()
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
         st.dataframe(df_display.drop(columns="ID"), use_container_width=True)
 
-        # ================================
-        # Seleccionar miembro para acciones
-        # ================================
+        # -------------------------------
+        # Selección de miembro
+        # -------------------------------
         miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
         seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
 
@@ -110,13 +99,15 @@ def registrar_miembros():
             with col1:
                 if st.button("Editar Miembro"):
                     editar_miembro(miembro)
+                    # Actualizar tabla inmediatamente
+                    mostrar_tabla_y_acciones(id_grupo)
             with col2:
                 if st.button("Eliminar Miembro"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
-                    time.sleep(1)
-                    # Marcamos recarga para que la lista se actualice
-                    st.session_state["recargar"] = True
+                    time.sleep(0.5)
+                    # Actualizar tabla inmediatamente
+                    mostrar_tabla_y_acciones(id_grupo)
 
     finally:
         cursor.close()
@@ -166,8 +157,7 @@ def editar_miembro(row):
             )
             con.commit()
             st.success("Miembro actualizado correctamente ✔️")
-            time.sleep(1)
-            st.session_state["recargar"] = True
+            time.sleep(0.5)
         finally:
             cursor.close()
             con.close()
