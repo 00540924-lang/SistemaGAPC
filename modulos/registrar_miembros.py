@@ -90,13 +90,13 @@ def mostrar_tabla_y_acciones(id_grupo):
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
         # -------------------------------
-        # Numeración desde 1 y eliminar índice
+        # Numeración desde 1
         # -------------------------------
         df_display = df.reset_index(drop=True)
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
 
         # -------------------------------
-        # Mostrar tabla SIN el índice ✔️
+        # Mostrar tabla
         # -------------------------------
         st.dataframe(
             df_display[["No.", "Nombre", "DUI", "Teléfono"]].style.hide(axis="index"),
@@ -104,22 +104,26 @@ def mostrar_tabla_y_acciones(id_grupo):
         )
 
         # -------------------------------
-        # Selección de miembro
+        # 👉 Solo el nombre en el selectbox
         # -------------------------------
-        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for _, row in df.iterrows()}
-        seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
+        miembro_dict = {row['Nombre']: row for _, row in df.iterrows()}
+
+        seleccionado = st.selectbox(
+            "Selecciona un miembro para Editar/Eliminar",
+            options=list(miembro_dict.keys())
+        )
 
         if seleccionado:
             miembro = miembro_dict[seleccionado]
             col1, col2 = st.columns(2)
 
             with col1:
-                if st.button(f"Editar Miembro {miembro['ID']}"):
+                if st.button("Editar"):
                     st.session_state["editar_miembro"] = miembro
                     st.rerun()  # 🔥 activa modo edición
 
             with col2:
-                if st.button(f"Eliminar Miembro {miembro['ID']}"):
+                if st.button("Eliminar"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(0.5)
@@ -186,5 +190,6 @@ def editar_miembro(row):
         finally:
             cursor.close()
             con.close()
+
 
 
