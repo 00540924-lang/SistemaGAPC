@@ -18,8 +18,28 @@ def generar_pdf(reglamento, nombre_grupo):
     story.append(Paragraph(f"<b>Reglamento Interno - {nombre_grupo}</b>", styles["Title"]))
     story.append(Paragraph("<br/>", styles["Normal"]))
 
+    # Campos que NO deben mostrarse
+    ocultar = {"id", "id_grupo"}
+
     for k, v in reglamento.items():
-        story.append(Paragraph(f"<b>{k.replace('_', ' ').title()}:</b> {v}", styles["Normal"]))
+
+        if k in ocultar:
+            continue  # Omitir id e id_grupo
+
+        # Convertir booleanos 1/0 → Sí / No
+        if k in ("un_solo_prestamo", "evaluacion_monto_plazo"):
+            v = "Sí" if str(v) in ("1", "True", "true") else "No"
+
+        # Convertir Decimal('x') → número
+        if "Decimal" in str(v):
+            v = float(str(v).replace("Decimal('", "").replace("')", ""))
+
+        story.append(
+            Paragraph(
+                f"<b>{k.replace('_', ' ').title()}:</b> {v}",
+                styles["Normal"]
+            )
+        )
 
     doc = SimpleDocTemplate(ruta_pdf, pagesize=letter)
     doc.build(story)
@@ -124,6 +144,7 @@ def mostrar_reglamento():
         interes_por_10 = st.number_input("Interés por cada $10 (%):", value=float(val("interes_por_10", 0)))
         max_prestamo = st.number_input("Monto máximo:", value=float(val("max_prestamo", 0)))
         max_plazo = st.text_input("Plazo máximo:", val("max_plazo"))
+
         un_solo_prestamo = st.checkbox("Un solo préstamo activo", value=bool(val("un_solo_prestamo", 0)))
         evaluacion_monto_plazo = st.checkbox("Evaluar monto y plazo", value=bool(val("evaluacion_monto_plazo", 0)))
 
@@ -202,8 +223,7 @@ def mostrar_reglamento():
         # -------------------------
         # ESTILOS
         # -------------------------
-        st.markdown(
-            """
+        st.markdown("""
             <style>
                 .regla-box {
                     background: #fdfdfd;
@@ -227,9 +247,7 @@ def mostrar_reglamento():
                     color: #34495e;
                 }
             </style>
-            """,
-            unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
         st.markdown(
             f"<div class='regla-box'>"
@@ -237,11 +255,9 @@ def mostrar_reglamento():
             unsafe_allow_html=True
         )
 
-        # -------------------------
-        # FUNCIÓN AUXILIAR
-        # -------------------------
         def mostrar_item(label, valor):
             if valor not in (None, "", "0", "Decimal('0')"):
+                # Convertir Decimal
                 if "Decimal" in str(valor):
                     valor = float(str(valor).replace("Decimal('", "").replace("')", ""))
 
@@ -250,7 +266,12 @@ def mostrar_reglamento():
                     unsafe_allow_html=True
                 )
 
+        bool1 = lambda x: "Sí" if str(x) in ("1", "True", "true") else "No"
+
+        # ======================
         # SECCIONES
+        # ======================
+
         mostrar_item("Comunidad", reglamento.get("comunidad"))
         mostrar_item("Fecha de formación", reglamento.get("fecha_formacion"))
         mostrar_item("Días de reunión", reglamento.get("dia_reunion"))
@@ -260,6 +281,7 @@ def mostrar_reglamento():
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>🏛 Comité</div>", unsafe_allow_html=True)
+
         mostrar_item("Presidenta", reglamento.get("presidenta"))
         mostrar_item("Secretaria", reglamento.get("secretaria"))
         mostrar_item("Tesorera", reglamento.get("tesorera"))
@@ -267,20 +289,23 @@ def mostrar_reglamento():
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>🧾 Asistencia</div>", unsafe_allow_html=True)
+
         mostrar_item("Multa por ausencia", reglamento.get("multa_ausencia"))
         mostrar_item("Razones sin multa", reglamento.get("razones_sin_multa"))
         mostrar_item("Depósito mínimo", reglamento.get("deposito_minimo"))
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>💰 Préstamos</div>", unsafe_allow_html=True)
+
         mostrar_item("Interés por cada $10", reglamento.get("interes_por_10"))
         mostrar_item("Monto máximo", reglamento.get("max_prestamo"))
         mostrar_item("Plazo máximo", reglamento.get("max_plazo"))
-        mostrar_item("Un solo préstamo activo", "Sí" if reglamento.get("un_solo_prestamo") else "No")
-        mostrar_item("Evaluación de monto y plazo", "Sí" if reglamento.get("evaluacion_monto_plazo") else "No")
+        mostrar_item("Un solo préstamo activo", bool1(reglamento.get("un_solo_prestamo")))
+        mostrar_item("Evaluación de monto y plazo", bool1(reglamento.get("evaluacion_monto_plazo")))
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<div class='regla-titulo'>🔄 Ciclo</div>", unsafe_allow_html=True)
+
         mostrar_item("Inicio del ciclo", reglamento.get("fecha_inicio_ciclo"))
         mostrar_item("Fin del ciclo", reglamento.get("fecha_fin_ciclo"))
 
@@ -294,7 +319,9 @@ def mostrar_reglamento():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+        # -------------------------
         # DESCARGAR PDF
+        # -------------------------
         ruta_pdf = generar_pdf(reglamento, nombre_grupo)
 
         with open(ruta_pdf, "rb") as f:
@@ -305,9 +332,12 @@ def mostrar_reglamento():
                 mime="application/pdf"
             )
 
-# ------------------ BOTÓN REGRESAR ------------------
-    st.write("")
+    # -------------------------
+    # BOTÓN REGRESAR
+    # -------------------------
+    st.write("---")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
-    st.write("---")
+
+    conn.close()
