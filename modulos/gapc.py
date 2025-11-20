@@ -9,7 +9,7 @@ def mostrar_gapc():
         st.warning("Debes iniciar sesión para acceder a este módulo.")
         return
 
-    rol = st.session_state['rol'].lower()  # convertir a minúscula para evitar problemas
+    rol = st.session_state['rol'].lower()  # insensible a mayúsculas
 
     if rol != "institucional":
         st.error("❌ No tienes permisos para ver este módulo.")
@@ -27,7 +27,7 @@ def mostrar_gapc():
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # 2. Obtener grupos por distrito
+    # 2. Obtener todos los grupos
     # ===============================
     cursor.execute("""
         SELECT distrito, Nombre_grupo
@@ -43,25 +43,36 @@ def mostrar_gapc():
         return
 
     # ===============================
-    # 3. Agrupar por distrito
+    # 3. Crear diccionario distritos -> grupos
     # ===============================
-    distritos = {}
+    distritos_dict = {}
     for grupo in grupos:
         distrito = grupo['distrito']
-        if distrito not in distritos:
-            distritos[distrito] = []
-        distritos[distrito].append(grupo['Nombre_grupo'])
+        if distrito not in distritos_dict:
+            distritos_dict[distrito] = []
+        distritos_dict[distrito].append(grupo['Nombre_grupo'])
 
     # ===============================
-    # 4. Mostrar en Streamlit
+    # 4. Selectbox para elegir distrito
     # ===============================
-    for distrito, lista_grupos in distritos.items():
-        with st.expander(f"Distrito: {distrito}", expanded=True):
-            for g in lista_grupos:
-                st.write(f"- {g}")
+    distrito_seleccionado = st.selectbox(
+        "Seleccione un distrito",
+        options=sorted(distritos_dict.keys())
+    )
 
     # ===============================
-    # 5. Botón regresar
+    # 5. Mostrar grupos del distrito seleccionado
+    # ===============================
+    st.subheader(f"Grupos del distrito: {distrito_seleccionado}")
+    grupos_mostrar = distritos_dict.get(distrito_seleccionado, [])
+    if grupos_mostrar:
+        for g in grupos_mostrar:
+            st.write(f"- {g}")
+    else:
+        st.info("No hay grupos en este distrito.")
+
+    # ===============================
+    # 6. Botón regresar
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
@@ -69,8 +80,7 @@ def mostrar_gapc():
         st.rerun()
 
     # ===============================
-    # 6. Cerrar conexión
+    # 7. Cerrar conexión
     # ===============================
     cursor.close()
     conn.close()
-
