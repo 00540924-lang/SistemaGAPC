@@ -28,7 +28,7 @@ def mostrar_reglamento():
     )
 
     # ============================
-    # CONEXIÓN A BD (CREDENCIALES CORRECTAS)
+    # CONEXIÓN A BD
     # ============================
     try:
         conn = mysql.connector.connect(
@@ -73,28 +73,26 @@ def mostrar_reglamento():
         fecha_formacion = st.date_input("Fecha de formación:", fecha_valida("fecha_formacion"))
 
         st.subheader("📅 Reuniones")
-        # Lista de días posibles
-dias_lista = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
-# Convertir cadena guardada en BD a lista (si existe)
-dias_guardados = val("dia_reunion").split(",") if val("dia_reunion") else []
+        # ========= Días de reunión (multiselect) =========
+        dias_lista = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
-dia_reunion = st.multiselect(
-    "Día(s) de reunión:",
-    dias_lista,
-    default=dias_guardados
-)
+        dias_guardados = val("dia_reunion").split(",") if val("dia_reunion") else []
 
-# Convertir string de BD a objeto time
-try:
-    hora_guardada = datetime.datetime.strptime(val("hora_reunion"), "%H:%M").time()
-except:
-    hora_guardada = datetime.datetime.now().time()
+        dia_reunion = st.multiselect(
+            "Día(s) de reunión:",
+            dias_lista,
+            default=dias_guardados
+        )
 
-hora_reunion_time = st.time_input("Hora:", value=hora_guardada)
+        # ========= Hora de reunión =========
+        try:
+            hora_guardada = datetime.datetime.strptime(val("hora_reunion"), "%H:%M").time()
+        except:
+            hora_guardada = datetime.datetime.now().time()
 
-# Guardar como texto HH:MM
-hora_reunion = hora_reunion_time.strftime("%H:%M")
+        hora_reunion_time = st.time_input("Hora:", value=hora_guardada)
+        hora_reunion = hora_reunion_time.strftime("%H:%M")
 
         lugar_reunion = st.text_input("Lugar:", val("lugar_reunion"))
         frecuencia_reunion = st.text_input("Frecuencia:", val("frecuencia_reunion"))
@@ -134,6 +132,9 @@ hora_reunion = hora_reunion_time.strftime("%H:%M")
     # ============================
     if submitted:
         try:
+            # Convertir lista -> string
+            dias_texto = ",".join(dia_reunion)
+
             if reglamento:
                 # === ACTUALIZAR ===
                 cursor.execute("""
@@ -146,7 +147,7 @@ hora_reunion = hora_reunion_time.strftime("%H:%M")
                         fecha_fin_ciclo=%s, meta_social=%s, otras_reglas=%s
                     WHERE id=%s
                 """, (
-                    comunidad, fecha_formacion, dia_reunion, hora_reunion,
+                    comunidad, fecha_formacion, dias_texto, hora_reunion,
                     lugar_reunion, frecuencia_reunion, presidenta, secretaria,
                     tesorera, responsable_llave, multa_ausencia, razones_sin_multa,
                     deposito_minimo, interes_por_10, max_prestamo, max_plazo,
@@ -166,7 +167,7 @@ hora_reunion = hora_reunion_time.strftime("%H:%M")
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                               %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    id_grupo, comunidad, fecha_formacion, dia_reunion, hora_reunion,
+                    id_grupo, comunidad, fecha_formacion, dias_texto, hora_reunion,
                     lugar_reunion, frecuencia_reunion, presidenta, secretaria, tesorera,
                     responsable_llave, multa_ausencia, razones_sin_multa, deposito_minimo,
                     interes_por_10, max_prestamo, max_plazo, un_solo_prestamo,
@@ -183,7 +184,7 @@ hora_reunion = hora_reunion_time.strftime("%H:%M")
 
     conn.close()
 
-# ------------------ BOTÓN REGRESAR ------------------
+    # ------------------ BOTÓN REGRESAR ------------------
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
