@@ -75,17 +75,22 @@ elif pagina == "reglamento":
 elif pagina == "multas":
     from modulos.multas import multas_modulo
     multas_modulo()
-# ---- PRÉSTAMOS ----
-elif pagina == "prestamos":
-    from modulos.prestamos import prestamos_modulo
-    prestamos_modulo()
 
 # ---- GAPC (solo rol Institucional) ----
 elif pagina == "GAPC":
     from modulos.gapc import mostrar_gapc
     mostrar_gapc()
 
+# ---- CAJA (SOLO MIEMBROS) ----
+elif pagina == "caja":
+    if st.session_state.get("rol") == "Miembro":
+        from modulos.caja import mostrar_caja
+        mostrar_caja()
+    else:
+        st.error("❌ No tiene permisos para acceder a este módulo.")
+
 # ---- ERROR SI NO EXISTE ----
 else:
     st.error("❌ Página no encontrada.")
+
 
