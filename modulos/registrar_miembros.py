@@ -63,7 +63,7 @@ def registrar_miembros():
             con.commit()
 
             msg = st.success("Miembro registrado correctamente ✔️")
-            time.sleep(2)
+            time.sleep(1)
             msg.empty()
 
         except Exception as e:
@@ -100,36 +100,31 @@ def registrar_miembros():
 
         if resultados:
 
-            # Crear DataFrame normal (como antes)
-            df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
-            df_visual = df.drop(columns=["ID"])   # ocultamos el ID
-            df_visual.index = df_visual.index + 1
-            df_visual.index.name = "No."
+            # Encabezados de tabla
+            col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
+            col1.write("**No.**")
+            col2.write("**Nombre**")
+            col3.write("**DUI**")
+            col4.write("**Teléfono**")
+            col5.write("**Acciones**")
 
-            st.dataframe(df_visual, use_container_width=True)
+            # Filas
+            for idx, row in enumerate(resultados, start=1):
+                id_miembro = row[0]
+                nombre = row[1]
+                dui = row[2]
+                telefono = row[3]
 
-            st.write("### Acciones:")
-
-            # Tabla manual con botones de eliminar
-            for index, row in df.iterrows():
                 col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 2])
 
-                with col1:
-                    st.write(index + 1)
+                col1.write(idx)
+                col2.write(nombre)
+                col3.write(dui)
+                col4.write(telefono)
 
-                with col2:
-                    st.write(row["Nombre"])
-
-                with col3:
-                    st.write(row["DUI"])
-
-                with col4:
-                    st.write(row["Teléfono"])
-
-                with col5:
-                    if st.button("🗑️ Eliminar", key=f"del_{row['ID']}"):
-                        eliminar_miembro(row["ID"], id_grupo)
-                        st.rerun()
+                if col5.button("🗑️ Eliminar", key=f"del_{id_miembro}"):
+                    eliminar_miembro(id_miembro, id_grupo)
+                    st.rerun()
 
         else:
             st.info("Aún no hay miembros en este grupo.")
@@ -139,7 +134,6 @@ def registrar_miembros():
 
     except Exception as e:
         st.error(f"Error al mostrar miembros: {e}")
-
 
 
 # ========================================================
@@ -168,3 +162,4 @@ def eliminar_miembro(id_miembro, id_grupo):
             con.close()
         except:
             pass
+
