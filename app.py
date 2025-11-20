@@ -4,7 +4,7 @@ import streamlit as st
 # CONFIGURACIÓN DE VARIABLES DE SESIÓN
 # ==========================================
 st.session_state.setdefault("sesion_iniciada", False)
-st.session_state.setdefault("page", "menu")  # Página por defecto
+st.session_state.setdefault("page", "menu")
 st.session_state.setdefault("rol", None)
 st.session_state.setdefault("id_grupo", None)
 
@@ -75,6 +75,7 @@ elif pagina == "reglamento":
 elif pagina == "multas":
     from modulos.multas import multas_modulo
     multas_modulo()
+
 # ---- PRESTAMOS ----
 elif pagina == "prestamos":
     from modulos.prestamos import prestamos_modulo
@@ -82,19 +83,26 @@ elif pagina == "prestamos":
 
 # ---- GAPC (solo rol Institucional) ----
 elif pagina == "GAPC":
-    from modulos.gapc import mostrar_gapc
-    mostrar_gapc()
-
-# ---- CAJA (SOLO MIEMBROS) ----
-elif pagina == "caja":
-    if st.session_state.get("rol") == "Miembro":
-        from modulos.caja import mostrar_caja
-        mostrar_caja()
+    if st.session_state.get("rol") == "Institucional":
+        from modulos.gapc import mostrar_gapc
+        mostrar_gapc()
     else:
         st.error("❌ No tiene permisos para acceder a este módulo.")
+
+# ---- CAJA (solo Miembro y carga caja del grupo) ----
+elif pagina == "caja":
+    rol = st.session_state.get("rol")
+    id_grupo = st.session_state.get("id_grupo")
+
+    if rol != "Miembro":
+        st.error("❌ No tiene permisos para acceder a este módulo.")
+    else:
+        if not id_grupo:
+            st.error("⚠ No se encontró el grupo del usuario. Contacte al administrador.")
+        else:
+            from modulos.caja import mostrar_caja
+            mostrar_caja(id_grupo)
 
 # ---- ERROR SI NO EXISTE ----
 else:
     st.error("❌ Página no encontrada.")
-
-
