@@ -1,6 +1,7 @@
 import streamlit as st
 import mysql.connector
 from datetime import date
+from datetime import datetime
 
 # ==========================================
 # CONEXIÓN A BASE DE DATOS
@@ -36,14 +37,16 @@ def prestamos_modulo():
 
     try:
         cursor.execute("""
-            SELECT miembros.id, miembros.nombre
+            SELECT Miembros.id, Miembros.nombre
             FROM Grupomiembros
-            JOIN miembros ON Grupomiembros.id_miembro = miembros.id
+            JOIN Miembros ON Grupomiembros.id_miembro = Miembros.id
             WHERE Grupomiembros.id_grupo = %s
         """, (id_grupo,))
+
         miembros = cursor.fetchall()
-    except Exception as e:
-        st.error(f"❌ Error al cargar miembros: {e}")
+
+    except mysql.connector.Error as err:
+        st.error(f"❌ Error al cargar miembros: {err}")
         conn.close()
         return
 
@@ -52,10 +55,10 @@ def prestamos_modulo():
         conn.close()
         return
 
-    miembros_dict = {m[1]: m[0] for m in miembros}  # nombre → id
+    miembros_dict = {m[1]: m[0] for m in miembros}  # nombre ➜ id
 
     # ======================================
-    # CREAR FORMULARIO
+    # FORMULARIO DE PRÉSTAMO
     # ======================================
     with st.form("form_prestamo"):
         st.subheader("🧾 Datos del Préstamo")
@@ -63,43 +66,44 @@ def prestamos_modulo():
         nombre_miembro = st.selectbox("Seleccione un miembro:", list(miembros_dict.keys()))
         monto = st.number_input("Monto del préstamo:", min_value=1.0, step=1.0)
         fecha = st.date_input("Fecha del préstamo:", value=date.today())
-
-        # Guardar la cantidad de pagos
         cantidad_pagos = st.number_input("Cantidad de pagos:", min_value=1, step=1)
 
         submitted = st.form_submit_button("💾 Guardar Préstamo")
 
     # ======================================
-    # PROCESAR EL ENVÍO DEL FORMULARIO
+    # GUARDAR PRÉSTAMO
     # ======================================
     if submitted:
-        try:
-            id_miembro = miembros_dict[nombre_miembro]
-            cursor.execute("""
-                INSERT INTO prestamos (id_miembro, monto, fecha, cantidad_pagos)
-                VALUES (%s, %s, %s, %s)
-            """, (id_miembro, monto, fecha, cantidad_pagos))
-            conn.commit()
-            st.success("✅ Préstamo registrado con éxito.")
-        except Exception as e:
-            st.error(f"❌ Error al guardar el préstamo: {e}")
+
+        id_miembro = miembros_dict[nombre_miembro]
+
+        cursor.execute("""
+            INSERT INTO prestamos (id_miembro, monto, fecha, cantidad_pagos)
+            VALUES (%s, %s, %s, %s)
+        """, (id_miembro, monto, fecha, cantidad_pagos))
+
+        conn.commit()
+
+        st.success("✅ Préstamo registrado con éxito.")
 
     # ======================================
-    # PLAN DE PAGOS (FUERA DEL FORM)
+    # PLAN DE PAGOS
     # ======================================
-    st.subheader("📅 Generar Plan de Pagos")
+    st.subheader("📅 Plan de Pagos")
 
     if "pagos" not in st.session_state:
         st.session_state.pagos = 1
 
     col_a, col_b = st.columns(2)
-    if col_a.button("➕ Agregar fila"):
+
+    if col_a.button("➕ Agregar pago"):
         st.session_state.pagos += 1
 
-    if col_b.button("➖ Quitar fila") and st.session_state.pagos > 1:
+    if col_b.button("➖ Quitar pago") and st.session_state.pagos > 1:
         st.session_state.pagos -= 1
 
     st.write("### Tabla de Pagos")
+
     for i in range(st.session_state.pagos):
         c1, c2 = st.columns(2)
         c1.date_input(f"Fecha pago {i+1}", key=f"fecha_pago_{i}")
