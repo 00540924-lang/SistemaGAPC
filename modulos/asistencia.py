@@ -48,20 +48,62 @@ def mostrar_asistencia():
         return
 
     # ===============================
-    # 4. Mostrar controles de asistencia
+    # 4. Mostrar controles de asistencia (UI Mejorada)
     # ===============================
-    st.subheader("Miembros del grupo")
+    st.subheader("🧑‍🤝‍🧑 Lista de Miembros")
+
+    # CSS para estilizar
+    st.markdown("""
+    <style>
+    .member-card {
+        padding: 15px;
+        border-radius: 10px;
+        background-color: #f7f7f9;
+        border: 1px solid #ddd;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .member-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .stRadio > div {
+        display: flex !important;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
 
     estado_asistencia = {}
 
-    for m in miembros:
-        estado = st.radio(
-            f"{m['Nombre']}",
-            ["Presente", "Ausente"],
-            horizontal=True,
-            key=f"asistencia_{m['id_miembro']}"
-        )
-        estado_asistencia[m["id_miembro"]] = estado
+    cols = st.columns(2)  # Se mostrará en dos columnas para mejor organización
+
+    for idx, m in enumerate(miembros):
+        col = cols[idx % 2]
+
+        with col:
+            st.markdown(f"""
+            <div class="member-card">
+                <span class="member-name">{m['Nombre']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            estado = st.radio(
+                f"Estado_{m['id_miembro']}",
+                ["Presente", "Ausente"],
+                key=f"asistencia_{m['id_miembro']}",
+                horizontal=True,
+                label_visibility="collapsed"
+            )
+
+            estado_asistencia[m["id_miembro"]] = estado
 
     st.write("---")
 
@@ -102,13 +144,11 @@ def mostrar_asistencia():
 
     cursor.close()
     conn.close()
-    
- # -------------------------
+
+    # -------------------------
     # BOTÓN REGRESAR
     # -------------------------
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
-
-    conn.close()
