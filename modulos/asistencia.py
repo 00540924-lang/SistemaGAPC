@@ -91,40 +91,39 @@ def mostrar_asistencia():
         conn.commit()
         st.success("✅ Asistencia registrada con éxito")
 
-   # ===============================
-# 6. Historial con filtro por fecha
-# ===============================
-st.write("---")
-st.subheader("📚 Historial de Asistencias")
+    # ===============================
+    # 6. Historial con filtro por fecha
+    # ===============================
+    st.write("---")
+    st.subheader("📚 Historial de Asistencias")
 
-# Selector de fecha para filtrar
-fecha_filtro = st.date_input("📅 Filtrar por fecha", value=None)
+    # Selector de fecha para filtrar
+    fecha_filtro = st.date_input("📅 Filtrar por fecha", value=None, key="filtro_historial")
 
-# Construir la consulta según si se selecciona fecha
-if fecha_filtro:
-    cursor.execute("""
-        SELECT A.fecha, M.Nombre, A.asistencia
-        FROM Asistencia A
-        JOIN Miembros M ON A.id_miembro = M.id_miembro
-        WHERE A.id_grupo = %s AND A.fecha = %s
-        ORDER BY A.fecha DESC, M.Nombre
-    """, (id_grupo, fecha_filtro))
-else:
-    cursor.execute("""
-        SELECT A.fecha, M.Nombre, A.asistencia
-        FROM Asistencia A
-        JOIN Miembros M ON A.id_miembro = M.id_miembro
-        WHERE A.id_grupo = %s
-        ORDER BY A.fecha DESC, M.Nombre
-    """, (id_grupo,))
+    # Construir la consulta según si se selecciona fecha
+    if fecha_filtro:
+        cursor.execute("""
+            SELECT A.fecha, M.Nombre, A.asistencia
+            FROM Asistencia A
+            JOIN Miembros M ON A.id_miembro = M.id_miembro
+            WHERE A.id_grupo = %s AND A.fecha = %s
+            ORDER BY A.fecha DESC, M.Nombre
+        """, (id_grupo, fecha_filtro))
+    else:
+        cursor.execute("""
+            SELECT A.fecha, M.Nombre, A.asistencia
+            FROM Asistencia A
+            JOIN Miembros M ON A.id_miembro = M.id_miembro
+            WHERE A.id_grupo = %s
+            ORDER BY A.fecha DESC, M.Nombre
+        """, (id_grupo,))
 
-registros = cursor.fetchall()
+    registros = cursor.fetchall()
 
-if registros:
-    st.dataframe(registros, use_container_width=True)
-else:
-    st.info("No hay registros para la fecha seleccionada.")
-
+    if registros:
+        st.dataframe(registros, use_container_width=True)
+    else:
+        st.info("No hay registros para la fecha seleccionada.")
 
     # ===============================
     # 7. Botón regresar
@@ -133,3 +132,7 @@ else:
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
+
+    # Cerrar conexión
+    cursor.close()
+    conn.close()
