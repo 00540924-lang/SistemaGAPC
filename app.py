@@ -85,11 +85,8 @@ elif pagina == "prestamos":
 elif pagina == "ahorro_final":
     rol = st.session_state.get("rol")
     id_grupo = st.session_state.get("id_grupo")
-    
-    # Normalizar el rol
     rol_normalizado = rol.strip().lower() if rol else None
-    
-    # Verificar permisos (puedes ajustar según tus necesidades)
+
     if rol_normalizado not in ["miembro", "promotor", "institucional"]:
         st.error("❌ No tiene permisos para acceder a este módulo.")
     else:
@@ -101,10 +98,8 @@ elif pagina == "ahorro_final":
 
 # ---- GAPC (solo rol Institucional) ----
 elif pagina.lower() == "gapc":
-    # Normalizar rol
     rol = st.session_state.get("rol", "")
     rol_normalizado = rol.strip().lower() if rol else ""
-
     if rol_normalizado == "institucional":
         from modulos.gapc import mostrar_gapc
         mostrar_gapc()
@@ -115,8 +110,6 @@ elif pagina.lower() == "gapc":
 elif pagina == "caja":
     rol = st.session_state.get("rol")
     id_grupo = st.session_state.get("id_grupo")
-
-    # Normalizar el rol
     rol_normalizado = rol.strip().lower() if rol else None
 
     if rol_normalizado != "miembro":
@@ -127,6 +120,21 @@ elif pagina == "caja":
         else:
             from modulos.caja import mostrar_caja
             mostrar_caja(id_grupo)
+
+# ---- REUNIONES (solo Miembro) ----
+elif pagina == "reuniones":
+    rol = st.session_state.get("rol")
+    id_grupo = st.session_state.get("id_grupo")
+    rol_normalizado = rol.strip().lower() if rol else None
+
+    if rol_normalizado != "miembro":
+        st.error("❌ Solo los miembros pueden acceder a este módulo.")
+    else:
+        if not id_grupo:
+            st.error("⚠ No se encontró el grupo del usuario. Contacte al administrador.")
+        else:
+            from modulos.reuniones import mostrar_reuniones
+            mostrar_reuniones(id_grupo)
 
 # ---- ERROR SI NO EXISTE ----
 else:
