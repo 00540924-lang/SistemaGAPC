@@ -25,16 +25,18 @@ def prestamos_modulo():
     # ======================================
     # OBTENER INTERÉS DESDE TABLA REGLAMENTO
     # ======================================
-    cursor.execute("SELECT interes_aplicado FROM reglamento WHERE id_grupo = %s", (id_grupo,))
+    cursor.execute("SELECT interes_por_10 FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
     reglamento = cursor.fetchone()
 
-    interes_por_10 = reglamento[0] if reglamento else 0
+    interes_por_10 = float(reglamento[0]) if reglamento else 0.0
 
-    # Campo NO editable colocado donde estaba FIRMA
+    # ======================================
+    # CAMPO DE INTERÉS (NO EDITABLE)
+    # ======================================
     st.subheader("Interés del Reglamento")
-    interes_no_editable = st.number_input(
+    st.number_input(
         "Interés aplicado por cada $10 (%)",
-        value=float(interes_por_10),
+        value=interes_por_10,
         disabled=True
     )
 
@@ -53,11 +55,8 @@ def prestamos_modulo():
     # ======================================
     monto = st.number_input("Monto a prestar ($)", min_value=1.0, step=1.0)
 
-    # Cálculo del interés basado en el reglamento
-    # Fórmula:
-    #   interés = (monto / 10) * interes_por_10
+    # Cálculo del interés
     interes_calculado = (monto / 10) * interes_por_10
-
     total_a_pagar = monto + interes_calculado
 
     # ======================================
@@ -83,6 +82,9 @@ def prestamos_modulo():
         time.sleep(1)
         st.experimental_rerun()
 
+    # ======================================
+    # LISTADO DE PRÉSTAMOS
+    # ======================================
     st.subheader("Préstamos Registrados")
 
     cursor.execute(
@@ -104,4 +106,3 @@ def prestamos_modulo():
 
     cursor.close()
     conexion.close()
-
