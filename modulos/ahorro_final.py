@@ -271,44 +271,69 @@ def mostrar_ahorro_final(id_grupo):
     st.subheader("📊 Registros Existentes")
     
     if registros:
-        # Preparar datos para la tabla con botones de borrar
-        for i, registro in enumerate(registros):
-            col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 2, 2, 2, 2, 2, 2, 1])
+        # Preparar datos para la tabla
+        datos_tabla = []
+        for registro in registros:
+            datos_tabla.append({
+                "Fecha": registro['fecha_registro'],
+                "Miembro": registro['Nombre'],
+                "Saldo Inicial": f"${registro['saldo_inicial']:,.2f}",
+                "Ahorros": f"${registro['ahorros']:,.2f}",
+                "Actividades": f"${registro['actividades']:,.2f}",
+                "Retiros": f"${registro['retiros']:,.2f}",
+                "Saldo Final": f"${registro['saldo_final']:,.2f}",
+                "ID": registro['id_ahorro']  # Oculto pero necesario para borrar
+            })
+        
+        # Mostrar tabla
+        st.dataframe(
+            datos_tabla,
+            use_container_width=True,
+            column_config={
+                "Fecha": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
+                "Miembro": "Miembro",
+                "Saldo Inicial": "Saldo Inicial",
+                "Ahorros": "Ahorros",
+                "Actividades": "Actividades", 
+                "Retiros": "Retiros",
+                "Saldo Final": st.column_config.TextColumn("Saldo Final"),
+                "ID": None  # Ocultar columna ID
+            },
+            hide_index=True
+        )
+        
+        # SECCIÓN PARA BORRAR REGISTROS (fuera de la tabla)
+        st.subheader("🗑️ Gestión de Registros")
+        
+        # Selector para elegir qué registro borrar
+        opciones_borrar = {r['id_ahorro']: f"{r['Nombre']} - {r['fecha_registro']} - ${r['saldo_final']:,.2f}" for r in registros}
+        
+        if opciones_borrar:
+            registro_a_borrar = st.selectbox(
+                "Seleccionar registro para borrar:",
+                options=list(opciones_borrar.keys()),
+                format_func=lambda x: opciones_borrar[x]
+            )
             
+            col1, col2 = st.columns([1, 4])
             with col1:
-                st.write(f"**{registro['fecha_registro']}**")
-            with col2:
-                st.write(registro['Nombre'])
-            with col3:
-                st.write(f"${registro['saldo_inicial']:,.2f}")
-            with col4:
-                st.write(f"${registro['ahorros']:,.2f}")
-            with col5:
-                st.write(f"${registro['actividades']:,.2f}")
-            with col6:
-                st.write(f"${registro['retiros']:,.2f}")
-            with col7:
-                st.write(f"**${registro['saldo_final']:,.2f}**")
-            with col8:
-                # Botón para borrar registro
-                if st.button("🗑️", key=f"borrar_{registro['id_ahorro']}"):
-                    # Confirmación antes de borrar
-                    if st.session_state.get(f"confirmar_borrar_{registro['id_ahorro']}", False):
-                        success, message = borrar_registro_ahorro(registro['id_ahorro'])
+                # Botón para borrar con confirmación
+                if st.button("🗑️ Borrar Registro", type="secondary"):
+                    if st.session_state.get("confirmar_borrado", False):
+                        success, message = borrar_registro_ahorro(registro_a_borrar)
                         if success:
                             st.success(message)
+                            st.session_state.confirmar_borrado = False
                             st.rerun()
                         else:
                             st.error(message)
                     else:
-                        st.session_state[f"confirmar_borrar_{registro['id_ahorro']}"] = True
-                        st.warning(f"¿Estás seguro de borrar el registro de {registro['Nombre']} del {registro['fecha_registro']}? Haz clic nuevamente en 🗑️ para confirmar.")
+                        st.session_state.confirmar_borrado = True
+                        st.warning("⚠️ ¿Estás seguro de borrar este registro? Haz clic nuevamente en 'Borrar Registro' para confirmar.")
             
-            # Mostrar mensaje de confirmación si está pendiente
-            if st.session_state.get(f"confirmar_borrar_{registro['id_ahorro']}", False):
-                st.info("⚠️ **Confirmación pendiente:** Haz clic nuevamente en 🗑️ para borrar este registro.")
-            
-            st.write("---")
+            with col2:
+                if st.session_state.get("confirmar_borrado", False):
+                    st.error("**Confirmación pendiente:** Haz clic nuevamente en 'Borrar Registro' para confirmar la eliminación.")
         
         # ESTADÍSTICAS CON SELECTOR DE MIEMBRO
         st.subheader("📈 Estadísticas")
