@@ -181,7 +181,16 @@ def mostrar_caja(id_grupo):
         ax.legend()
 
         st.pyplot(fig)
-        st.markdown(f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}")
+        saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
+st.markdown(
+    f"""
+    <div style="font-size:16px;">
+        <span style="color:#4CAF50;"><strong>Entrada total:</strong> {df['total_entrada'].sum():.2f}</span> &nbsp;&nbsp;
+        <span style="color:#F44336;"><strong>Salida total:</strong> {df['total_salida'].sum():.2f}</span> &nbsp;&nbsp;
+        <span style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: {saldo_final:.2f}</strong></span>
+    </div>
+    """, unsafe_allow_html=True
+)
     else:
         st.info("No hay registros para mostrar.")
 
