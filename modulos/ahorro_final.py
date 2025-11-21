@@ -112,6 +112,49 @@ def obtener_registros_ahorro_final(id_grupo):
             cursor.close()
             conn.close()
 
+def obtener_estadisticas_personales(id_miembro, id_grupo):
+    """Obtiene estadísticas personales de un miembro específico"""
+    conn = get_db_connection()
+    if conn is None:
+        return {}
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                SUM(saldo_inicial) as total_saldo_inicial,
+                SUM(ahorros) as total_ahorros,
+                SUM(actividades) as total_actividades,
+                SUM(retiros) as total_retiros,
+                SUM(saldo_final) as total_saldo_final,
+                COUNT(*) as total_registros
+            FROM ahorro_final 
+            WHERE id_miembro = %s AND id_grupo = %s
+        """, (id_miembro, id_grupo))
+        
+        estadisticas = cursor.fetchone()
+        
+        # Obtener el nombre del miembro
+        cursor.execute("SELECT Nombre FROM Miembros WHERE id_miembro = %s", (id_miembro,))
+        miembro_info = cursor.fetchone()
+        
+        if estadisticas and miembro_info:
+            estadisticas['nombre'] = miembro_info['Nombre']
+            # Convertir None a 0
+            for key in ['total_saldo_inicial', 'total_ahorros', 'total_actividades', 'total_retiros', 'total_saldo_final']:
+                estadisticas[key] = estadisticas[key] or 0
+            
+        return estadisticas or {}
+        
+    except mysql.connector.Error as e:
+        st.error(f"Error al obtener estadísticas personales: {e}")
+        return {}
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def guardar_registro_ahorro(id_miembro, id_grupo, fecha_registro, saldo_inicial, ahorros, actividades, retiros):
     """Guarda un nuevo registro de ahorro final"""
     conn = get_db_connection()
@@ -257,20 +300,62 @@ def mostrar_ahorro_final(id_grupo):
             }
         )
         
-        # Estadísticas rápidas
-        st.subheader("📈 Estadísticas del Grupo")
-        col1, col2, col3 = st.columns(3)
+        # ESTADÍSTICAS CON SELECTOR DE MIEMBRO
+        st.subheader("📈 Estadísticas")
         
-        total_ahorros = sum(r['ahorros'] for r in registros)
-        total_retiros = sum(r['retiros'] for r in registros)
-        saldo_total = sum(r['saldo_final'] for r in registros)
+        # Selector para estadísticas (grupo o individual)
+        opcion_estadisticas = st.selectbox(
+            "Ver estadísticas de:",
+            ["Todo el Grupo", "Miembro Específico"]
+        )
         
-        with col1:
-            st.metric("Total Ahorros", f"${total_ahorros:,.2f}")
-        with col2:
-            st.metric("Total Retiros", f"${total_retiros:,.2f}")
-        with col3:
-            st.metric("Saldo Total Grupo", f"${saldo_total:,.2f}")
+        if opcion_estadisticas == "Todo el Grupo":
+            # Estadísticas del grupo completo
+            col1, col2, col3 = st.columns(3)
+            
+            total_ahorros = sum(r['ahorros'] for r in registros)
+            total_retiros = sum(r['retiros'] for r in registros)
+            saldo_total = sum(r['saldo_final'] for r in registros)
+            
+            with col1:
+                st.metric("Total Ahorros", f"${total_ahorros:,.2f}")
+            with col2:
+                st.metric("Total Retiros", f"${total_retiros:,.2f}")
+            with col3:
+                st.metric("Saldo Total Grupo", f"${saldo_total:,.2f}")
+                
+        else:
+            # Estadísticas por miembro
+            opciones_miembros_estadisticas = {m['id_miembro']: m['Nombre'] for m in miembros}
+            miembro_estadisticas = st.selectbox(
+                "Seleccionar miembro para estadísticas:",
+                options=list(opciones_miembros_estadisticas.keys()),
+                format_func=lambda x: opciones_miembros_estadisticas[x]
+            )
+            
+            if miembro_estadisticas:
+                estadisticas_personales = obtener_estadisticas_personales(miembro_estadisticas, id_grupo)
+                
+                if estadisticas_personales:
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Total Ahorros", f"${estadisticas_personales['total_ahorros']:,.2f}")
+                    with col2:
+                        st.metric("Total Actividades", f"${estadisticas_personales['total_actividades']:,.2f}")
+                    with col3:
+                        st.metric("Total Retiros", f"${estadisticas_personales['total_retiros']:,.2f}")
+                    with col4:
+                        st.metric("Saldo Final Personal", f"${estadisticas_personales['total_saldo_final']:,.2f}")
+                    
+                    # Información adicional
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.info(f"**Total Registros:** {estadisticas_personales['total_registros']}")
+                    with col2:
+                        st.info(f"**Saldo Inicial Acumulado:** ${estadisticas_personales['total_saldo_inicial']:,.2f}")
+                else:
+                    st.info(f"No hay registros para {opciones_miembros_estadisticas[miembro_estadisticas]}")
             
     else:
         st.info("No hay registros de ahorro final para mostrar.")
