@@ -57,9 +57,8 @@ div.stButton > button:hover {
 #asistencia_btn > button { background-color: #FF7043 !important; }
 #gapc_btn > button { background-color: #29B6F6 !important; }
 #prestamos_btn > button { background-color: #9C27B0 !important; }
-
-/* NUEVO BOTÓN CAJA */
 #caja_btn > button { background-color: #00BFA5 !important; }
+#ahorro_final_btn > button { background-color: #FF9800 !important; }
 
 /* Logout */
 #logout_btn > button {
@@ -113,6 +112,7 @@ div.stButton > button:hover {
         ("🏛️ GAPC", "GAPC", "gapc_btn"),
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💰 Caja", "caja", "caja_btn"),
+        ("💾 Ahorro Final", "ahorro_final", "ahorro_final_btn"),  # NUEVO MÓDULO
     ]
 
     # -----------------------------------------------------
@@ -126,7 +126,7 @@ div.stButton > button:hover {
 
     # 🏛 Institucional: todos excepto Caja
     elif rol_l == "institucional":
-        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","grupos_btn","registrar_miembros" ]]
+        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","grupos_btn","registrar_miembros"]]
 
     # 👤 Promotor
     elif rol_l == "promotor":
@@ -134,7 +134,7 @@ div.stButton > button:hover {
 
     # 👥 Miembro
     elif rol_l == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos"]]
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos", "ahorro_final"]]
 
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
@@ -166,4 +166,3 @@ div.stButton > button:hover {
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
-
