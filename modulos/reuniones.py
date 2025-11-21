@@ -49,8 +49,8 @@ def mostrar_reuniones(id_grupo):
     with st.container():
         st.markdown(
             """
-            <div style='background-color:#F7F3FA; padding:20px; border-radius:12px; 
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
+            <div style='background-color:#F7F3FA; padding:25px; border-radius:15px; 
+                        box-shadow: 0 6px 15px rgba(0,0,0,0.12);'>
             """,
             unsafe_allow_html=True
         )
@@ -68,55 +68,53 @@ def mostrar_reuniones(id_grupo):
         st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
         st.subheader("📝 Agenda de actividades")
 
-        # Contenedor estilizado para la agenda
-        st.markdown(
-            """
-            <div style='background-color:#EFEAF6; padding:15px; border-radius:12px; 
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.08);'>
-            """,
-            unsafe_allow_html=True
-        )
+        # Secciones de la agenda
+        secciones = {
+            "Empezar la reunión": [
+                "La presidenta abre formalmente la reunión.",
+                "La secretaria registra asistencia y multas.",
+                "La secretaria lee las reglas internas."
+            ],
+            "Dinero que entra": [
+                "La tesorera cuenta el dinero de la caja.",
+                "Las socias depositan ahorros.",
+                "Las socias depositan dinero de otras actividades.",
+                "La secretaria calcula el total de dinero que entra.",
+                "La tesorera verifica el monto total."
+            ],
+            "Dinero que sale": [
+                "Las socias solicitan y evalúan préstamos.",
+                "La tesorera desembolsa préstamos aprobados.",
+                "La secretaria registra desembolsos e intereses.",
+                "La secretaria calcula total de dinero que sale.",
+                "La tesorera verifica el dinero y anuncia el saldo.",
+                "La presidenta cierra la caja y entrega llaves."
+            ],
+            "Cerrar la reunión": [
+                "La presidenta pregunta si hay asuntos pendientes.",
+                "La presidenta cierra formalmente la reunión."
+            ]
+        }
 
-        # Dividir la agenda en dos columnas para mejor legibilidad
-        col1, col2 = st.columns(2)
+        # Mostrar cada sección en una tarjeta con color distinto
+        colores = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
+        agenda_completa = ""
 
-        agenda_default = """
-**EMPEZAR LA REUNIÓN**
-- La presidenta abre formalmente la reunión.
-- La secretaria registra asistencia y multas.
-- La secretaria lee las reglas internas.
-
-**DINERO QUE ENTRA**
-- La tesorera cuenta el dinero de la caja.
-- Las socias depositan ahorros.
-- Las socias depositan dinero de otras actividades.
-- La secretaria calcula el total de dinero que entra.
-- La tesorera verifica el monto total.
-
-**DINERO QUE SALE**
-- Las socias solicitan y evalúan préstamos.
-- La tesorera desembolsa préstamos aprobados.
-- La secretaria registra desembolsos e intereses.
-- La secretaria calcula total de dinero que sale.
-- La tesorera verifica el dinero y anuncia el saldo.
-- La presidenta cierra la caja y entrega llaves.
-
-**CERRAR LA REUNIÓN**
-- La presidenta pregunta si hay asuntos pendientes.
-- La presidenta cierra formalmente la reunión.
-"""
-
-        # Dividir contenido de agenda en dos partes
-        lineas = agenda_default.strip().split("\n")
-        mitad = len(lineas) // 2
-
-        with col1:
-            st.text_area("Parte 1 de la Agenda", "\n".join(lineas[:mitad]), height=250)
-
-        with col2:
-            st.text_area("Parte 2 de la Agenda", "\n".join(lineas[mitad:]), height=250)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+        for i, (titulo, items) in enumerate(secciones.items()):
+            st.markdown(
+                f"""
+                <div style='background-color:{colores[i]}; padding:15px; border-radius:12px; 
+                            margin-bottom:12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
+                    <h4 style='color:#4C3A60;'>{titulo}</h4>
+                    <ul>
+                        {''.join([f"<li>{item}</li>" for item in items])}
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            # Concatenar para guardar en DB
+            agenda_completa += f"**{titulo.upper()}**\n" + "\n".join(f"- {x}" for x in items) + "\n\n"
 
         # -----------------------
         # Observaciones
@@ -133,7 +131,7 @@ def mostrar_reuniones(id_grupo):
             cursor.execute("""
                 INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (id_grupo, fecha, hora, agenda_default, observaciones))
+            """, (id_grupo, fecha, hora, agenda_completa, observaciones))
             conn.commit()
             st.success("✅ Reunión guardada con éxito.")
 
@@ -166,4 +164,3 @@ def mostrar_reuniones(id_grupo):
 
     cursor.close()
     conn.close()
-
