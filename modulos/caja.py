@@ -131,45 +131,46 @@ def mostrar_caja(id_grupo):
     cursor.execute(query, tuple(params))
     registros = cursor.fetchall()
 
-   if registros:
-    df = pd.DataFrame(registros)
-    df['fecha'] = pd.to_datetime(df['fecha'])
-    df = df.sort_values('fecha').reset_index(drop=True)
+    if registros:
+        df = pd.DataFrame(registros)
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df = df.sort_values('fecha').reset_index(drop=True)
 
-    # Reemplazar posibles None o NaN por 0
-    df['total_entrada'] = df['total_entrada'].fillna(0)
-    df['total_salida'] = df['total_salida'].fillna(0)
+        # Reemplazar posibles None o NaN por 0
+        df['total_entrada'] = df['total_entrada'].fillna(0)
+        df['total_salida'] = df['total_salida'].fillna(0)
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    width = 0.35
-    x = range(len(df))
+        fig, ax = plt.subplots(figsize=(10, 5))
+        width = 0.35
+        x = range(len(df))
 
-    ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
-    ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
+        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
+        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
 
-    max_entrada = df['total_entrada'].max()
-    max_salida = df['total_salida'].max()
+        max_entrada = df['total_entrada'].max()
+        max_salida = df['total_salida'].max()
 
-    for i, row in df.iterrows():
-        ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
-                f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-        ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
-                f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+        for i, row in df.iterrows():
+            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
+                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
+                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
-    ax.set_xlabel("Fecha", fontsize=12)
-    ax.set_ylabel("Monto", fontsize=12)
-    ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-    ax.set_xticks(x)
-    ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
-    ax.grid(axis='y', linestyle='--', alpha=0.6)
-    ax.set_axisbelow(True)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.legend()
+        ax.set_xlabel("Fecha", fontsize=12)
+        ax.set_ylabel("Monto", fontsize=12)
+        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
+        ax.grid(axis='y', linestyle='--', alpha=0.6)
+        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.legend()
 
-    st.pyplot(fig)
-    st.markdown(f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}")
-
+        st.pyplot(fig)
+        st.markdown(f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}")
+    else:
+        st.info("No hay registros para mostrar.")
 
     # ===============================
     # 8. Regresar
@@ -181,4 +182,3 @@ def mostrar_caja(id_grupo):
 
     cursor.close()
     conn.close()
-
