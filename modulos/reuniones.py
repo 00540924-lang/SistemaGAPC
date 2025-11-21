@@ -21,7 +21,7 @@ def mostrar_reuniones(id_grupo):
         st.error("❌ No se encontró el grupo del usuario. Contacte al administrador.")
         return
 
-    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones del Grupo</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones del grupo</h1>", unsafe_allow_html=True)
 
     # ===============================
     # Conexión BD
@@ -46,7 +46,7 @@ def mostrar_reuniones(id_grupo):
         # -----------------------
         # Información general
         # -----------------------
-        st.subheader("🗂 Información de la reunión")
+        st.subheader("Información de la reunión")
         fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
