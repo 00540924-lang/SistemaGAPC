@@ -80,7 +80,7 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     #                    TÍTULO
     # -----------------------------------------------------
-    st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;color:#4C3A60;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
     #        MOSTRAR USUARIO Y TEXTO SEGÚN ROL
