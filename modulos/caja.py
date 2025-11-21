@@ -3,6 +3,7 @@ import mysql.connector
 from datetime import date
 from modulos.config.conexion import obtener_conexion
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def mostrar_caja(id_grupo):
     """
@@ -98,8 +99,6 @@ def mostrar_caja(id_grupo):
 
         conn.commit()
         st.success("✅ Movimiento de caja guardado con éxito.")
-
-   import matplotlib.pyplot as plt
 
 # ===============================
 # 7. Historial (gráfico)
