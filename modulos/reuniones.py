@@ -140,7 +140,7 @@ def mostrar_reuniones(id_grupo):
             
             st.markdown(
                 f"""
-                <div style='background-color:{color}; padding:30px; border-radius:12px; 
+                <div style='background-color:{color}; padding:12px; border-radius:12px; 
                             box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
                     <strong>📅 Fecha:</strong> {fecha_str}<br>
                 </div>
@@ -150,7 +150,7 @@ def mostrar_reuniones(id_grupo):
             
             edit_key = f"edit_{registro['id']}"
             borrar_key = f"delete_{registro['id']}"
-            texto_editable = st.text_area("", value=registro['observaciones'], key=edit_key, height=100)
+            texto_editable = st.text_area("", value=registro['observaciones'], key=edit_key, height=200)
             
             col1, col2 = st.columns([1,1])
             with col1:
