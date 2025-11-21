@@ -160,7 +160,7 @@ def mostrar_caja(id_grupo):
 
         ax.set_xlabel("Fecha", fontsize=12)
         ax.set_ylabel("Monto en $", fontsize=12)
-        ax.set_title("Entradas y salidas", fontsize=14, weight='bold')
+        ax.set_title("Entradas y salidas", fontsize=18, weight='bold')
         ax.set_xticks(x)
         ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
         ax.grid(axis='y', linestyle='--', alpha=0.6)
