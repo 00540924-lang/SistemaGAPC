@@ -32,17 +32,6 @@ def mostrar_reuniones(id_grupo):
         return
     cursor = conn.cursor(dictionary=True)
 
-    # ===============================
-    # Contenedor principal
-    # ===============================
-    with st.container():
-        st.markdown(
-            """
-            <div style='background-color:#F7F3FA; padding:20px; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
-        """,
-            unsafe_allow_html=True
-        )
-
         # -----------------------
         # Información general
         # -----------------------
