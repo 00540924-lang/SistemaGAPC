@@ -3,7 +3,7 @@ import mysql.connector
 from datetime import date
 from modulos.config.conexion import obtener_conexion
 import pandas as pd
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # Importar matplotlib
 
 def mostrar_caja(id_grupo):
     """
@@ -100,68 +100,63 @@ def mostrar_caja(id_grupo):
         conn.commit()
         st.success("✅ Movimiento de caja guardado con éxito.")
 
-# ===============================
-# 7. Historial (gráfico)
-# ===============================
-st.write("---")
-st.subheader("📚 Historial de Caja")
-st.info("Filtre por fecha o deje vacío para ver todos los registros.")
+    # ===============================
+    # 7. Historial (con gráfico)
+    # ===============================
+    st.write("---")
+    st.subheader("📚 Historial de Caja")
+    st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-# Filtrado por rango de fechas
-col1, col2 = st.columns(2)
-fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
-fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
+    # Filtrado por rango de fechas
+    col1, col2 = st.columns(2)
+    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
+    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
 
-query = """
-    SELECT fecha, total_entrada, total_salida
-    FROM Caja
-    WHERE id_grupo = %s
-"""
-params = [id_grupo]
+    query = """
+        SELECT fecha, total_entrada, total_salida
+        FROM Caja
+        WHERE id_grupo = %s
+    """
+    params = [id_grupo]
 
-if fecha_inicio and fecha_fin:
-    query += " AND fecha BETWEEN %s AND %s"
-    params.extend([fecha_inicio, fecha_fin])
-elif fecha_inicio:
-    query += " AND fecha >= %s"
-    params.append(fecha_inicio)
-elif fecha_fin:
-    query += " AND fecha <= %s"
-    params.append(fecha_fin)
+    if fecha_inicio and fecha_fin:
+        query += " AND fecha BETWEEN %s AND %s"
+        params.extend([fecha_inicio, fecha_fin])
+    elif fecha_inicio:
+        query += " AND fecha >= %s"
+        params.append(fecha_inicio)
+    elif fecha_fin:
+        query += " AND fecha <= %s"
+        params.append(fecha_fin)
 
-query += " ORDER BY fecha DESC"
+    query += " ORDER BY fecha DESC"
 
-cursor.execute(query, tuple(params))
-registros = cursor.fetchall()
+    cursor.execute(query, tuple(params))
+    registros = cursor.fetchall()
 
-if registros:
-    df = pd.DataFrame(registros)
-    df['fecha'] = pd.to_datetime(df['fecha'])
+    if registros:
+        df = pd.DataFrame(registros)
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df = df.sort_values('fecha')
 
-    # Ordenar por fecha ascendente para gráfico
-    df = df.sort_values('fecha')
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.bar(df['fecha'], df['total_entrada'], color='green', label='Entradas')
+        ax.bar(df['fecha'], df['total_salida'], color='red', label='Salidas', alpha=0.7)
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+        ax.set_xlabel("Fecha")
+        ax.set_ylabel("Monto")
+        ax.set_title("Historial de Caja: Entradas y Salidas")
+        ax.legend()
+        ax.grid(True, linestyle='--', alpha=0.5)
+        fig.autofmt_xdate()
 
-    ax.bar(df['fecha'], df['total_entrada'], color='green', label='Entradas')
-    ax.bar(df['fecha'], df['total_salida'], color='red', label='Salidas', alpha=0.7)
+        st.pyplot(fig)
 
-    ax.set_xlabel("Fecha")
-    ax.set_ylabel("Monto")
-    ax.set_title("Historial de Caja: Entradas y Salidas")
-    ax.legend()
-    ax.grid(True, linestyle='--', alpha=0.5)
-
-    # Mejor formato para fechas en eje X
-    fig.autofmt_xdate()
-
-    st.pyplot(fig)
-
-    st.markdown(
-        f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}"
-    )
-else:
-    st.info("No hay registros para mostrar.")
+        st.markdown(
+            f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}"
+        )
+    else:
+        st.info("No hay registros para mostrar.")
 
     # ===============================
     # 8. Regresar
@@ -173,4 +168,3 @@ else:
 
     cursor.close()
     conn.close()
-
