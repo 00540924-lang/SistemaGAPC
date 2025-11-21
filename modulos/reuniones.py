@@ -138,7 +138,7 @@ def mostrar_reuniones(id_grupo):
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ===============================
-    # Historial de reuniones (solo observaciones)
+    # Historial de reuniones (solo observaciones, tarjetas atractivas)
     # ===============================
     st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
 
@@ -161,8 +161,24 @@ def mostrar_reuniones(id_grupo):
         registros = cursor.fetchall()
         
         if registros:
-            df = pd.DataFrame(registros)
-            st.dataframe(df, use_container_width=True)
+            st.markdown("<div style='display:flex; flex-direction:column; gap:12px;'>", unsafe_allow_html=True)
+            
+            colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]  # colores alternados
+            for i, registro in enumerate(registros):
+                color = colores_tarjeta[i % len(colores_tarjeta)]
+                fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
+                st.markdown(
+                    f"""
+                    <div style='background-color:{color}; padding:15px; border-radius:12px; 
+                                box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
+                        <strong>📅 Fecha:</strong> {fecha_str}<br>
+                        <strong>🗒 Observaciones:</strong><br>
+                        <p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.info("No hay observaciones registradas en el rango de fechas seleccionado.")
 
@@ -179,4 +195,3 @@ def mostrar_reuniones(id_grupo):
     # ===============================
     cursor.close()
     conn.close()
-
