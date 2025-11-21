@@ -90,14 +90,15 @@ div.stButton > button:hover {
         unsafe_allow_html=True
     )
 
+    # Estilo destacado para Desarrollador y Promotor
     if usuario == "dark":
         st.markdown(
-            "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Desarrollador</p>",
+            "<p style='text-align:center; font-size:16px; color:#FF5722; font-weight:bold;'>Desarrollador</p>",
             unsafe_allow_html=True
         )
     elif rol.lower() == "promotor":
         st.markdown(
-            "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Promotor</p>",
+            "<p style='text-align:center; font-size:16px; color:#3F51B5; font-weight:bold;'>Promotor</p>",
             unsafe_allow_html=True
         )
     elif st.session_state.get("nombre_grupo"):
