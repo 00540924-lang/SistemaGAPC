@@ -30,7 +30,7 @@ def mostrar_reuniones(id_grupo):
     # Título dinámico
     # ===============================
     st.markdown(
-        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones grupos {nombre_grupo}</h1>",
+        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones grupo {nombre_grupo}</h1>",
         unsafe_allow_html=True
     )
 
@@ -44,7 +44,7 @@ def mostrar_reuniones(id_grupo):
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # Contenedor principal
+    # Contenedor principal para crear reunión
     # ===============================
     with st.container():
         st.markdown(
@@ -68,7 +68,6 @@ def mostrar_reuniones(id_grupo):
         st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
         st.subheader("📝 Agenda de actividades")
 
-        # Secciones de la agenda
         secciones = {
             "Empezar la reunión": [
                 "La presidenta abre formalmente la reunión.",
@@ -96,7 +95,6 @@ def mostrar_reuniones(id_grupo):
             ]
         }
 
-        # Mostrar cada sección en una tarjeta con color distinto
         colores = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
         agenda_completa = ""
 
@@ -113,7 +111,6 @@ def mostrar_reuniones(id_grupo):
                 """,
                 unsafe_allow_html=True
             )
-            # Concatenar para guardar en DB
             agenda_completa += f"**{titulo.upper()}**\n" + "\n".join(f"- {x}" for x in items) + "\n\n"
 
         # -----------------------
@@ -138,49 +135,44 @@ def mostrar_reuniones(id_grupo):
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ===============================
-    # Historial de reuniones (solo observaciones, tarjetas atractivas)
+    # Historial de reuniones (solo observaciones, tarjeta atractiva)
     # ===============================
     st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
 
-    # Filtro por rango de fechas
+    # Filtro por fecha única
     with st.expander("Filtrar por fecha"):
-        fecha_inicio = st.date_input("Fecha inicio", value=datetime(2000, 1, 1))
-        fecha_fin = st.date_input("Fecha fin", value=datetime.now().date())
+        fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
-    # Asegurarse que la fecha de inicio no sea mayor que la fecha fin
-    if fecha_inicio > fecha_fin:
-        st.error("La fecha de inicio no puede ser mayor que la fecha fin.")
+    cursor.execute("""
+        SELECT fecha, observaciones 
+        FROM Reuniones
+        WHERE id_grupo = %s AND fecha = %s
+        ORDER BY fecha DESC
+    """, (id_grupo, fecha_seleccionada))
+
+    registros = cursor.fetchall()
+
+    if registros:
+        st.markdown("<div style='display:flex; flex-direction:column; gap:12px;'>", unsafe_allow_html=True)
+        
+        colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
+        for i, registro in enumerate(registros):
+            color = colores_tarjeta[i % len(colores_tarjeta)]
+            fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
+            st.markdown(
+                f"""
+                <div style='background-color:{color}; padding:15px; border-radius:12px; 
+                            box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
+                    <strong>📅 Fecha:</strong> {fecha_str}<br>
+                    <strong>🗒 Observaciones:</strong><br>
+                    <p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
     else:
-        cursor.execute("""
-            SELECT fecha, observaciones 
-            FROM Reuniones
-            WHERE id_grupo = %s AND fecha BETWEEN %s AND %s
-            ORDER BY fecha DESC
-        """, (id_grupo, fecha_inicio, fecha_fin))
-        
-        registros = cursor.fetchall()
-        
-        if registros:
-            st.markdown("<div style='display:flex; flex-direction:column; gap:12px;'>", unsafe_allow_html=True)
-            
-            colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]  # colores alternados
-            for i, registro in enumerate(registros):
-                color = colores_tarjeta[i % len(colores_tarjeta)]
-                fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
-                st.markdown(
-                    f"""
-                    <div style='background-color:{color}; padding:15px; border-radius:12px; 
-                                box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
-                        <strong>📅 Fecha:</strong> {fecha_str}<br>
-                        <strong>🗒 Observaciones:</strong><br>
-                        <p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.info("No hay observaciones registradas en el rango de fechas seleccionado.")
+        st.info("No hay observaciones registradas para la fecha seleccionada.")
 
     # ===============================
     # Botón regresar
