@@ -82,7 +82,7 @@ elif pagina == "prestamos":
         prestamos_modulo()
 
 # ---- GAPC (solo rol Institucional) ----
-elif pagina == "GAPC":
+elif pagina.lower() == "gapc":
     if st.session_state.get("rol") == "Institucional":
         from modulos.gapc import mostrar_gapc
         mostrar_gapc()
