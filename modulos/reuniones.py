@@ -30,7 +30,7 @@ def mostrar_reuniones(id_grupo):
     # Título dinámico
     # ===============================
     st.markdown(
-        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones grupo {nombre_grupo}</h1>",
+        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones – {nombre_grupo}</h1>",
         unsafe_allow_html=True
     )
 
@@ -49,7 +49,7 @@ def mostrar_reuniones(id_grupo):
     with st.container():
         st.markdown(
             """
-            <div style='background-color:#F7F3FA; padding:5px; border-radius:12px; 
+            <div style='background-color:#F7F3FA; padding:20px; border-radius:12px; 
                         box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
             """,
             unsafe_allow_html=True
@@ -63,37 +63,53 @@ def mostrar_reuniones(id_grupo):
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
         # -----------------------
-        # Agenda de la reunión
+        # Agenda de la reunión (mejor visual)
         # -----------------------
         st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
         st.subheader("📝 Agenda de actividades")
 
-        agenda_default = """
-**EMPEZAR LA REUNIÓN**
-- La presidenta abre formalmente la reunión.
-- La secretaria registra asistencia y multas.
-- La secretaria lee las reglas internas.
+        st.markdown(
+            """
+            <div style='background-color:#EDE7F6; padding:15px; border-radius:12px; 
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
+                <h4 style='color:#6A1B9A;'>✅ EMPEZAR LA REUNIÓN</h4>
+                <ul style='margin-left:20px;'>
+                    <li>La presidenta abre formalmente la reunión.</li>
+                    <li>La secretaria registra asistencia y multas.</li>
+                    <li>La secretaria lee las reglas internas.</li>
+                </ul>
 
-**DINERO QUE ENTRA**
-- La tesorera cuenta el dinero de la caja.
-- Las socias depositan ahorros.
-- Las socias depositan dinero de otras actividades.
-- La secretaria calcula el total de dinero que entra.
-- La tesorera verifica el monto total.
+                <h4 style='color:#2E7D32;'>💰 DINERO QUE ENTRA</h4>
+                <ul style='margin-left:20px;'>
+                    <li>La tesorera cuenta el dinero de la caja.</li>
+                    <li>Las socias depositan ahorros.</li>
+                    <li>Las socias depositan dinero de otras actividades.</li>
+                    <li>La secretaria calcula el total de dinero que entra.</li>
+                    <li>La tesorera verifica el monto total.</li>
+                </ul>
 
-**DINERO QUE SALE**
-- Las socias solicitan y evalúan préstamos.
-- La tesorera desembolsa préstamos aprobados.
-- La secretaria registra desembolsos e intereses.
-- La secretaria calcula total de dinero que sale.
-- La tesorera verifica el dinero y anuncia el saldo.
-- La presidenta cierra la caja y entrega llaves.
+                <h4 style='color:#C62828;'>💸 DINERO QUE SALE</h4>
+                <ul style='margin-left:20px;'>
+                    <li>Las socias solicitan y evalúan préstamos.</li>
+                    <li>La tesorera desembolsa préstamos aprobados.</li>
+                    <li>La secretaria registra desembolsos e intereses.</li>
+                    <li>La secretaria calcula total de dinero que sale.</li>
+                    <li>La tesorera verifica el dinero y anuncia el saldo.</li>
+                    <li>La presidenta cierra la caja y entrega llaves.</li>
+                </ul>
 
-**CERRAR LA REUNIÓN**
-- La presidenta pregunta si hay asuntos pendientes.
-- La presidenta cierra formalmente la reunión.
-"""
-        agenda = st.text_area("Agenda de la reunión", agenda_default, height=300)
+                <h4 style='color:#6A1B9A;'>📌 CERRAR LA REUNIÓN</h4>
+                <ul style='margin-left:20px;'>
+                    <li>La presidenta pregunta si hay asuntos pendientes.</li>
+                    <li>La presidenta cierra formalmente la reunión.</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Permitir edición opcional
+        agenda_edicion = st.text_area("✏️ Editar agenda de la reunión (opcional)", height=200)
 
         # -----------------------
         # Observaciones
@@ -110,7 +126,7 @@ def mostrar_reuniones(id_grupo):
             cursor.execute("""
                 INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (id_grupo, fecha, hora, agenda, observaciones))
+            """, (id_grupo, fecha, hora, agenda_edicion if agenda_edicion else agenda_default, observaciones))
             conn.commit()
             st.success("✅ Reunión guardada con éxito.")
 
@@ -143,4 +159,3 @@ def mostrar_reuniones(id_grupo):
 
     cursor.close()
     conn.close()
-
