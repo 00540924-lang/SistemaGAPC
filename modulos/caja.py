@@ -107,14 +107,19 @@ def mostrar_caja(id_grupo):
 
     # Columnas para filtros y botón limpiar
     col1, col2, col3 = st.columns([1,1,1])
-    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
-    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
+    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio", value=date.today())
+    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin", value=date.today())
 
     # Botón para limpiar filtros
     if col3.button("🧹 Limpiar filtros"):
-        st.session_state["filtro_inicio"] = None
-        st.session_state["filtro_fin"] = None
+        st.session_state["limpiar_filtros"] = True
         st.experimental_rerun()
+
+    # Aplicar filtro vacío si se presionó limpiar
+    if st.session_state.get("limpiar_filtros", False):
+        fecha_inicio = None
+        fecha_fin = None
+        st.session_state["limpiar_filtros"] = False
 
     query = """
         SELECT fecha, total_entrada, total_salida
@@ -191,4 +196,3 @@ def mostrar_caja(id_grupo):
 
     cursor.close()
     conn.close()
-
