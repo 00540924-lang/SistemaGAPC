@@ -318,7 +318,7 @@ def mostrar_ahorro_final(id_grupo):
             col1, col2 = st.columns([1, 4])
             with col1:
                 # Botón para borrar con confirmación
-                if st.button("🗑️ Borrar Registro", type="secondary"):
+                if st.button("Borrar Registro", type="secondary"):
                     if st.session_state.get("confirmar_borrado", False):
                         success, message = borrar_registro_ahorro(registro_a_borrar)
                         if success:
