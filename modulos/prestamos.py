@@ -1,108 +1,207 @@
 import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
+import datetime
 import time
 
+# =====================================================
+#   MÓDULO PRINCIPAL DE PRÉSTAMOS
+# =====================================================
 def prestamos_modulo():
 
-    st.header("Gestión de Préstamos")
-
-    # ======================================
-    # VALIDAR SESIÓN Y GRUPO
-    # ======================================
+    # --------------------------------------
+    # Validar sesión y grupo
+    # --------------------------------------
     if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
         return
 
     id_grupo = st.session_state["id_grupo"]
 
-    # ======================================
-    # CONEXIÓN A BD
-    # ======================================
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
+    st.markdown("<h1 style='text-align:center;'>💲 Registro de Préstamos</h1>", unsafe_allow_html=True)
 
-    # ======================================
-    # OBTENER INTERÉS DESDE TABLA REGLAMENTO
-    # ======================================
-    cursor.execute("SELECT interes_por_10 FROM Reglamento WHERE id_grupo = %s", (id_grupo,))
+    # --------------------------------------
+    # Obtener valores del reglamento
+    # --------------------------------------
+    con = obtener_conexion()
+    cursor = con.cursor()
+    cursor.execute("""
+        SELECT interes_por_10
+        FROM Reglamento
+        WHERE id_grupo = %s
+        LIMIT 1
+    """, (id_grupo,))
     reglamento = cursor.fetchone()
+    con.close()
 
     interes_por_10 = float(reglamento[0]) if reglamento else 0.0
 
-    # ======================================
-    # CAMPO DE INTERÉS (NO EDITABLE)
-    # ======================================
-    st.subheader("Interés del Reglamento")
-    st.number_input(
-        "Interés aplicado por cada $10 (%)",
-        value=interes_por_10,
-        disabled=True
-    )
+    # --------------------------------------
+    # Obtener miembros del grupo
+    # --------------------------------------
+    con = obtener_conexion()
+    cursor = con.cursor()
+    cursor.execute("""
+        SELECT M.id_miembro, M.nombre, M.dui
+        FROM Miembros M
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
+    """, (id_grupo,))
+    miembros = cursor.fetchall()
+    con.close()
 
-    # ======================================
-    # SELECCIONAR USUARIO
-    # ======================================
-    cursor.execute("SELECT id, nombre FROM usuarios WHERE id_grupo = %s", (id_grupo,))
-    usuarios = cursor.fetchall()
+    if not miembros:
+        st.warning("⚠ No hay miembros registrados en este grupo.")
+        return
 
-    usuarios_dict = {u[1]: u[0] for u in usuarios}
-    nombre_usuario = st.selectbox("Seleccionar solicitante", list(usuarios_dict.keys()))
-    id_usuario = usuarios_dict[nombre_usuario]
+    miembros_dict = {f"{m[1]} - {m[2]}": m[0] for m in miembros}
 
-    # ======================================
-    # INGRESAR MONTO A PRESTAR
-    # ======================================
-    monto = st.number_input("Monto a prestar ($)", min_value=1.0, step=1.0)
+    # =====================================================
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO
+    # =====================================================
+    with st.form("form_nuevo_prestamo"):
+        st.subheader("📄 Datos del Préstamo")
 
-    # Cálculo del interés
-    interes_calculado = (monto / 10) * interes_por_10
-    total_a_pagar = monto + interes_calculado
+        miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
+        proposito = st.text_input("Propósito del préstamo")
+        monto = st.number_input("Monto", min_value=0.01, step=0.01)
+        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
+        fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
 
-    # ======================================
-    # MOSTRAR CÁLCULO EN TIEMPO REAL
-    # ======================================
-    st.write(f"📌 **Interés generado:** ${interes_calculado:.2f}")
-    st.write(f"💰 **Total a pagar:** ${total_a_pagar:.2f}")
-
-    # ======================================
-    # GUARDAR PRÉSTAMO
-    # ======================================
-    if st.button("Registrar Préstamo"):
-        cursor.execute(
-            """
-            INSERT INTO prestamo_pagos (id_usuario, monto_prestamo, interes, total_pagar, id_grupo)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (id_usuario, monto, interes_calculado, total_a_pagar, id_grupo)
+        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA
+        st.number_input(
+            "Interés aplicado por cada $10 (%)",
+            value=interes_por_10,
+            step=0.01,
+            disabled=True
         )
 
-        conexion.commit()
-        st.success("Préstamo registrado correctamente.")
-        time.sleep(1)
-        st.experimental_rerun()
+        estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
-    # ======================================
-    # LISTADO DE PRÉSTAMOS
-    # ======================================
-    st.subheader("Préstamos Registrados")
+        enviar = st.form_submit_button("💾 Guardar Préstamo")
 
-    cursor.execute(
-        """
-        SELECT u.nombre, p.monto_prestamo, p.interes, p.total_pagar
-        FROM prestamo_pagos p
-        JOIN usuarios u ON p.id_usuario = u.id
-        WHERE p.id_grupo = %s
-        ORDER BY p.id DESC
-        """,
-        (id_grupo,)
-    )
+    if enviar:
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
 
-    registros = cursor.fetchall()
+            cursor.execute("""
+                INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, estado, interes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                miembros_dict[miembro_seleccionado],
+                proposito,
+                monto,
+                fecha_desembolso,
+                fecha_vencimiento,
+                estado,
+                interes_por_10
+            ))
 
-    df = pd.DataFrame(registros, columns=["Usuario", "Monto Prestado", "Interés", "Total a Pagar"])
+            con.commit()
+            st.success("✅ Préstamo registrado correctamente")
+            time.sleep(0.5)
+            st.experimental_rerun()
 
-    st.dataframe(df)
+        finally:
+            cursor.close()
+            con.close()
 
-    cursor.close()
-    conexion.close()
+    mostrar_lista_prestamos(id_grupo)
+
+
+# =====================================================
+#   TABLA DE PRÉSTAMOS
+# =====================================================
+def mostrar_lista_prestamos(id_grupo):
+
+    con = obtener_conexion()
+    cursor = con.cursor()
+
+    cursor.execute("""
+        SELECT P.id_prestamo, M.nombre, P.proposito, P.monto,
+               P.fecha_desembolso, P.fecha_vencimiento, P.estado
+        FROM prestamos P
+        JOIN Miembros M ON M.id_miembro = P.id_miembro
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
+        ORDER BY P.id_prestamo DESC
+    """, (id_grupo,))
+
+    prestamos = cursor.fetchall()
+    con.close()
+
+    if not prestamos:
+        st.info("No hay préstamos registrados en este grupo.")
+        return
+
+    df = pd.DataFrame(prestamos, columns=[
+        "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", "Fecha Vencimiento", "Estado"
+    ])
+
+    st.subheader("📋 Préstamos registrados")
+    st.dataframe(df, use_container_width=True)
+
+    prestamo_opciones = {f"{row['Miembro']} - ${row['Monto']} (ID {row['ID']})": row["ID"] for _, row in df.iterrows()}
+    prestamo_sel = st.selectbox("Selecciona un préstamo para registrar pagos:", list(prestamo_opciones.keys()))
+
+    if prestamo_sel:
+        mostrar_formulario_pagos(prestamo_opciones[prestamo_sel])
+
+
+# =====================================================
+#   FORMULARIO DE PAGOS
+# =====================================================
+def mostrar_formulario_pagos(id_prestamo):
+
+    st.markdown("<h3>💵 Registrar un pago</h3>", unsafe_allow_html=True)
+
+    # Obtener interes_por_10 desde reglamento
+    con = obtener_conexion()
+    cursor = con.cursor()
+    cursor.execute("""
+        SELECT interes_por_10
+        FROM Reglamento
+        WHERE id_grupo = %s
+        LIMIT 1
+    """, (st.session_state["id_grupo"],))
+    reglamento = cursor.fetchone()
+    con.close()
+
+    interes_por_10 = float(reglamento[0]) if reglamento else 0.0
+
+    with st.form(f"form_pago_{id_prestamo}"):
+
+        numero_pago = st.number_input("Número de pago", min_value=1, step=1)
+        fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
+        capital = st.number_input("Capital", min_value=0.01, step=0.01)
+
+        estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
+
+        guardar = st.form_submit_button("💾 Registrar Pago")
+
+    if guardar:
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+
+            cursor.execute("""
+                INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                id_prestamo,
+                numero_pago,
+                fecha_pago,
+                capital,
+                interes_por_10,
+                estado_pago
+            ))
+
+            con.commit()
+            st.success("💰 Pago registrado correctamente")
+            time.sleep(0.5)
+            st.experimental_rerun()
+
+        finally:
+            cursor.close()
+            con.close()
