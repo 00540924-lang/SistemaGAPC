@@ -3,15 +3,6 @@ from modulos.config.conexion import obtener_conexion
 
 
 def mostrar_gapc():
-    st.write("DEBUG: Entré a mostrar_gapc()")
-
-# ======================================================
-    # 🔍 DEBUG: VER TODO EL SESSION STATE Y EL ROL REAL
-    # ======================================================
-    st.write("DEBUG - SESSION STATE COMPLETO:", st.session_state)
-    st.write("DEBUG - Valor de rol:", repr(st.session_state.get('rol')))
-    # ======================================================
-
     
     # ===============================
     # 0. Verificar usuario logueado y rol
