@@ -18,7 +18,7 @@ def limpiar_rol(rol):
 def verificar_usuario(usuario, contraseña):
     """
     Verifica usuario, contraseña y grupo.
-    PERO si el usuario es 'Dark', permite iniciar sesión aunque no tenga grupo.
+    Permite iniciar sesión a usuarios sin grupo (promotores y desarrollador)
     """
     # Caso especial: DESARROLLADOR
     if usuario.lower() == "dark":
@@ -73,7 +73,7 @@ def verificar_usuario(usuario, contraseña):
             g.id_grupo,
             g.nombre_grupo
         FROM Administradores a
-        JOIN Miembros m ON m.id_administrador = a.id_administrador
+        LEFT JOIN Miembros m ON m.id_administrador = a.id_administrador
         LEFT JOIN Grupomiembros gm ON gm.id_miembro = m.id_miembro
         LEFT JOIN Grupos g ON g.id_grupo = gm.id_grupo
         WHERE a.Usuario = %s AND a.Contraseña = %s
@@ -89,6 +89,10 @@ def verificar_usuario(usuario, contraseña):
         rol = limpiar_rol(result[1])
         id_grupo = result[2]
         nombre_grupo = result[3]
+
+        # Si el usuario es promotor y no tiene grupo, permitir login igual
+        if rol == "promotor" and id_grupo is None:
+            nombre_grupo = "Promotor"
 
         return {
             "usuario": usuario_nombre,
@@ -138,6 +142,7 @@ def login():
             st.session_state["nombre_grupo"] = datos["nombre_grupo"]
             st.session_state["sesion_iniciada"] = True
 
+            st.success(f"✅ Bienvenido, {datos['usuario']}!")
             st.rerun()
         else:
             st.error("❌ Usuario o contraseña incorrectos.")
@@ -148,4 +153,3 @@ def login():
 # ==========================
 if __name__ == "__main__":
     login()
-
