@@ -18,7 +18,7 @@ def get_db_connection():
         return None
 
 def obtener_miembros_grupo(id_grupo):
-    """Obtiene los miembros de un grupo específico usando la tabla GrupoMiembros"""
+    """Obtiene los miembros de un grupo específico usando la tabla Grupomiembros"""
     conn = get_db_connection()
     if conn is None:
         return []
@@ -26,11 +26,11 @@ def obtener_miembros_grupo(id_grupo):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # Usar JOIN con la tabla GrupoMiembros
+        # Usar JOIN con la tabla Grupomiembros (todo junto)
         cursor.execute("""
             SELECT m.id_miembro, m.Nombre 
             FROM Miembros m 
-            INNER JOIN GrupoMiembros gm ON m.id_miembro = gm.id_miembro 
+            INNER JOIN Grupomiembros gm ON m.id_miembro = gm.id_miembro 
             WHERE gm.id_grupo = %s
         """, (id_grupo,))
         
@@ -249,7 +249,6 @@ def mostrar_ahorro_final(id_grupo):
         st.rerun()
     st.write("---")
     
-    # Resto del código (tabla y estadísticas) se mantiene igual...
     # Mostrar registros existentes en TABLA
     st.subheader("📊 Registros Existentes")
     
