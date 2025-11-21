@@ -82,13 +82,13 @@ def mostrar_reuniones(id_grupo):
             st.success("✅ Reunión guardada con éxito.")
 
     # ===============================
-    # Historial de observaciones
+    # Historial de observaciones (solo mostrar y borrar)
     # ===============================
     st.markdown("<h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
     with st.expander("Filtrar por fecha"):
         fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
-    historial_container = st.container()  # Contenedor dinámico para actualizar
+    historial_container = st.container()  # Contenedor dinámico
 
     def mostrar_historial():
         historial_container.empty()
@@ -105,27 +105,23 @@ def mostrar_reuniones(id_grupo):
 
                 with historial_container.container():
                     st.markdown(
-                        f"<div style='background-color:{color}; padding:15px; border-radius:12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'><strong>📅 Fecha:</strong> {fecha_str}</div>",
+                        f"""
+                        <div style='background-color:{color}; padding:15px; border-radius:12px; 
+                                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
+                            <strong>📅 Fecha:</strong> {fecha_str}<br>
+                            <strong>🗒 Observaciones:</strong><br>
+                            <p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>
+                        </div>
+                        """,
                         unsafe_allow_html=True
                     )
 
-                    key_edit = f"edit_{registro['id']}"
-                    key_delete = f"delete_{registro['id']}"
-                    obs_edit = st.text_area("", value=registro['observaciones'], key=key_edit, height=100)
-
-                    col1, col2 = st.columns([1,1])
-                    with col1:
-                        if st.button("💾 Guardar cambios", key=f"save_{registro['id']}"):
-                            cursor.execute("UPDATE Reuniones SET observaciones=%s WHERE id=%s", (obs_edit, registro['id']))
-                            conn.commit()
-                            st.success("✅ Observación actualizada.")
-                            mostrar_historial()
-                    with col2:
-                        if st.button("🗑 Borrar", key=key_delete):
-                            cursor.execute("DELETE FROM Reuniones WHERE id=%s", (registro['id'],))
-                            conn.commit()
-                            st.success("❌ Observación eliminada.")
-                            mostrar_historial()
+                    # Botón solo para borrar
+                    if st.button("🗑 Borrar", key=f"delete_{registro['id']}"):
+                        cursor.execute("DELETE FROM Reuniones WHERE id=%s", (registro['id'],))
+                        conn.commit()
+                        st.success("❌ Observación eliminada.")
+                        mostrar_historial()
         else:
             historial_container.info("No hay observaciones registradas para la fecha seleccionada.")
 
