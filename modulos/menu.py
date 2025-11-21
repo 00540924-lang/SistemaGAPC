@@ -105,7 +105,7 @@ div.stButton > button:hover {
     modulos_base = [
         ("📁 Credenciales", "credenciales", "proyectos_btn"),
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos_btn", "grupos_btn"),
+        ("📝 Grupos", "grupos", "grupos_btn"),
         ("📜 Reglamento", "reglamento", "documentos_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("💸 Multas", "multas", "configuracion_btn"),
