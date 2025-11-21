@@ -127,7 +127,7 @@ div.stButton > button:hover {
     elif rol_l == "institucional":  # Institucional
         modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final"]]
     elif rol_l == "promotor":  # Promotor
-        modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos_btn"]]
+        modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
     elif rol_l == "miembro":  # Miembro
         modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos", "ahorro_final", "reuniones","ahorro_final","registrar_miembros"]]
     else:
