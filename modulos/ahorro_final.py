@@ -18,7 +18,7 @@ def get_db_connection():
         return None
 
 def obtener_miembros_grupo(id_grupo):
-    """Obtiene los miembros de un grupo específico"""
+    """Obtiene los miembros de un grupo específico usando la tabla GrupoMiembros"""
     conn = get_db_connection()
     if conn is None:
         return []
@@ -26,38 +26,29 @@ def obtener_miembros_grupo(id_grupo):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # Intentamos con diferentes nombres de columna comunes
-        consultas = [
-            "SELECT id_miembro, Nombre FROM Miembros WHERE id_grupo = %s",
-            "SELECT id_miembro, Nombre FROM Miembros WHERE grupo_id = %s",
-            "SELECT id_miembro, Nombre FROM Miembros WHERE IdGrupo = %s",
-            "SELECT id_miembro, Nombre FROM Miembros WHERE idGrupo = %s",
-            "SELECT id_miembro, Nombre FROM Miembros"  # Si no hay filtro por grupo
-        ]
+        # Usar JOIN con la tabla GrupoMiembros
+        cursor.execute("""
+            SELECT m.id_miembro, m.Nombre 
+            FROM Miembros m 
+            INNER JOIN GrupoMiembros gm ON m.id_miembro = gm.id_miembro 
+            WHERE gm.id_grupo = %s
+        """, (id_grupo,))
         
-        miembros = []
-        for consulta in consultas:
-            try:
-                if "WHERE" in consulta:
-                    cursor.execute(consulta, (id_grupo,))
-                else:
-                    cursor.execute(consulta)
-                miembros = cursor.fetchall()
-                if miembros:
-                    break
-            except mysql.connector.Error:
-                continue
-        
-        # Si no encontramos miembros con filtro, mostramos todos
-        if not miembros:
-            cursor.execute("SELECT id_miembro, Nombre FROM Miembros")
-            miembros = cursor.fetchall()
-            
+        miembros = cursor.fetchall()
         return miembros
         
     except mysql.connector.Error as e:
         st.error(f"Error al obtener miembros: {e}")
-        return []
+        
+        # Si hay error, intentar obtener todos los miembros como fallback
+        try:
+            cursor.execute("SELECT id_miembro, Nombre FROM Miembros")
+            miembros = cursor.fetchall()
+            st.warning("Usando todos los miembros (fallback por error en relación)")
+            return miembros
+        except:
+            return []
+            
     finally:
         if conn.is_connected():
             cursor.close()
@@ -72,36 +63,15 @@ def obtener_registros_ahorro_final(id_grupo):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # Intentar diferentes formas de join
-        consultas = [
-            """
+        cursor.execute("""
             SELECT af.*, m.Nombre 
             FROM ahorro_final af 
             JOIN Miembros m ON af.id_miembro = m.id_miembro 
             WHERE af.id_grupo = %s 
             ORDER BY af.fecha_registro DESC
-            """,
-            """
-            SELECT af.*, m.Nombre 
-            FROM ahorro_final af 
-            JOIN Miembros m ON af.id_miembro = m.id_miembro 
-            ORDER BY af.fecha_registro DESC
-            """
-        ]
+        """, (id_grupo,))
         
-        registros = []
-        for consulta in consultas:
-            try:
-                if "WHERE" in consulta:
-                    cursor.execute(consulta, (id_grupo,))
-                else:
-                    cursor.execute(consulta)
-                registros = cursor.fetchall()
-                if registros:
-                    break
-            except mysql.connector.Error:
-                continue
-        
+        registros = cursor.fetchall()
         return registros
         
     except mysql.connector.Error as e:
@@ -211,11 +181,15 @@ def mostrar_ahorro_final(id_grupo):
     miembros = obtener_miembros_grupo(id_grupo)
     
     if not miembros:
-        st.warning("No se encontraron miembros en la base de datos.")
+        st.warning("No se encontraron miembros en este grupo.")
+        st.info("💡 **Solución:** Asegúrate de que los miembros estén asignados al grupo en el módulo 'Gestión de Miembros'")
         if st.button("👥 Ir a Gestión de Miembros"):
             st.session_state.page = "registrar_miembros"
             st.rerun()
         return
+    
+    # Mostrar información de miembros encontrados
+    st.success(f"✅ Se encontraron {len(miembros)} miembros en el grupo")
     
     registros = obtener_registros_ahorro_final(id_grupo)
     
@@ -275,6 +249,7 @@ def mostrar_ahorro_final(id_grupo):
         st.rerun()
     st.write("---")
     
+    # Resto del código (tabla y estadísticas) se mantiene igual...
     # Mostrar registros existentes en TABLA
     st.subheader("📊 Registros Existentes")
     
