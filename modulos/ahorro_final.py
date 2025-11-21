@@ -17,9 +17,24 @@ def get_db_connection():
         st.error(f"Error de conexión a la base de datos: {e}")
         return None
 
-def calcular_saldo_final(saldo_inicial, ahorros, actividades, retiros):
-    """Calcula el saldo final automáticamente"""
-    return saldo_inicial + ahorros + actividades - retiros
+def verificar_estructura_tabla():
+    """Verifica la estructura real de la tabla Miembros"""
+    conn = get_db_connection()
+    if conn is None:
+        return None
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("DESCRIBE Miembros")
+        estructura = cursor.fetchall()
+        return estructura
+    except mysql.connector.Error as e:
+        st.error(f"Error al verificar estructura: {e}")
+        return None
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
 
 def obtener_miembros_grupo(id_grupo):
     """Obtiene los miembros de un grupo específico"""
@@ -29,12 +44,46 @@ def obtener_miembros_grupo(id_grupo):
     
     try:
         cursor = conn.cursor(dictionary=True)
-        # CORREGIDO: Usar Miembros con mayúscula
-        cursor.execute("SELECT id_miembro, Nombre FROM Miembros WHERE id_grupo = %s", (id_grupo,))
-        miembros = cursor.fetchall()
+        
+        # Primero intentamos con diferentes nombres de columna comunes
+        consultas = [
+            "SELECT id_miembro, Nombre FROM Miembros WHERE id_grupo = %s",
+            "SELECT id_miembro, Nombre FROM Miembros WHERE grupo_id = %s",
+            "SELECT id_miembro, Nombre FROM Miembros WHERE IdGrupo = %s",
+            "SELECT id_miembro, Nombre FROM Miembros WHERE idGrupo = %s",
+            "SELECT id_miembro, Nombre FROM Miembros"  # Si no hay filtro por grupo
+        ]
+        
+        miembros = []
+        for consulta in consultas:
+            try:
+                if "WHERE" in consulta:
+                    cursor.execute(consulta, (id_grupo,))
+                else:
+                    cursor.execute(consulta)
+                miembros = cursor.fetchall()
+                if miembros:
+                    break
+            except mysql.connector.Error:
+                continue
+        
+        # Si no encontramos miembros con filtro, mostramos todos
+        if not miembros:
+            cursor.execute("SELECT id_miembro, Nombre FROM Miembros")
+            miembros = cursor.fetchall()
+            
         return miembros
+        
     except mysql.connector.Error as e:
         st.error(f"Error al obtener miembros: {e}")
+        
+        # Mostrar estructura de la tabla para debugging
+        estructura = verificar_estructura_tabla()
+        if estructura:
+            st.write("**Estructura de la tabla Miembros:**")
+            for columna in estructura:
+                st.write(f"- {columna['Field']} ({columna['Type']})")
+        
         return []
     finally:
         if conn.is_connected():
@@ -49,17 +98,39 @@ def obtener_registros_ahorro_final(id_grupo):
     
     try:
         cursor = conn.cursor(dictionary=True)
-        # CORREGIDO: Usar Miembros con mayúscula
-        cursor.execute("""
+        
+        # Intentar diferentes formas de join
+        consultas = [
+            """
             SELECT af.*, m.Nombre 
             FROM ahorro_final af 
             JOIN Miembros m ON af.id_miembro = m.id_miembro 
             WHERE af.id_grupo = %s 
             ORDER BY af.fecha_registro DESC
-        """, (id_grupo,))
+            """,
+            """
+            SELECT af.*, m.Nombre 
+            FROM ahorro_final af 
+            JOIN Miembros m ON af.id_miembro = m.id_miembro 
+            ORDER BY af.fecha_registro DESC
+            """
+        ]
         
-        registros = cursor.fetchall()
+        registros = []
+        for consulta in consultas:
+            try:
+                if "WHERE" in consulta:
+                    cursor.execute(consulta, (id_grupo,))
+                else:
+                    cursor.execute(consulta)
+                registros = cursor.fetchall()
+                if registros:
+                    break
+            except mysql.connector.Error:
+                continue
+        
         return registros
+        
     except mysql.connector.Error as e:
         st.error(f"Error al obtener registros: {e}")
         return []
@@ -94,6 +165,10 @@ def guardar_registro_ahorro(id_miembro, id_grupo, fecha_registro, saldo_inicial,
             cursor.close()
             conn.close()
 
+def calcular_saldo_final(saldo_inicial, ahorros, actividades, retiros):
+    """Calcula el saldo final automáticamente"""
+    return saldo_inicial + ahorros + actividades - retiros
+
 def mostrar_ahorro_final(id_grupo):
     """Función principal del módulo Ahorro Final"""
     st.title("💰 Módulo Ahorro Final")
@@ -106,16 +181,27 @@ def mostrar_ahorro_final(id_grupo):
     else:
         conn.close()
     
+    # Mostrar información de debug
+    with st.expander("🔍 Información de Debug"):
+        estructura = verificar_estructura_tabla()
+        if estructura:
+            st.write("**Estructura de la tabla Miembros:**")
+            for columna in estructura:
+                st.write(f"- {columna['Field']} ({columna['Type']})")
+        else:
+            st.write("No se pudo obtener la estructura de la tabla")
+    
     # Obtener datos
     miembros = obtener_miembros_grupo(id_grupo)
     
     if not miembros:
-        st.warning("No se encontraron miembros en este grupo.")
-        # Mostrar opción para crear miembros si no hay
+        st.warning("No se encontraron miembros en la base de datos.")
         if st.button("👥 Ir a Gestión de Miembros"):
             st.session_state.page = "registrar_miembros"
             st.rerun()
         return
+    
+    st.success(f"✅ Se encontraron {len(miembros)} miembros")
     
     registros = obtener_registros_ahorro_final(id_grupo)
     
