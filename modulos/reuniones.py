@@ -140,7 +140,7 @@ def mostrar_reuniones(id_grupo):
             
             st.markdown(
                 f"""
-                <div style='background-color:{color}; padding:15px; border-radius:12px; 
+                <div style='background-color:{color}; padding:30px; border-radius:12px; 
                             box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
                     <strong>📅 Fecha:</strong> {fecha_str}<br>
                 </div>
