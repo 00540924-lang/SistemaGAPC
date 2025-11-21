@@ -110,10 +110,9 @@ def mostrar_caja(id_grupo):
     fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio", value=date.today())
     fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin", value=date.today())
 
-    # Botón para limpiar filtros
+    # Botón para limpiar filtros usando flag
     if col3.button("🧹 Limpiar filtros"):
         st.session_state["limpiar_filtros"] = True
-        st.experimental_rerun()
 
     # Aplicar filtro vacío si se presionó limpiar
     if st.session_state.get("limpiar_filtros", False):
