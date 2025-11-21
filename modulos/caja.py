@@ -3,7 +3,7 @@ import mysql.connector
 from datetime import date
 from modulos.config.conexion import obtener_conexion
 import pandas as pd
-import matplotlib.pyplot as plt  # Importar matplotlib
+import matplotlib.pyplot as plt
 
 def mostrar_caja(id_grupo):
     """
@@ -101,7 +101,7 @@ def mostrar_caja(id_grupo):
         st.success("✅ Movimiento de caja guardado con éxito.")
 
     # ===============================
-    # 7. Historial (con gráfico)
+    # 7. Historial (con gráfico mejorado)
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
@@ -140,15 +140,37 @@ def mostrar_caja(id_grupo):
         df = df.sort_values('fecha')
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.bar(df['fecha'], df['total_entrada'], color='green', label='Entradas')
-        ax.bar(df['fecha'], df['total_salida'], color='red', label='Salidas', alpha=0.7)
 
-        ax.set_xlabel("Fecha")
-        ax.set_ylabel("Monto")
-        ax.set_title("Historial de Caja: Entradas y Salidas")
+        width = 0.35  # ancho de las barras
+        x = range(len(df))
+
+        # Barras lado a lado
+        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')  # verde más suave
+        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')   # rojo más suave
+
+        # Etiquetas de valores encima de barras
+        for i in x:
+            ax.text(i - width/2, df['total_entrada'].iloc[i] + max(df['total_entrada']) * 0.01,
+                    f"{df['total_entrada'].iloc[i]:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+            ax.text(i + width/2, df['total_salida'].iloc[i] + max(df['total_salida']) * 0.01,
+                    f"{df['total_salida'].iloc[i]:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+
+        # Etiquetas y título
+        ax.set_xlabel("Fecha", fontsize=12)
+        ax.set_ylabel("Monto", fontsize=12)
+        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+
+        # Ajustes de eje X con fechas
+        ax.set_xticks(x)
+        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
+
+        # Mejorar cuadrícula y estética
+        ax.grid(axis='y', linestyle='--', alpha=0.6)
+        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
         ax.legend()
-        ax.grid(True, linestyle='--', alpha=0.5)
-        fig.autofmt_xdate()
 
         st.pyplot(fig)
 
