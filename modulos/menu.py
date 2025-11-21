@@ -59,9 +59,8 @@ div.stButton > button:hover {
 #prestamos_btn > button { background-color: #9C27B0 !important; }
 #caja_btn > button { background-color: #00BFA5 !important; }
 #ahorro_final_btn > button { background-color: #FF9800 !important; }
-#reuniones_btn > button { background-color: #FF5252 !important; }  /* NUEVO MÓDULO */
+#reuniones_btn > button { background-color: #FF5252 !important; }
 
-/* Logout */
 #logout_btn > button {
     width: 200px !important;
     height: 60px !important;
@@ -87,17 +86,26 @@ div.stButton > button:hover {
         unsafe_allow_html=True
     )
 
+    # -----------------------------------------------------
+    #     ★ MOSTRAR TEXTO SEGÚN ROL (Corregido)
+    # -----------------------------------------------------
     if usuario == "dark":
         st.markdown(
             "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Desarrollador</p>",
             unsafe_allow_html=True
         )
-    else:
-        if st.session_state.get("nombre_grupo"):
-            st.markdown(
-                f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
-                unsafe_allow_html=True
-            )
+
+    elif rol.lower() == "promotor":
+        st.markdown(
+            "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Promotor</p>",
+            unsafe_allow_html=True
+        )
+
+    elif st.session_state.get("nombre_grupo"):
+        st.markdown(
+            f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
+            unsafe_allow_html=True
+        )
 
     # -----------------------------------------------------
     #                   MÓDULOS BASE
@@ -114,7 +122,7 @@ div.stButton > button:hover {
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💰 Caja", "caja", "caja_btn"),
         ("💾 Ahorro Final", "ahorro_final", "ahorro_final_btn"),
-        ("📌 Reuniones", "reuniones", "reuniones_btn"),  # NUEVO MÓDULO
+        ("📌 Reuniones", "reuniones", "reuniones_btn"),
     ]
 
     # -----------------------------------------------------
@@ -122,13 +130,13 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     rol_l = rol.lower()
 
-    if usuario == "dark":  # Desarrollador
+    if usuario == "dark":
         modulos = modulos_base
-    elif rol_l == "institucional":  # Institucional
+    elif rol_l == "institucional":
         modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final"]]
-    elif rol_l == "promotor":  # Promotor
+    elif rol_l == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos"]]
-    elif rol_l == "miembro":  # Miembro
+    elif rol_l == "miembro":
         modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos", "ahorro_final", "reuniones","ahorro_final","registrar_miembros"]]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
