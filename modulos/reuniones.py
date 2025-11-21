@@ -58,7 +58,7 @@ def mostrar_reuniones(id_grupo):
         # -----------------------
         # Información general
         # -----------------------
-        st.subheader("🗂 Información de la reunión")
+        st.subheader("Información de la reunión")
         fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
