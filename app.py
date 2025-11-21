@@ -38,8 +38,17 @@ elif pagina == "registrar_miembros":
 
 # ---- GRUPOS ----
 elif pagina == "grupos":
-    from modulos.grupos import pagina_grupos
-    pagina_grupos()
+    rol = st.session_state.get("rol")
+    
+    # Normalizar el rol
+    rol_normalizado = rol.strip().lower() if rol else None
+    
+    # Permitir acceso a promotores e institucionales (sin verificar id_grupo)
+    if rol_normalizado in ["promotor", "institucional"]:
+        from modulos.grupos import pagina_grupos
+        pagina_grupos()
+    else:
+        st.error("❌ No tiene permisos para acceder a este módulo.")
 
 # ---- INSPECCIONES ----
 elif pagina == "inspecciones":
