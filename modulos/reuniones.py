@@ -21,7 +21,18 @@ def mostrar_reuniones(id_grupo):
         st.error("❌ No se encontró el grupo del usuario. Contacte al administrador.")
         return
 
-    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones del grupo</h1>", unsafe_allow_html=True)
+    # ===============================
+    # Nombre del grupo
+    # ===============================
+    nombre_grupo = st.session_state.get("nombre_grupo", "Sin Grupo")
+
+    # ===============================
+    # Título dinámico
+    # ===============================
+    st.markdown(
+        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones – {nombre_grupo}</h1>",
+        unsafe_allow_html=True
+    )
 
     # ===============================
     # Conexión BD
@@ -32,21 +43,22 @@ def mostrar_reuniones(id_grupo):
         return
     cursor = conn.cursor(dictionary=True)
 
-     # ===============================
+    # ===============================
     # Contenedor principal
     # ===============================
     with st.container():
         st.markdown(
             """
-            <div style='background-color:#D1C4E9; padding:5px; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
-        """,
+            <div style='background-color:#F7F3FA; padding:20px; border-radius:12px; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
+            """,
             unsafe_allow_html=True
         )
 
         # -----------------------
         # Información general
         # -----------------------
-        st.subheader("Información de la reunión")
+        st.subheader("🗂 Información de la reunión")
         fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
@@ -131,3 +143,4 @@ def mostrar_reuniones(id_grupo):
 
     cursor.close()
     conn.close()
+
