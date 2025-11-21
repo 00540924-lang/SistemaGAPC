@@ -17,8 +17,7 @@ def limpiar_rol(rol):
 
 def verificar_usuario(usuario, contraseña):
     """
-    Verifica usuario, contraseña y grupo.
-    Permite iniciar sesión a usuarios sin grupo (promotores y desarrollador)
+    Verifica usuario, contraseña y determina cómo se mostrará su texto en el menú.
     """
     # ============================
     # Caso especial: DESARROLLADOR
@@ -47,7 +46,7 @@ def verificar_usuario(usuario, contraseña):
                 "usuario": result[0],
                 "rol": limpiar_rol(result[1]),
                 "id_grupo": None,
-                "nombre_grupo": "Desarrollador"  # Mostrar en menú
+                "nombre_grupo": "Desarrollador"  # Texto especial para menú
             }
 
         finally:
@@ -92,10 +91,11 @@ def verificar_usuario(usuario, contraseña):
         nombre_grupo = result[3]
 
         # =====================================================
-        # Caso especial: PROMOTOR SIN GRUPO → misma lógica que Dark
+        # TODOS LOS PROMOTORES SIEMPRE → "Nombre\nPromotor"
         # =====================================================
-        if rol == "promotor" and id_grupo is None:
+        if rol == "promotor":
             nombre_grupo = f"{usuario_nombre}\nPromotor"
+            id_grupo = None  # Para dejar claro que no tienen grupo
 
         return {
             "usuario": usuario_nombre,
