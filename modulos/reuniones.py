@@ -63,53 +63,58 @@ def mostrar_reuniones(id_grupo):
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
         # -----------------------
-        # Agenda de la reunión (mejor visual)
-        # -----------------------
-        st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
-        st.subheader("📝 Agenda de actividades")
+# Agenda de la reunión
+# -----------------------
+st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
+st.subheader("📝 Agenda de actividades")
 
-        st.markdown(
-            """
-            <div style='background-color:#EDE7F6; padding:15px; border-radius:12px; 
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
-                <h4 style='color:#6A1B9A;'>✅ EMPEZAR LA REUNIÓN</h4>
-                <ul style='margin-left:20px;'>
-                    <li>La presidenta abre formalmente la reunión.</li>
-                    <li>La secretaria registra asistencia y multas.</li>
-                    <li>La secretaria lee las reglas internas.</li>
-                </ul>
+# Contenedor estilizado para la agenda
+st.markdown(
+    """
+    <div style='background-color:#EFEAF6; padding:15px; border-radius:12px; 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.08);'>
+    """,
+    unsafe_allow_html=True
+)
 
-                <h4 style='color:#2E7D32;'>💰 DINERO QUE ENTRA</h4>
-                <ul style='margin-left:20px;'>
-                    <li>La tesorera cuenta el dinero de la caja.</li>
-                    <li>Las socias depositan ahorros.</li>
-                    <li>Las socias depositan dinero de otras actividades.</li>
-                    <li>La secretaria calcula el total de dinero que entra.</li>
-                    <li>La tesorera verifica el monto total.</li>
-                </ul>
+# Dividir la agenda en secciones para mejorar la legibilidad
+col1, col2 = st.columns(2)
 
-                <h4 style='color:#C62828;'>💸 DINERO QUE SALE</h4>
-                <ul style='margin-left:20px;'>
-                    <li>Las socias solicitan y evalúan préstamos.</li>
-                    <li>La tesorera desembolsa préstamos aprobados.</li>
-                    <li>La secretaria registra desembolsos e intereses.</li>
-                    <li>La secretaria calcula total de dinero que sale.</li>
-                    <li>La tesorera verifica el dinero y anuncia el saldo.</li>
-                    <li>La presidenta cierra la caja y entrega llaves.</li>
-                </ul>
+agenda_default = """
+**EMPEZAR LA REUNIÓN**
+- La presidenta abre formalmente la reunión.
+- La secretaria registra asistencia y multas.
+- La secretaria lee las reglas internas.
 
-                <h4 style='color:#6A1B9A;'>📌 CERRAR LA REUNIÓN</h4>
-                <ul style='margin-left:20px;'>
-                    <li>La presidenta pregunta si hay asuntos pendientes.</li>
-                    <li>La presidenta cierra formalmente la reunión.</li>
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+**DINERO QUE ENTRA**
+- La tesorera cuenta el dinero de la caja.
+- Las socias depositan ahorros.
+- Las socias depositan dinero de otras actividades.
+- La secretaria calcula el total de dinero que entra.
+- La tesorera verifica el monto total.
 
-        # Permitir edición opcional
-        agenda_edicion = st.text_area("✏️ Editar agenda de la reunión (opcional)", height=200)
+**DINERO QUE SALE**
+- Las socias solicitan y evalúan préstamos.
+- La tesorera desembolsa préstamos aprobados.
+- La secretaria registra desembolsos e intereses.
+- La secretaria calcula total de dinero que sale.
+- La tesorera verifica el dinero y anuncia el saldo.
+- La presidenta cierra la caja y entrega llaves.
+
+**CERRAR LA REUNIÓN**
+- La presidenta pregunta si hay asuntos pendientes.
+- La presidenta cierra formalmente la reunión.
+"""
+
+# Uso de columnas para separar el contenido largo en dos partes
+with col1:
+    st.text_area("Parte 1 de la Agenda", "\n".join(agenda_default.split("\n")[:len(agenda_default.split('\n'))//2]), height=250)
+
+with col2:
+    st.text_area("Parte 2 de la Agenda", "\n".join(agenda_default.split("\n")[len(agenda_default.split('\n'))//2:]), height=250)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
 
         # -----------------------
         # Observaciones
