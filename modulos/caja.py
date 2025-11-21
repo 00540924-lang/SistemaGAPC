@@ -99,15 +99,22 @@ def mostrar_caja(id_grupo):
         st.success("✅ Movimiento de caja guardado con éxito.")
 
     # ===============================
-    # 7. Historial con gráfico
+    # 7. Historial con gráfico y filtros
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
     st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    col1, col2 = st.columns(2)
+    # Columnas para filtros y botón limpiar
+    col1, col2, col3 = st.columns([1,1,1])
     fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
     fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
+
+    # Botón para limpiar filtros
+    if col3.button("🧹 Limpiar filtros"):
+        st.session_state["filtro_inicio"] = None
+        st.session_state["filtro_fin"] = None
+        st.experimental_rerun()
 
     query = """
         SELECT fecha, total_entrada, total_salida
@@ -159,8 +166,8 @@ def mostrar_caja(id_grupo):
                     f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
         ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Monto en $", fontsize=12)
-        ax.set_title("Entradas y salidas", fontsize=18, weight='bold')
+        ax.set_ylabel("Monto", fontsize=12)
+        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
         ax.set_xticks(x)
         ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
         ax.grid(axis='y', linestyle='--', alpha=0.6)
@@ -184,3 +191,4 @@ def mostrar_caja(id_grupo):
 
     cursor.close()
     conn.close()
+
