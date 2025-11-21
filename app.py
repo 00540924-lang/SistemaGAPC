@@ -81,9 +81,26 @@ elif pagina == "prestamos":
     from modulos.prestamos import prestamos_modulo
     prestamos_modulo()
 
+# ---- AHORRO FINAL ----
+elif pagina == "ahorro_final":
+    rol = st.session_state.get("rol")
+    id_grupo = st.session_state.get("id_grupo")
+    
+    # Normalizar el rol
+    rol_normalizado = rol.strip().lower() if rol else None
+    
+    # Verificar permisos (puedes ajustar según tus necesidades)
+    if rol_normalizado not in ["miembro", "promotor", "institucional"]:
+        st.error("❌ No tiene permisos para acceder a este módulo.")
+    else:
+        if not id_grupo:
+            st.error("⚠ No se encontró el grupo del usuario. Contacte al administrador.")
+        else:
+            from modulos.ahorro_final import mostrar_ahorro_final
+            mostrar_ahorro_final(id_grupo)
+
 # ---- GAPC (solo rol Institucional) ----
 elif pagina.lower() == "gapc":
-
     # Normalizar rol
     rol = st.session_state.get("rol", "")
     rol_normalizado = rol.strip().lower() if rol else ""
