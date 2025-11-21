@@ -257,13 +257,6 @@ def mostrar_ahorro_final(id_grupo):
         st.info(f"**Saldo Final Calculado: ${saldo_final:,.2f}**")
         
         submitted = st.form_submit_button("💾 Guardar Registro")
-          # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
-    st.write("---")
-
         if submitted:
             success, message = guardar_registro_ahorro(
                 miembro_seleccionado, id_grupo, fecha_registro, 
@@ -274,6 +267,13 @@ def mostrar_ahorro_final(id_grupo):
                 st.rerun()
             else:
                 st.error(message)
+    
+    # BOTÓN REGRESAR - FUERA DEL FORMULARIO
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
     
     # Mostrar registros existentes en TABLA
     st.subheader("📊 Registros Existentes")
