@@ -10,9 +10,6 @@ def mostrar_gapc():
         st.warning("Debes iniciar sesión para acceder a este módulo.")
         return
 
-    # Mostrar valor real enviado (para depuración)
-    st.write("DEBUG - Rol recibido:", repr(st.session_state['rol']))
-
     # Normalizar rol
     rol = st.session_state['rol']
     if rol is None:
