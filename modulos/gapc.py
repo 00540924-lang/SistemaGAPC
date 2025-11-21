@@ -10,6 +10,8 @@ def mostrar_gapc():
     st.write("DEBUG - SESSION STATE COMPLETO:", st.session_state)
     st.write("DEBUG - Valor de rol:", repr(st.session_state.get('rol')))
     # ======================================================
+
+    
     # ===============================
     # 0. Verificar usuario logueado y rol
     # ===============================
