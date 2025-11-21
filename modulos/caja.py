@@ -17,12 +17,10 @@ def mostrar_caja(id_grupo):
     rol = st.session_state.get("rol", "").lower()
     usuario = st.session_state.get("usuario", "").lower()
 
-    # Solo miembros, institucional y Dark pueden usar Caja
     if rol not in ["miembro", "institucional"] and usuario != "dark":
         st.error("❌ No tiene permisos para acceder a este módulo.")
         return
 
-    # Los miembros deben tener grupo sí o sí
     if rol == "miembro" and not id_grupo:
         st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
         return
@@ -101,13 +99,12 @@ def mostrar_caja(id_grupo):
         st.success("✅ Movimiento de caja guardado con éxito.")
 
     # ===============================
-    # 7. Historial (con gráfico mejorado)
+    # 7. Historial con gráfico
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
     st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    # Filtrado por rango de fechas
     col1, col2 = st.columns(2)
     fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
     fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
@@ -137,46 +134,37 @@ def mostrar_caja(id_grupo):
     if registros:
         df = pd.DataFrame(registros)
         df['fecha'] = pd.to_datetime(df['fecha'])
-        df = df.sort_values('fecha')
+        df = df.sort_values('fecha').reset_index(drop=True)
 
         fig, ax = plt.subplots(figsize=(10, 5))
-
-        width = 0.35  # ancho de las barras
+        width = 0.35
         x = range(len(df))
 
-        # Barras lado a lado
-        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')  # verde más suave
-        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')   # rojo más suave
+        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
+        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
 
-        # Etiquetas de valores encima de barras
-        for i in x:
-            ax.text(i - width/2, df['total_entrada'].iloc[i] + max(df['total_entrada']) * 0.01,
-                    f"{df['total_entrada'].iloc[i]:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-            ax.text(i + width/2, df['total_salida'].iloc[i] + max(df['total_salida']) * 0.01,
-                    f"{df['total_salida'].iloc[i]:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+        max_entrada = df['total_entrada'].max() if not df['total_entrada'].isnull().all() else 0
+        max_salida = df['total_salida'].max() if not df['total_salida'].isnull().all() else 0
 
-        # Etiquetas y título
+        for i, row in df.iterrows():
+            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
+                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
+                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+
         ax.set_xlabel("Fecha", fontsize=12)
         ax.set_ylabel("Monto", fontsize=12)
         ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-
-        # Ajustes de eje X con fechas
         ax.set_xticks(x)
         ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
-
-        # Mejorar cuadrícula y estética
         ax.grid(axis='y', linestyle='--', alpha=0.6)
         ax.set_axisbelow(True)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-
         ax.legend()
 
         st.pyplot(fig)
-
-        st.markdown(
-            f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}"
-        )
+        st.markdown(f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {(df['total_entrada'].sum() - df['total_salida'].sum()):.2f}")
     else:
         st.info("No hay registros para mostrar.")
 
@@ -190,3 +178,4 @@ def mostrar_caja(id_grupo):
 
     cursor.close()
     conn.close()
+
