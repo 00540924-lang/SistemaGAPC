@@ -17,25 +17,6 @@ def get_db_connection():
         st.error(f"Error de conexión a la base de datos: {e}")
         return None
 
-def verificar_estructura_tabla():
-    """Verifica la estructura real de la tabla Miembros"""
-    conn = get_db_connection()
-    if conn is None:
-        return None
-    
-    try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("DESCRIBE Miembros")
-        estructura = cursor.fetchall()
-        return estructura
-    except mysql.connector.Error as e:
-        st.error(f"Error al verificar estructura: {e}")
-        return None
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
 def obtener_miembros_grupo(id_grupo):
     """Obtiene los miembros de un grupo específico"""
     conn = get_db_connection()
@@ -45,7 +26,7 @@ def obtener_miembros_grupo(id_grupo):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # Primero intentamos con diferentes nombres de columna comunes
+        # Intentamos con diferentes nombres de columna comunes
         consultas = [
             "SELECT id_miembro, Nombre FROM Miembros WHERE id_grupo = %s",
             "SELECT id_miembro, Nombre FROM Miembros WHERE grupo_id = %s",
@@ -76,14 +57,6 @@ def obtener_miembros_grupo(id_grupo):
         
     except mysql.connector.Error as e:
         st.error(f"Error al obtener miembros: {e}")
-        
-        # Mostrar estructura de la tabla para debugging
-        estructura = verificar_estructura_tabla()
-        if estructura:
-            st.write("**Estructura de la tabla Miembros:**")
-            for columna in estructura:
-                st.write(f"- {columna['Field']} ({columna['Type']})")
-        
         return []
     finally:
         if conn.is_connected():
@@ -181,16 +154,6 @@ def mostrar_ahorro_final(id_grupo):
     else:
         conn.close()
     
-    # Mostrar información de debug
-    with st.expander("🔍 Información de Debug"):
-        estructura = verificar_estructura_tabla()
-        if estructura:
-            st.write("**Estructura de la tabla Miembros:**")
-            for columna in estructura:
-                st.write(f"- {columna['Field']} ({columna['Type']})")
-        else:
-            st.write("No se pudo obtener la estructura de la tabla")
-    
     # Obtener datos
     miembros = obtener_miembros_grupo(id_grupo)
     
@@ -200,8 +163,6 @@ def mostrar_ahorro_final(id_grupo):
             st.session_state.page = "registrar_miembros"
             st.rerun()
         return
-    
-    st.success(f"✅ Se encontraron {len(miembros)} miembros")
     
     registros = obtener_registros_ahorro_final(id_grupo)
     
