@@ -177,13 +177,6 @@ def mostrar_formulario_pagos(id_prestamo):
         fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
         capital = st.number_input("Capital", min_value=0.01, step=0.01)
 
-        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA
-        interes = st.number_input(
-            "Interés aplicado por cada $10 (%)",
-            value=interes_por_10,
-            step=0.01,
-            disabled=True
-        )
 
         estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
 
