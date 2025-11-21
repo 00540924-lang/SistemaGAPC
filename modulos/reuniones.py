@@ -63,24 +63,24 @@ def mostrar_reuniones(id_grupo):
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
         # -----------------------
-# Agenda de la reunión
-# -----------------------
-st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
-st.subheader("📝 Agenda de actividades")
+        # Agenda de la reunión
+        # -----------------------
+        st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
+        st.subheader("📝 Agenda de actividades")
 
-# Contenedor estilizado para la agenda
-st.markdown(
-    """
-    <div style='background-color:#EFEAF6; padding:15px; border-radius:12px; 
-                box-shadow: 0 4px 8px rgba(0,0,0,0.08);'>
-    """,
-    unsafe_allow_html=True
-)
+        # Contenedor estilizado para la agenda
+        st.markdown(
+            """
+            <div style='background-color:#EFEAF6; padding:15px; border-radius:12px; 
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.08);'>
+            """,
+            unsafe_allow_html=True
+        )
 
-# Dividir la agenda en secciones para mejorar la legibilidad
-col1, col2 = st.columns(2)
+        # Dividir la agenda en dos columnas para mejor legibilidad
+        col1, col2 = st.columns(2)
 
-agenda_default = """
+        agenda_default = """
 **EMPEZAR LA REUNIÓN**
 - La presidenta abre formalmente la reunión.
 - La secretaria registra asistencia y multas.
@@ -106,15 +106,17 @@ agenda_default = """
 - La presidenta cierra formalmente la reunión.
 """
 
-# Uso de columnas para separar el contenido largo en dos partes
-with col1:
-    st.text_area("Parte 1 de la Agenda", "\n".join(agenda_default.split("\n")[:len(agenda_default.split('\n'))//2]), height=250)
+        # Dividir contenido de agenda en dos partes
+        lineas = agenda_default.strip().split("\n")
+        mitad = len(lineas) // 2
 
-with col2:
-    st.text_area("Parte 2 de la Agenda", "\n".join(agenda_default.split("\n")[len(agenda_default.split('\n'))//2:]), height=250)
+        with col1:
+            st.text_area("Parte 1 de la Agenda", "\n".join(lineas[:mitad]), height=250)
 
-st.markdown("</div>", unsafe_allow_html=True)
+        with col2:
+            st.text_area("Parte 2 de la Agenda", "\n".join(lineas[mitad:]), height=250)
 
+        st.markdown("</div>", unsafe_allow_html=True)
 
         # -----------------------
         # Observaciones
@@ -131,7 +133,7 @@ st.markdown("</div>", unsafe_allow_html=True)
             cursor.execute("""
                 INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (id_grupo, fecha, hora, agenda_edicion if agenda_edicion else agenda_default, observaciones))
+            """, (id_grupo, fecha, hora, agenda_default, observaciones))
             conn.commit()
             st.success("✅ Reunión guardada con éxito.")
 
@@ -164,3 +166,4 @@ st.markdown("</div>", unsafe_allow_html=True)
 
     cursor.close()
     conn.close()
+
