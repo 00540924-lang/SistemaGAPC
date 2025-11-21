@@ -225,25 +225,37 @@ def mostrar_ahorro_final(id_grupo):
             else:
                 st.error(message)
     
-    # Mostrar registros existentes
+    # Mostrar registros existentes en TABLA
     st.subheader("📊 Registros Existentes")
     
     if registros:
-        # Mostrar datos en formato tabla
-        for i, registro in enumerate(registros):
-            with st.expander(f"{registro['Nombre']} - {registro['fecha_registro']}"):
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Saldo Inicial", f"${registro['saldo_inicial']:,.2f}")
-                with col2:
-                    st.metric("Ahorros", f"${registro['ahorros']:,.2f}")
-                with col3:
-                    st.metric("Actividades", f"${registro['actividades']:,.2f}")
-                with col4:
-                    st.metric("Retiros", f"${registro['retiros']:,.2f}")
-                
-                st.metric("**Saldo Final**", f"${registro['saldo_final']:,.2f}", 
-                         delta=f"${registro['saldo_final'] - registro['saldo_inicial']:,.2f}")
+        # Preparar datos para la tabla
+        datos_tabla = []
+        for registro in registros:
+            datos_tabla.append({
+                "Fecha": registro['fecha_registro'],
+                "Miembro": registro['Nombre'],
+                "Saldo Inicial": f"${registro['saldo_inicial']:,.2f}",
+                "Ahorros": f"${registro['ahorros']:,.2f}",
+                "Actividades": f"${registro['actividades']:,.2f}",
+                "Retiros": f"${registro['retiros']:,.2f}",
+                "Saldo Final": f"${registro['saldo_final']:,.2f}"
+            })
+        
+        # Mostrar tabla
+        st.dataframe(
+            datos_tabla,
+            use_container_width=True,
+            column_config={
+                "Fecha": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
+                "Miembro": "Miembro",
+                "Saldo Inicial": "Saldo Inicial",
+                "Ahorros": "Ahorros",
+                "Actividades": "Actividades", 
+                "Retiros": "Retiros",
+                "Saldo Final": st.column_config.TextColumn("Saldo Final")
+            }
+        )
         
         # Estadísticas rápidas
         st.subheader("📈 Estadísticas del Grupo")
