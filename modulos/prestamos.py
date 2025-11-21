@@ -35,7 +35,6 @@ def prestamos_modulo():
     reglamento = cursor.fetchone()
     con.close()
 
-    # Si no existe reglamento, asignar 0 por defecto
     interes_por_10 = float(reglamento[0]) if reglamento else 0.0
 
     # --------------------------------------
@@ -71,12 +70,7 @@ def prestamos_modulo():
         fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
         firma = st.text_input("Firma del solicitante")
 
-        # Campo de interés desde reglamento (automático)
-        interes = st.number_input(
-            "Interés aplicado por cada $10 (%)",
-            value=interes_por_10,
-            step=0.01
-        )
+        # ❌ YA NO ESTÁ AQUÍ — fue movido al formulario de pagos
 
         estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
@@ -98,7 +92,7 @@ def prestamos_modulo():
                 fecha_vencimiento,
                 firma,
                 estado,
-                interes
+                interes_por_10
             ))
 
             con.commit()
@@ -159,12 +153,33 @@ def mostrar_formulario_pagos(id_prestamo):
 
     st.markdown("<h3>💵 Registrar un pago</h3>", unsafe_allow_html=True)
 
+    # Obtener interes_por_10 desde reglamento
+    con = obtener_conexion()
+    cursor = con.cursor()
+    cursor.execute("""
+        SELECT interes_por_10
+        FROM Reglamento
+        WHERE id_grupo = %s
+        LIMIT 1
+    """, (st.session_state["id_grupo"],))
+    reglamento = cursor.fetchone()
+    con.close()
+
+    interes_por_10 = float(reglamento[0]) if reglamento else 0.0
+
     with st.form(f"form_pago_{id_prestamo}"):
 
         numero_pago = st.number_input("Número de pago", min_value=1, step=1)
         fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
         capital = st.number_input("Capital", min_value=0.01, step=0.01)
-        interes = st.number_input("Interés", min_value=0.00, step=0.01)
+
+        # ✅ AHORA AQUÍ VA EL CAMPO QUE PEDISTE
+        interes = st.number_input(
+            "Interés aplicado por cada $10 (%)",
+            value=interes_por_10,
+            step=0.01
+        )
+
         estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
 
         guardar = st.form_submit_button("💾 Registrar Pago")
