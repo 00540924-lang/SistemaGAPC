@@ -9,8 +9,16 @@ def mostrar_gapc():
         st.warning("Debes iniciar sesión para acceder a este módulo.")
         return
 
-    rol = st.session_state['rol'].lower()  # insensible a mayúsculas
+    # Mostrar valor real enviado (para depuración)
+    st.write("DEBUG - Rol recibido:", repr(st.session_state['rol']))
 
+    # Normalizar rol
+    rol = st.session_state['rol']
+    if rol is None:
+        rol = ""
+    rol = rol.strip().lower()
+
+    # Validación del rol
     if rol != "institucional":
         st.error("❌ No tienes permisos para ver este módulo.")
         return
