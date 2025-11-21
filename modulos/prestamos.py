@@ -68,7 +68,14 @@ def prestamos_modulo():
         monto = st.number_input("Monto", min_value=0.01, step=0.01)
         fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
         fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
-        firma = st.text_input("Firma del solicitante")
+
+        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA (SUSTITUYE A FIRMA)
+        st.number_input(
+            "Interés aplicado por cada $10 (%)",
+            value=interes_por_10,
+            step=0.01,
+            disabled=True
+        )
 
         estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
@@ -80,15 +87,14 @@ def prestamos_modulo():
             cursor = con.cursor()
 
             cursor.execute("""
-                INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, firma, estado, interes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, estado, interes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 miembros_dict[miembro_seleccionado],
                 proposito,
                 monto,
                 fecha_desembolso,
                 fecha_vencimiento,
-                firma,
                 estado,
                 interes_por_10
             ))
@@ -171,7 +177,7 @@ def mostrar_formulario_pagos(id_prestamo):
         fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
         capital = st.number_input("Capital", min_value=0.01, step=0.01)
 
-        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA (NO EDITABLE)
+        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA
         interes = st.number_input(
             "Interés aplicado por cada $10 (%)",
             value=interes_por_10,
