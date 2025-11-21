@@ -46,7 +46,7 @@ def verificar_usuario(usuario, contraseña):
                 "usuario": result[0],
                 "rol": limpiar_rol(result[1]),
                 "id_grupo": None,          # no pertenece a un grupo
-                "nombre_grupo": "Desarrollador"  # texto especial para el menú
+                "Desarrollador"  # texto especial para el menú
             }
 
         finally:
