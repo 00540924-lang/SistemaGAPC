@@ -78,12 +78,17 @@ elif pagina == "multas":
 
 # ---- PRESTAMOS ----
 elif pagina == "prestamos":
-        from modulos.prestamos import prestamos_modulo
-        prestamos_modulo()
+    from modulos.prestamos import prestamos_modulo
+    prestamos_modulo()
 
 # ---- GAPC (solo rol Institucional) ----
 elif pagina.lower() == "gapc":
-    if st.session_state.get("rol") == "Institucional":
+
+    # Normalizar rol
+    rol = st.session_state.get("rol", "")
+    rol_normalizado = rol.strip().lower() if rol else ""
+
+    if rol_normalizado == "institucional":
         from modulos.gapc import mostrar_gapc
         mostrar_gapc()
     else:
@@ -105,7 +110,6 @@ elif pagina == "caja":
         else:
             from modulos.caja import mostrar_caja
             mostrar_caja(id_grupo)
-
 
 # ---- ERROR SI NO EXISTE ----
 else:
