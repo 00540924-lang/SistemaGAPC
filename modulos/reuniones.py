@@ -30,7 +30,7 @@ def mostrar_reuniones(id_grupo):
     # Título dinámico
     # ===============================
     st.markdown(
-        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones – {nombre_grupo}</h1>",
+        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones grupos {nombre_grupo}</h1>",
         unsafe_allow_html=True
     )
 
@@ -137,22 +137,35 @@ def mostrar_reuniones(id_grupo):
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ===============================
-    # Historial de reuniones
-    # ===============================
-    st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de reuniones</h2>", unsafe_allow_html=True)
-    cursor.execute("""
-        SELECT fecha, hora, agenda, observaciones FROM Reuniones
-        WHERE id_grupo = %s
-        ORDER BY fecha DESC, hora DESC
-    """, (id_grupo,))
-    registros = cursor.fetchall()
+   # ===============================
+# Historial de reuniones (solo observaciones)
+# ===============================
+st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
 
+# Filtro por rango de fechas
+with st.expander("Filtrar por fecha"):
+    fecha_inicio = st.date_input("Fecha inicio", value=datetime(2000, 1, 1))
+    fecha_fin = st.date_input("Fecha fin", value=datetime.now().date())
+
+# Asegurarse que la fecha de inicio no sea mayor que la fecha fin
+if fecha_inicio > fecha_fin:
+    st.error("La fecha de inicio no puede ser mayor que la fecha fin.")
+else:
+    cursor.execute("""
+        SELECT fecha, observaciones 
+        FROM Reuniones
+        WHERE id_grupo = %s AND fecha BETWEEN %s AND %s
+        ORDER BY fecha DESC
+    """, (id_grupo, fecha_inicio, fecha_fin))
+    
+    registros = cursor.fetchall()
+    
     if registros:
         df = pd.DataFrame(registros)
         st.dataframe(df, use_container_width=True)
     else:
-        st.info("No hay reuniones registradas.")
+        st.info("No hay observaciones registradas en el rango de fechas seleccionado.")
+
 
     # ===============================
     # Botón regresar
