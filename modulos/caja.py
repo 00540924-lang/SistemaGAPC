@@ -136,9 +136,9 @@ def mostrar_caja(id_grupo):
         df['fecha'] = pd.to_datetime(df['fecha'])
         df = df.sort_values('fecha').reset_index(drop=True)
 
-        # Reemplazar posibles None o NaN por 0
-        df['total_entrada'] = df['total_entrada'].fillna(0)
-        df['total_salida'] = df['total_salida'].fillna(0)
+        # Reemplazar None o NaN por 0 y convertir a float
+        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
+        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
         fig, ax = plt.subplots(figsize=(10, 5))
         width = 0.35
@@ -151,10 +151,12 @@ def mostrar_caja(id_grupo):
         max_salida = df['total_salida'].max()
 
         for i, row in df.iterrows():
-            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
-                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
-                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+            entrada_val = float(row['total_entrada'])
+            salida_val = float(row['total_salida'])
+            ax.text(i - width/2, entrada_val + max_entrada*0.01,
+                    f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+            ax.text(i + width/2, salida_val + max_salida*0.01,
+                    f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
         ax.set_xlabel("Fecha", fontsize=12)
         ax.set_ylabel("Monto", fontsize=12)
