@@ -49,7 +49,7 @@ def mostrar_reuniones(id_grupo):
     with st.container():
         st.markdown(
             """
-            <div style='background-color:#F7F3FA; padding:5px; border-radius:15px; 
+            <div style='background-color:#D1C4E9; padding:5px; border-radius:15px; 
                         box-shadow: 0 6px 15px rgba(0,0,0,0.12);'>
             """,
             unsafe_allow_html=True
