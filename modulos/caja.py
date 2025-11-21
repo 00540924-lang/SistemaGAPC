@@ -104,35 +104,58 @@ def mostrar_caja(id_grupo):
     # ===============================
     # 7. Historial
     # ===============================
-    st.write("---")
-    st.subheader("📚 Historial de Caja")
+   # ===============================
+# 7. Historial
+# ===============================
+st.write("---")
+st.subheader("📚 Historial de Caja")
 
-    st.info("Si desea ver todos los registros, deje la fecha vacía.")
+st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    fecha_filtro = st.date_input("📅 Filtrar por fecha específica (opcional)", key="filtro_caja")
+# Filtrado por rango de fechas
+col1, col2 = st.columns(2)
+fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
+fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
 
-    if fecha_filtro:
-        cursor.execute("""
-            SELECT *
-            FROM Caja
-            WHERE id_grupo = %s AND fecha = %s
-            ORDER BY fecha DESC
-        """, (id_grupo, fecha_filtro))
-    else:
-        cursor.execute("""
-            SELECT *
-            FROM Caja
-            WHERE id_grupo = %s
-            ORDER BY fecha DESC
-        """, (id_grupo,))
+query = "SELECT fecha, multas, ahorros, otras_actividades, pago_prestamos, otros_ingresos, total_entrada, retiro_ahorros, desembolso, gastos_grupo, total_salida, saldo_cierre FROM Caja WHERE id_grupo = %s"
+params = [id_grupo]
 
-    registros = cursor.fetchall()
+if fecha_inicio and fecha_fin:
+    query += " AND fecha BETWEEN %s AND %s"
+    params.extend([fecha_inicio, fecha_fin])
+elif fecha_inicio:
+    query += " AND fecha >= %s"
+    params.append(fecha_inicio)
+elif fecha_fin:
+    query += " AND fecha <= %s"
+    params.append(fecha_fin)
 
-    if registros:
-        df = pd.DataFrame(registros)
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("No hay registros para mostrar.")
+query += " ORDER BY fecha DESC"
+
+cursor.execute(query, tuple(params))
+registros = cursor.fetchall()
+
+if registros:
+    df = pd.DataFrame(registros)
+
+    # 🔹 Colores condicionales
+    def highlight_row(row):
+        return [
+            'background-color: #d4edda' if col in ['multas','ahorros','otras_actividades','pago_prestamos','otros_ingresos','total_entrada'] and row[col] > 0 else
+            'background-color: #f8d7da' if col in ['retiro_ahorros','desembolso','gastos_grupo','total_salida'] and row[col] > 0 else
+            'background-color: #cce5ff' if col == 'saldo_cierre' else ''
+            for col in df.columns
+        ]
+
+    st.dataframe(df.style.apply(highlight_row, axis=1), use_container_width=True)
+
+    # 🔹 Totales
+    st.markdown(
+        f"**Totales:** Entrada = {df['total_entrada'].sum():.2f}, Salida = {df['total_salida'].sum():.2f}, Saldo final = {df['saldo_cierre'].sum():.2f}"
+    )
+else:
+    st.info("No hay registros para mostrar.")
+
 
     # ===============================
     # 8. Regresar
