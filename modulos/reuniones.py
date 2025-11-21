@@ -30,7 +30,7 @@ def mostrar_reuniones(id_grupo):
     # Título dinámico
     # ===============================
     st.markdown(
-        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones grupo {nombre_grupo}</h1>",
+        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones grupo {nombre_grupo}</h1>",
         unsafe_allow_html=True
     )
 
@@ -49,7 +49,7 @@ def mostrar_reuniones(id_grupo):
     with st.container():
         st.markdown(
             """
-            <div style='background-color:#F7F3FA; padding:25px; border-radius:15px; 
+            <div style='background-color:#F7F3FA; padding:5px; border-radius:15px; 
                         box-shadow: 0 6px 15px rgba(0,0,0,0.12);'>
             """,
             unsafe_allow_html=True
