@@ -9,7 +9,7 @@ def get_db_connection():
             host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
             user="uiazxdhtd3r8o7uv",
             password="uGjZ9MXWemv7vPsjOdA5",
-            database="bzn5gsi7ken7lufcglbg",  # CORREGIDO: este es el database correcto
+            database="bzn5gsi7ken7lufcglbg",
             port=3306
         )
         return conn
@@ -29,13 +29,8 @@ def obtener_miembros_grupo(id_grupo):
     
     try:
         cursor = conn.cursor(dictionary=True)
-        # CORREGIDO: Verificar si la tabla se llama Miembros o miembros
-        try:
-            cursor.execute("SELECT id_miembro, Nombre FROM Miembros WHERE id_grupo = %s", (id_grupo,))
-        except mysql.connector.Error:
-            # Si falla, intentar con minúsculas
-            cursor.execute("SELECT id_miembro, Nombre FROM miembros WHERE id_grupo = %s", (id_grupo,))
-        
+        # CORREGIDO: Usar Miembros con mayúscula
+        cursor.execute("SELECT id_miembro, Nombre FROM Miembros WHERE id_grupo = %s", (id_grupo,))
         miembros = cursor.fetchall()
         return miembros
     except mysql.connector.Error as e:
@@ -54,24 +49,14 @@ def obtener_registros_ahorro_final(id_grupo):
     
     try:
         cursor = conn.cursor(dictionary=True)
-        # CORREGIDO: Manejar diferentes nombres de tabla
-        try:
-            cursor.execute("""
-                SELECT af.*, m.Nombre 
-                FROM ahorro_final af 
-                JOIN Miembros m ON af.id_miembro = m.id_miembro 
-                WHERE af.id_grupo = %s 
-                ORDER BY af.fecha_registro DESC
-            """, (id_grupo,))
-        except mysql.connector.Error:
-            # Si falla, intentar con minúsculas
-            cursor.execute("""
-                SELECT af.*, m.Nombre 
-                FROM ahorro_final af 
-                JOIN miembros m ON af.id_miembro = m.id_miembro 
-                WHERE af.id_grupo = %s 
-                ORDER BY af.fecha_registro DESC
-            """, (id_grupo,))
+        # CORREGIDO: Usar Miembros con mayúscula
+        cursor.execute("""
+            SELECT af.*, m.Nombre 
+            FROM ahorro_final af 
+            JOIN Miembros m ON af.id_miembro = m.id_miembro 
+            WHERE af.id_grupo = %s 
+            ORDER BY af.fecha_registro DESC
+        """, (id_grupo,))
         
         registros = cursor.fetchall()
         return registros
@@ -143,15 +128,11 @@ def mostrar_ahorro_final(id_grupo):
         with col1:
             # Crear diccionario para mapear id a nombre
             opciones_miembros = {m['id_miembro']: m['Nombre'] for m in miembros}
-            if opciones_miembros:
-                miembro_seleccionado = st.selectbox(
-                    "Seleccionar Miembro:",
-                    options=list(opciones_miembros.keys()),
-                    format_func=lambda x: opciones_miembros[x]
-                )
-            else:
-                st.error("No hay miembros disponibles")
-                miembro_seleccionado = None
+            miembro_seleccionado = st.selectbox(
+                "Seleccionar Miembro:",
+                options=list(opciones_miembros.keys()),
+                format_func=lambda x: opciones_miembros[x]
+            )
         
         with col2:
             fecha_registro = st.date_input("Fecha:", value=datetime.now())
@@ -177,18 +158,15 @@ def mostrar_ahorro_final(id_grupo):
         
         submitted = st.form_submit_button("💾 Guardar Registro")
         if submitted:
-            if miembro_seleccionado:
-                success, message = guardar_registro_ahorro(
-                    miembro_seleccionado, id_grupo, fecha_registro, 
-                    saldo_inicial, ahorros, actividades, retiros
-                )
-                if success:
-                    st.success(message)
-                    st.rerun()
-                else:
-                    st.error(message)
+            success, message = guardar_registro_ahorro(
+                miembro_seleccionado, id_grupo, fecha_registro, 
+                saldo_inicial, ahorros, actividades, retiros
+            )
+            if success:
+                st.success(message)
+                st.rerun()
             else:
-                st.error("Por favor seleccione un miembro")
+                st.error(message)
     
     # Mostrar registros existentes
     st.subheader("📊 Registros Existentes")
