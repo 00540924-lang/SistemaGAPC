@@ -184,7 +184,7 @@ def mostrar_caja(id_grupo):
         st.pyplot(fig)
         st.markdown(
             f"""
-            <div style="font-size:16px;">
+            <div style="text-align:center; font-size:16px;">
                 <span style="color:#4CAF50;"><strong>Entrada total:</strong> {df['total_entrada'].sum():.2f}</span> &nbsp;&nbsp;
                 <span style="color:#F44336;"><strong>Salida total:</strong> {df['total_salida'].sum():.2f}</span> &nbsp;&nbsp;
                 <span style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: {saldo_final:.2f}</strong></span>
