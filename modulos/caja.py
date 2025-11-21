@@ -107,8 +107,8 @@ def mostrar_caja(id_grupo):
 
     # Columnas para filtros y botón limpiar
     col1, col2, col3 = st.columns([1,1,1])
-    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio", value=date.today())
-    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin", value=date.today())
+    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
+    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
 
     # Botón para limpiar filtros usando flag
     if col3.button("🧹 Limpiar filtros"):
@@ -170,8 +170,8 @@ def mostrar_caja(id_grupo):
                     f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
         ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Monto en $", fontsize=12)
-        ax.set_title("Entradas y Salidas", fontsize=18, weight='bold')
+        ax.set_ylabel("Monto", fontsize=12)
+        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
         ax.set_xticks(x)
         ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
         ax.grid(axis='y', linestyle='--', alpha=0.6)
@@ -180,17 +180,17 @@ def mostrar_caja(id_grupo):
         ax.spines['right'].set_visible(False)
         ax.legend()
 
-        st.pyplot(fig)
         saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
-st.markdown(
-    f"""
-    <div style="font-size:16px;">
-        <span style="color:#4CAF50;"><strong>Entrada total:</strong> {df['total_entrada'].sum():.2f}</span> &nbsp;&nbsp;
-        <span style="color:#F44336;"><strong>Salida total:</strong> {df['total_salida'].sum():.2f}</span> &nbsp;&nbsp;
-        <span style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: {saldo_final:.2f}</strong></span>
-    </div>
-    """, unsafe_allow_html=True
-)
+        st.pyplot(fig)
+        st.markdown(
+            f"""
+            <div style="font-size:16px;">
+                <span style="color:#4CAF50;"><strong>Entrada total:</strong> {df['total_entrada'].sum():.2f}</span> &nbsp;&nbsp;
+                <span style="color:#F44336;"><strong>Salida total:</strong> {df['total_salida'].sum():.2f}</span> &nbsp;&nbsp;
+                <span style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: {saldo_final:.2f}</strong></span>
+            </div>
+            """, unsafe_allow_html=True
+        )
     else:
         st.info("No hay registros para mostrar.")
 
