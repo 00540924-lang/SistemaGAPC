@@ -61,6 +61,7 @@ div.stButton > button:hover {
 #ahorro_final_btn > button { background-color: #FF9800 !important; }
 #reuniones_btn > button { background-color: #FF5252 !important; }
 
+/* Logout */
 #logout_btn > button {
     width: 200px !important;
     height: 60px !important;
@@ -81,26 +82,24 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     st.markdown("<h1 style='text-align:center;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------
+    #        MOSTRAR USUARIO Y TEXTO SEGÚN ROL
+    # -----------------------------------------------------
     st.markdown(
         f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
         unsafe_allow_html=True
     )
 
-    # -----------------------------------------------------
-    #     ★ MOSTRAR TEXTO SEGÚN ROL (Corregido)
-    # -----------------------------------------------------
     if usuario == "dark":
         st.markdown(
             "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Desarrollador</p>",
             unsafe_allow_html=True
         )
-
     elif rol.lower() == "promotor":
         st.markdown(
-            "<p style='text-align:center; font-size:16px; color:#6D4C41;'>Promotor</p>",
+            f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>{st.session_state['usuario']}<br>Promotor</p>",
             unsafe_allow_html=True
         )
-
     elif st.session_state.get("nombre_grupo"):
         st.markdown(
             f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
