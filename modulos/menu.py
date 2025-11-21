@@ -134,7 +134,7 @@ div.stButton > button:hover {
 
     # 👥 Miembro
     elif rol_l == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja"]]
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos"]]
 
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
