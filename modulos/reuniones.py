@@ -121,6 +121,13 @@ def mostrar_reuniones(id_grupo):
     with st.expander("Filtrar por fecha"):
         fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
+    # Flag para refrescar la lista si se guarda o borra
+    if "refrescar_historial" not in st.session_state:
+        st.session_state.refrescar_historial = False
+
+    def recargar_historial():
+        st.session_state.refrescar_historial = True
+
     cursor.execute("""
         SELECT id, fecha, observaciones 
         FROM Reuniones
@@ -132,40 +139,46 @@ def mostrar_reuniones(id_grupo):
 
     if registros:
         st.markdown("<div style='display:flex; flex-direction:column; gap:12px;'>", unsafe_allow_html=True)
-        
         colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
+
         for i, registro in enumerate(registros):
             color = colores_tarjeta[i % len(colores_tarjeta)]
             fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
-            
+
             st.markdown(
                 f"""
-                <div style='background-color:{color}; padding:12px; border-radius:12px; 
+                <div style='background-color:{color}; padding:15px; border-radius:12px; 
                             box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
                     <strong>📅 Fecha:</strong> {fecha_str}<br>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-            
+
             edit_key = f"edit_{registro['id']}"
             borrar_key = f"delete_{registro['id']}"
-            texto_editable = st.text_area("", value=registro['observaciones'], key=edit_key, height=200)
-            
+            texto_editable = st.text_area("", value=registro['observaciones'], key=edit_key, height=100)
+
             col1, col2 = st.columns([1,1])
             with col1:
                 if st.button("💾 Guardar cambios", key=f"save_{registro['id']}"):
                     cursor.execute("UPDATE Reuniones SET observaciones=%s WHERE id=%s", (texto_editable, registro['id']))
                     conn.commit()
                     st.success("✅ Observación actualizada.")
-                    st.experimental_rerun()
+                    recargar_historial()
             with col2:
                 if st.button("🗑 Borrar", key=borrar_key):
                     cursor.execute("DELETE FROM Reuniones WHERE id=%s", (registro['id'],))
                     conn.commit()
                     st.success("❌ Observación eliminada.")
-                    st.experimental_rerun()
+                    recargar_historial()
+
         st.markdown("</div>", unsafe_allow_html=True)
+
+        # Rerun si se modificó algo
+        if st.session_state.refrescar_historial:
+            st.session_state.refrescar_historial = False
+            st.experimental_rerun()
     else:
         st.info("No hay observaciones registradas para la fecha seleccionada.")
 
