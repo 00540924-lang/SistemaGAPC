@@ -21,22 +21,13 @@ def mostrar_reuniones(id_grupo):
         st.error("❌ No se encontró el grupo del usuario. Contacte al administrador.")
         return
 
-    # ===============================
-    # Nombre del grupo
-    # ===============================
     nombre_grupo = st.session_state.get("nombre_grupo", "Sin Grupo")
 
-    # ===============================
-    # Título dinámico
-    # ===============================
     st.markdown(
         f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones grupo {nombre_grupo}</h1>",
         unsafe_allow_html=True
     )
 
-    # ===============================
-    # Conexión BD
-    # ===============================
     conn = obtener_conexion()
     if not conn:
         st.error("❌ Error al conectar a la base de datos.")
@@ -44,7 +35,7 @@ def mostrar_reuniones(id_grupo):
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # Contenedor principal para crear reunión
+    # Crear nueva reunión
     # ===============================
     with st.container():
         st.markdown(
@@ -55,16 +46,10 @@ def mostrar_reuniones(id_grupo):
             unsafe_allow_html=True
         )
 
-        # -----------------------
-        # Información general
-        # -----------------------
         st.subheader("Información de la reunión")
         fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
         hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
-        # -----------------------
-        # Agenda de la reunión
-        # -----------------------
         st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
         st.subheader("📝 Agenda de actividades")
 
@@ -113,16 +98,10 @@ def mostrar_reuniones(id_grupo):
             )
             agenda_completa += f"**{titulo.upper()}**\n" + "\n".join(f"- {x}" for x in items) + "\n\n"
 
-        # -----------------------
-        # Observaciones
-        # -----------------------
         st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
         st.subheader("🗒 Observaciones")
         observaciones = st.text_area("Escriba aquí las observaciones de la reunión", height=150)
 
-        # -----------------------
-        # Guardar reunión
-        # -----------------------
         st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
         if st.button("💾 Guardar reunión", help="Guarda la reunión en la base de datos"):
             cursor.execute("""
@@ -135,16 +114,15 @@ def mostrar_reuniones(id_grupo):
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ===============================
-    # Historial de reuniones (solo observaciones, tarjeta atractiva)
+    # Historial de observaciones con editar y borrar
     # ===============================
     st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
 
-    # Filtro por fecha única
     with st.expander("Filtrar por fecha"):
         fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
     cursor.execute("""
-        SELECT fecha, observaciones 
+        SELECT id, fecha, observaciones 
         FROM Reuniones
         WHERE id_grupo = %s AND fecha = %s
         ORDER BY fecha DESC
@@ -159,17 +137,34 @@ def mostrar_reuniones(id_grupo):
         for i, registro in enumerate(registros):
             color = colores_tarjeta[i % len(colores_tarjeta)]
             fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
+            
             st.markdown(
                 f"""
                 <div style='background-color:{color}; padding:15px; border-radius:12px; 
                             box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
                     <strong>📅 Fecha:</strong> {fecha_str}<br>
-                    <strong>🗒 Observaciones:</strong><br>
-                    <p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
+            
+            edit_key = f"edit_{registro['id']}"
+            borrar_key = f"delete_{registro['id']}"
+            texto_editable = st.text_area("", value=registro['observaciones'], key=edit_key, height=100)
+            
+            col1, col2 = st.columns([1,1])
+            with col1:
+                if st.button("💾 Guardar cambios", key=f"save_{registro['id']}"):
+                    cursor.execute("UPDATE Reuniones SET observaciones=%s WHERE id=%s", (texto_editable, registro['id']))
+                    conn.commit()
+                    st.success("✅ Observación actualizada.")
+                    st.experimental_rerun()
+            with col2:
+                if st.button("🗑 Borrar", key=borrar_key):
+                    cursor.execute("DELETE FROM Reuniones WHERE id=%s", (registro['id'],))
+                    conn.commit()
+                    st.success("❌ Observación eliminada.")
+                    st.experimental_rerun()
         st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.info("No hay observaciones registradas para la fecha seleccionada.")
@@ -182,8 +177,5 @@ def mostrar_reuniones(id_grupo):
         st.session_state.page = "menu"
         st.rerun()
 
-    # ===============================
-    # Cerrar conexión
-    # ===============================
     cursor.close()
     conn.close()
