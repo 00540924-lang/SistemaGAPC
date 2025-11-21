@@ -126,7 +126,7 @@ div.stButton > button:hover {
 
     # 🏛 Institucional: todos excepto Caja
     elif rol_l == "institucional":
-        modulos = [m for m in modulos_base if m[1] not in ["caja"]]
+        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","grupos_btn","registrar_miembros" ]]
 
     # 👤 Promotor
     elif rol_l == "promotor":
