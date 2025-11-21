@@ -144,7 +144,17 @@ def calcular_saldo_final(saldo_inicial, ahorros, actividades, retiros):
 
 def mostrar_ahorro_final(id_grupo):
     """Función principal del módulo Ahorro Final"""
-    st.title("💰 Módulo Ahorro Final")
+    
+    # Obtener nombre del grupo desde la sesión
+    nombre_grupo = st.session_state.get("nombre_grupo", "Grupo Desconocido")
+    
+    # Título principal con nombre del grupo
+    st.markdown(f"""
+    <div style='text-align: center;'>
+        <h1>💰 Módulo Ahorro Final</h1>
+        <h3 style='color: #4C3A60; margin-top: -10px;'>Grupo: {nombre_grupo}</h3>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Verificar conexión primero
     conn = get_db_connection()
