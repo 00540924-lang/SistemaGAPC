@@ -70,8 +70,6 @@ def prestamos_modulo():
         fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
         firma = st.text_input("Firma del solicitante")
 
-        # ❌ YA NO ESTÁ AQUÍ — fue movido al formulario de pagos
-
         estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
         enviar = st.form_submit_button("💾 Guardar Préstamo")
@@ -173,11 +171,12 @@ def mostrar_formulario_pagos(id_prestamo):
         fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
         capital = st.number_input("Capital", min_value=0.01, step=0.01)
 
-        # ✅ AHORA AQUÍ VA EL CAMPO QUE PEDISTE
+        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA (NO EDITABLE)
         interes = st.number_input(
             "Interés aplicado por cada $10 (%)",
             value=interes_por_10,
-            step=0.01
+            step=0.01,
+            disabled=True
         )
 
         estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
