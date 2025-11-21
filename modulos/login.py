@@ -20,7 +20,9 @@ def verificar_usuario(usuario, contraseña):
     Verifica usuario, contraseña y grupo.
     Permite iniciar sesión a usuarios sin grupo (promotores y desarrollador)
     """
+    # ============================
     # Caso especial: DESARROLLADOR
+    # ============================
     if usuario.lower() == "dark":
         con = obtener_conexion()
         if not con:
@@ -30,7 +32,6 @@ def verificar_usuario(usuario, contraseña):
         try:
             cursor = con.cursor()
 
-            # Solo validar usuario y contraseña en Administradores
             query = """
                 SELECT Usuario, Rol 
                 FROM Administradores
@@ -45,8 +46,8 @@ def verificar_usuario(usuario, contraseña):
             return {
                 "usuario": result[0],
                 "rol": limpiar_rol(result[1]),
-                "id_grupo": None,          # no pertenece a un grupo
-                "Desarrollador"  # texto especial para el menú
+                "id_grupo": None,
+                "nombre_grupo": "Desarrollador"  # Mostrar en menú
             }
 
         finally:
@@ -90,9 +91,11 @@ def verificar_usuario(usuario, contraseña):
         id_grupo = result[2]
         nombre_grupo = result[3]
 
-        # Si el usuario es promotor y no tiene grupo, permitir login igual
+        # =====================================================
+        # Caso especial: PROMOTOR SIN GRUPO → misma lógica que Dark
+        # =====================================================
         if rol == "promotor" and id_grupo is None:
-            nombre_grupo = "Promotor"  # CORRECCIÓN: Asignación correcta
+            nombre_grupo = f"{usuario_nombre}\nPromotor"
 
         return {
             "usuario": usuario_nombre,
