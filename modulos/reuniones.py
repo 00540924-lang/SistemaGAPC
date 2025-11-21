@@ -80,6 +80,7 @@ def mostrar_reuniones(id_grupo):
             )
             conn.commit()
             st.success("✅ Reunión guardada con éxito.")
+            st.experimental_rerun()  # refresca la lista después de guardar
 
     # ===============================
     # Historial de observaciones (solo mostrar y borrar)
@@ -88,44 +89,35 @@ def mostrar_reuniones(id_grupo):
     with st.expander("Filtrar por fecha"):
         fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
-    historial_container = st.container()  # Contenedor dinámico
+    cursor.execute(
+        "SELECT id, fecha, observaciones FROM Reuniones WHERE id_grupo=%s AND fecha=%s ORDER BY fecha DESC",
+        (id_grupo, fecha_seleccionada)
+    )
+    registros = cursor.fetchall()
 
-    def mostrar_historial():
-        historial_container.empty()
-        cursor.execute(
-            "SELECT id, fecha, observaciones FROM Reuniones WHERE id_grupo=%s AND fecha=%s ORDER BY fecha DESC",
-            (id_grupo, fecha_seleccionada)
-        )
-        registros = cursor.fetchall()
+    if registros:
+        colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
+        for i, registro in enumerate(registros):
+            color = colores_tarjeta[i % 4]
+            fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
 
-        if registros:
-            for i, registro in enumerate(registros):
-                color = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"][i % 4]
-                fecha_str = registro['fecha'].strftime("%d/%m/%Y") if isinstance(registro['fecha'], datetime) else str(registro['fecha'])
+            st.markdown(
+                f"<div style='background-color:{color}; padding:15px; border-radius:12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>"
+                f"<strong>📅 Fecha:</strong> {fecha_str}<br>"
+                f"<strong>🗒 Observaciones:</strong><br>"
+                f"<p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
 
-                with historial_container.container():
-                    st.markdown(
-                        f"""
-                        <div style='background-color:{color}; padding:15px; border-radius:12px; 
-                                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
-                            <strong>📅 Fecha:</strong> {fecha_str}<br>
-                            <strong>🗒 Observaciones:</strong><br>
-                            <p style='margin-top:5px; white-space:pre-wrap;'>{registro['observaciones']}</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                    # Botón solo para borrar
-                    if st.button("🗑 Borrar", key=f"delete_{registro['id']}"):
-                        cursor.execute("DELETE FROM Reuniones WHERE id=%s", (registro['id'],))
-                        conn.commit()
-                        st.success("❌ Observación eliminada.")
-                        mostrar_historial()
-        else:
-            historial_container.info("No hay observaciones registradas para la fecha seleccionada.")
-
-    mostrar_historial()
+            # Botón solo para borrar, key único
+            if st.button("🗑 Borrar", key=f"delete_{registro['id']}"):
+                cursor.execute("DELETE FROM Reuniones WHERE id=%s", (registro['id'],))
+                conn.commit()
+                st.success("❌ Observación eliminada.")
+                st.experimental_rerun()  # refresca la lista sin duplicar keys
+    else:
+        st.info("No hay observaciones registradas para la fecha seleccionada.")
 
     # ===============================
     # Botón regresar
