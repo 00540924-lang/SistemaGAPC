@@ -22,7 +22,7 @@ def prestamos_modulo():
     st.markdown("<h1 style='text-align:center;'>💲 Registro de Préstamos</h1>", unsafe_allow_html=True)
 
     # --------------------------------------
-    # Obtener valores del reglamento (interés por $10)
+    # Obtener valores del reglamento
     # --------------------------------------
     con = obtener_conexion()
     cursor = con.cursor()
@@ -69,7 +69,7 @@ def prestamos_modulo():
         fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
         fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
 
-        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA (ESTE CAMPO SUSTITUYE A FIRMA)
+        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA (SUSTITUYE A FIRMA)
         st.number_input(
             "Interés aplicado por cada $10 (%)",
             value=interes_por_10,
@@ -86,7 +86,6 @@ def prestamos_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # Insertamos también el interés tomado del reglamento en la tabla prestamos
             cursor.execute("""
                 INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, estado, interes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -153,27 +152,24 @@ def mostrar_lista_prestamos(id_grupo):
 
 # =====================================================
 #   FORMULARIO DE PAGOS
-#   (Nota: ya NO mostramos el campo 'interés' aquí;
-#    se toma el interés almacenado en el préstamo)
 # =====================================================
 def mostrar_formulario_pagos(id_prestamo):
 
     st.markdown("<h3>💵 Registrar un pago</h3>", unsafe_allow_html=True)
 
-    # Recuperar el interés que está guardado en el préstamo
+    # Obtener interes_por_10 desde reglamento
     con = obtener_conexion()
     cursor = con.cursor()
     cursor.execute("""
-        SELECT interes
-        FROM prestamos
-        WHERE id_prestamo = %s
+        SELECT interes_por_10
+        FROM Reglamento
+        WHERE id_grupo = %s
         LIMIT 1
-    """, (id_prestamo,))
-    row = cursor.fetchone()
+    """, (st.session_state["id_grupo"],))
+    reglamento = cursor.fetchone()
     con.close()
 
-    # Si por alguna razón no existe, usar 0.0
-    interes_del_prestamo = float(row[0]) if row and row[0] is not None else 0.0
+    interes_por_10 = float(reglamento[0]) if reglamento else 0.0
 
     with st.form(f"form_pago_{id_prestamo}"):
 
@@ -181,9 +177,13 @@ def mostrar_formulario_pagos(id_prestamo):
         fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
         capital = st.number_input("Capital", min_value=0.01, step=0.01)
 
-        # NO mostramos ningún input de interés aquí (el usuario no lo edita).
-        # Si quieres darle visibilidad, por ejemplo mostrarlo como texto:
-        st.write(f"Interés aplicado por cada $10 (%): **{interes_del_prestamo:.2f}**")
+        # ⚠️ CAMPO DE INTERÉS — SOLO LECTURA
+        interes = st.number_input(
+            "Interés aplicado por cada $10 (%)",
+            value=interes_por_10,
+            step=0.01,
+            disabled=True
+        )
 
         estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
 
@@ -194,16 +194,15 @@ def mostrar_formulario_pagos(id_prestamo):
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # Insertamos el pago usando el interés almacenado en el préstamo
             cursor.execute("""
                 INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 id_prestamo,
-                int(numero_pago),
+                numero_pago,
                 fecha_pago,
                 capital,
-                interes_del_prestamo,
+                interes,
                 estado_pago
             ))
 
@@ -215,4 +214,3 @@ def mostrar_formulario_pagos(id_prestamo):
         finally:
             cursor.close()
             con.close()
-
