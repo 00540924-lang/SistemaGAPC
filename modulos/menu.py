@@ -59,6 +59,7 @@ div.stButton > button:hover {
 #prestamos_btn > button { background-color: #9C27B0 !important; }
 #caja_btn > button { background-color: #00BFA5 !important; }
 #ahorro_final_btn > button { background-color: #FF9800 !important; }
+#reuniones_btn > button { background-color: #FF5252 !important; }  /* NUEVO MÓDULO */
 
 /* Logout */
 #logout_btn > button {
@@ -112,30 +113,23 @@ div.stButton > button:hover {
         ("🏛️ GAPC", "GAPC", "gapc_btn"),
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💰 Caja", "caja", "caja_btn"),
-        ("💾 Ahorro Final", "ahorro_final", "ahorro_final_btn"),  # NUEVO MÓDULO
+        ("💾 Ahorro Final", "ahorro_final", "ahorro_final_btn"),
+        ("📌 Reuniones", "reuniones", "reuniones_btn"),  # NUEVO MÓDULO
     ]
 
     # -----------------------------------------------------
-    #          FILTRO POR ROL (CORREGIDO)
+    #          FILTRO POR ROL
     # -----------------------------------------------------
     rol_l = rol.lower()
 
-    # 🔥 Desarrollador
-    if usuario == "dark":
+    if usuario == "dark":  # Desarrollador
         modulos = modulos_base
-
-    # 🏛 Institucional: todos excepto Caja
-    elif rol_l == "institucional":
-        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","grupos_btn","registrar_miembros"]]
-
-    # 👤 Promotor
-    elif rol_l == "promotor":
+    elif rol_l == "institucional":  # Institucional
+        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","grupos_btn","registrar_miembros","reuniones"]]
+    elif rol_l == "promotor":  # Promotor
         modulos = [m for m in modulos_base if m[1] in ["credenciales", "grupos_btn"]]
-
-    # 👥 Miembro
-    elif rol_l == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos", "ahorro_final"]]
-
+    elif rol_l == "miembro":  # Miembro
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "asistencia", "caja", "multas", "prestamos", "ahorro_final", "reuniones"]]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
