@@ -92,7 +92,7 @@ def verificar_usuario(usuario, contraseña):
 
         # Si el usuario es promotor y no tiene grupo, permitir login igual
         if rol == "promotor" and id_grupo is None:
-            nombre_grupo = "Promotor"
+            "nombre_grupo": "Promotor"
 
         return {
             "usuario": usuario_nombre,
