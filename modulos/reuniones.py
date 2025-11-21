@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime, time
+from datetime import datetime
 import mysql.connector
 from modulos.config.conexion import obtener_conexion
 import pandas as pd
@@ -7,27 +7,24 @@ import pandas as pd
 def mostrar_reuniones(id_grupo):
     """
     Módulo de Reuniones.
-    Solo accesible por usuarios con rol 'miembro' o institucional.
+    Solo accesible por usuarios con rol 'miembro'.
     """
-    
-    # ===============================
-    # 0. Verificar acceso
-    # ===============================
+
     rol = st.session_state.get("rol", "").lower()
     usuario = st.session_state.get("usuario", "").lower()
 
-    if rol not in ["miembro", "institucional"] and usuario != "dark":
-        st.error("❌ No tiene permisos para acceder a este módulo.")
+    if rol != "miembro":
+        st.error("❌ Solo los miembros pueden acceder a este módulo.")
         return
 
-    if rol == "miembro" and not id_grupo:
-        st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
+    if not id_grupo:
+        st.error("❌ No se encontró el grupo del usuario. Contacte al administrador.")
         return
 
-    st.title("📋 Registro de Reuniones del Grupo")
+    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de Reuniones del Grupo</h1>", unsafe_allow_html=True)
 
     # ===============================
-    # 1. Conexión BD
+    # Conexión BD
     # ===============================
     conn = obtener_conexion()
     if not conn:
@@ -36,19 +33,30 @@ def mostrar_reuniones(id_grupo):
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # 2. Datos de la reunión
+    # Contenedor principal
     # ===============================
-    st.subheader("Información general")
-    fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
-    hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
+    with st.container():
+        st.markdown(
+            """
+            <div style='background-color:#F7F3FA; padding:20px; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
+        """,
+            unsafe_allow_html=True
+        )
 
-    # ===============================
-    # 3. Agenda de la reunión (Desde tu documento)
-    # ===============================
-    st.write("---")
-    st.subheader("📝 Agenda de actividades")
+        # -----------------------
+        # Información general
+        # -----------------------
+        st.subheader("🗂 Información de la reunión")
+        fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
+        hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
-    agenda_default = """
+        # -----------------------
+        # Agenda de la reunión
+        # -----------------------
+        st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
+        st.subheader("📝 Agenda de actividades")
+
+        agenda_default = """
 **EMPEZAR LA REUNIÓN**
 - La presidenta abre formalmente la reunión.
 - La secretaria registra asistencia y multas.
@@ -73,37 +81,35 @@ def mostrar_reuniones(id_grupo):
 - La presidenta pregunta si hay asuntos pendientes.
 - La presidenta cierra formalmente la reunión.
 """
+        agenda = st.text_area("Agenda de la reunión", agenda_default, height=300)
 
-    agenda = st.text_area("Agenda de la reunión", agenda_default, height=300)
+        # -----------------------
+        # Observaciones
+        # -----------------------
+        st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
+        st.subheader("🗒 Observaciones")
+        observaciones = st.text_area("Escriba aquí las observaciones de la reunión", height=150)
+
+        # -----------------------
+        # Guardar reunión
+        # -----------------------
+        st.markdown("<hr style='border:1px solid #D1C4E9;'>", unsafe_allow_html=True)
+        if st.button("💾 Guardar reunión", help="Guarda la reunión en la base de datos"):
+            cursor.execute("""
+                INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (id_grupo, fecha, hora, agenda, observaciones))
+            conn.commit()
+            st.success("✅ Reunión guardada con éxito.")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ===============================
-    # 4. Observaciones
+    # Historial de reuniones
     # ===============================
-    st.write("---")
-    st.subheader("🗒 Observaciones")
-    observaciones = st.text_area("Escriba aquí las observaciones de la reunión", height=150)
-
-    # ===============================
-    # 5. Guardar datos en BD
-    # ===============================
-    if st.button("💾 Guardar reunión"):
-        
-        cursor.execute("""
-            INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (id_grupo, fecha, hora, agenda, observaciones))
-
-        conn.commit()
-        st.success("✅ Reunión guardada con éxito.")
-
-    # ===============================
-    # 6. Historial de reuniones
-    # ===============================
-    st.write("---")
-    st.subheader("📚 Historial de reuniones")
-
+    st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de reuniones</h2>", unsafe_allow_html=True)
     cursor.execute("""
-        SELECT * FROM Reuniones
+        SELECT fecha, hora, agenda, observaciones FROM Reuniones
         WHERE id_grupo = %s
         ORDER BY fecha DESC, hora DESC
     """, (id_grupo,))
@@ -111,14 +117,14 @@ def mostrar_reuniones(id_grupo):
 
     if registros:
         df = pd.DataFrame(registros)
-        st.dataframe(df)
+        st.dataframe(df, use_container_width=True)
     else:
         st.info("No hay reuniones registradas.")
 
     # ===============================
-    # 7. Regresar
+    # Botón regresar
     # ===============================
-    st.write("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
