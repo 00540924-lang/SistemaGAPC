@@ -188,9 +188,6 @@ def mostrar_ahorro_final(id_grupo):
             st.rerun()
         return
     
-    # Mostrar información de miembros encontrados
-    st.success(f"✅ Se encontraron {len(miembros)} miembros en el grupo")
-    
     registros = obtener_registros_ahorro_final(id_grupo)
     
     # Formulario para nuevo registro
