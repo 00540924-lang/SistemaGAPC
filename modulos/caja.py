@@ -5,6 +5,46 @@ from modulos.config.conexion import obtener_conexion
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def obtener_datos_ahorro_automaticos(id_grupo, fecha):
+    """
+    Obtiene automáticamente los datos de ahorro del módulo de ahorro
+    para una fecha y grupo específicos
+    """
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0, 0.0, 0.0
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Obtener la suma de ahorros, actividades y retiros del módulo de ahorro
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(ahorros), 0) as total_ahorros,
+                COALESCE(SUM(actividades), 0) as total_actividades,
+                COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro = %s
+        """, (id_grupo, fecha))
+        
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            return (
+                float(resultado['total_ahorros']),
+                float(resultado['total_actividades']),
+                float(resultado['total_retiros'])
+            )
+        return 0.0, 0.0, 0.0
+        
+    except Exception as e:
+        st.error(f"Error al obtener datos automáticos de ahorro: {e}")
+        return 0.0, 0.0, 0.0
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def mostrar_caja(id_grupo):
     """
     Módulo de caja con gráfico de historial.
@@ -40,9 +80,23 @@ def mostrar_caja(id_grupo):
     # 2. Fecha
     # ===============================
     fecha = st.date_input("📅 Fecha de registro", date.today())
+    
+    # ===============================
+    # 2.1 OBTENER DATOS AUTOMÁTICOS DEL MÓDULO DE AHORRO
+    # ===============================
+    ahorros_auto, actividades_auto, retiros_auto = obtener_datos_ahorro_automaticos(id_grupo, fecha)
+    
+    st.info(f"📊 **Datos automáticos del módulo de ahorro para {fecha}:**")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Ahorros Automáticos", f"${ahoros_auto:,.2f}")
+    with col2:
+        st.metric("Actividades Automáticas", f"${actividades_auto:,.2f}")
+    with col3:
+        st.metric("Retiros Automáticos", f"${retiros_auto:,.2f}")
 
     # ===============================
-    # 2.1 Cargar multas pagadas automáticas
+    # 2.2 Cargar multas pagadas automáticas
     # ===============================
     cursor.execute("""
         SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
@@ -63,11 +117,29 @@ def mostrar_caja(id_grupo):
     # 3. DINERO QUE ENTRA
     # ===============================
     st.subheader("🟩 Dinero que entra")
+    
+    # Mostrar valores automáticos pero permitir edición manual si es necesario
     st.text_input("Multas PAGADAS del día", value=f"${multa_auto:.2f}", disabled=True)
 
     multa = multa_auto
-    ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
-    otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
+    
+    # Usar valores automáticos como valor por defecto, pero permitir modificación
+    ahorros = st.number_input(
+        "Ahorros", 
+        min_value=0.0, 
+        step=0.01, 
+        value=ahorros_auto,
+        help=f"Valor automático: ${ahorros_auto:,.2f} (puede modificar si es necesario)"
+    )
+    
+    otras_actividades = st.number_input(
+        "Otras actividades", 
+        min_value=0.0, 
+        step=0.01, 
+        value=actividades_auto,
+        help=f"Valor automático: ${actividades_auto:,.2f} (puede modificar si es necesario)"
+    )
+    
     pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
     otros_ingresos = st.number_input("Otros ingresos del grupo", min_value=0.0, step=0.01)
 
@@ -80,7 +152,15 @@ def mostrar_caja(id_grupo):
     st.write("---")
     st.subheader("🟥 Dinero que sale")
 
-    retiro_ahorros = st.number_input("Retiros de ahorros", min_value=0.0, step=0.01)
+    # Usar retiros automáticos como valor por defecto
+    retiro_ahorros = st.number_input(
+        "Retiros de ahorros", 
+        min_value=0.0, 
+        step=0.01, 
+        value=retiros_auto,
+        help=f"Valor automático: ${retiros_auto:,.2f} (puede modificar si es necesario)"
+    )
+    
     desembolso = st.number_input("Desembolso de préstamos", min_value=0.0, step=0.01)
     gastos_grupo = st.number_input("Otros gastos del grupo", min_value=0.0, step=0.01)
 
