@@ -151,13 +151,14 @@ def mostrar_reuniones(id_grupo):
         st.rerun()
 
     # ===============================
-    # Historial de observaciones
+    # Historial unificado: observaciones + asistencia
     # ===============================
-    st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
+    st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones y asistencia</h2>", unsafe_allow_html=True)
 
     with st.expander("Filtrar por fecha"):
         fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
+    # ---- Observaciones ----
     cursor.execute("""
         SELECT id, fecha, observaciones
         FROM Reuniones
@@ -168,7 +169,6 @@ def mostrar_reuniones(id_grupo):
     registros = cursor.fetchall()
 
     if registros:
-
         colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
 
         for i, r in enumerate(registros):
@@ -200,13 +200,9 @@ def mostrar_reuniones(id_grupo):
     else:
         st.info("No hay observaciones registradas para esta fecha.")
 
-    # ===============================
-    # Historial de Asistencia (en tabla)
-    # ===============================
-    st.markdown("<br><h2 style='color:#4C3A60;'>📋 Historial de asistencia</h2>", unsafe_allow_html=True)
-
+    # ---- Asistencia ----
     cursor.execute("""
-        SELECT A.fecha, M.Nombre, A.asistencia
+        SELECT M.Nombre, A.asistencia
         FROM Asistencia A
         JOIN Miembros M ON A.id_miembro = M.id_miembro
         WHERE A.id_grupo = %s AND A.fecha = %s
@@ -216,7 +212,8 @@ def mostrar_reuniones(id_grupo):
     asistencias = cursor.fetchall()
 
     if asistencias:
-        st.dataframe(asistencias, use_container_width=True)
+        df_asistencias = pd.DataFrame(asistencias)
+        st.dataframe(df_asistencias.style.set_properties(**{'text-align': 'center'}), use_container_width=True)
     else:
         st.info("No hay asistencia registrada para esta fecha.")
 
@@ -229,5 +226,3 @@ def mostrar_reuniones(id_grupo):
 
     cursor.close()
     conn.close()
-
-
