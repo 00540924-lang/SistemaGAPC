@@ -1,247 +1,192 @@
 import streamlit as st
-from datetime import datetime
-from modulos.config.conexion import obtener_conexion
 import pandas as pd
+from modulos.config.conexion import obtener_conexion
+import time
 
-def mostrar_reuniones(id_grupo):
-    
-    rol = st.session_state.get("rol", "").lower()
-    if rol != "miembro":
-        st.error("❌ Solo los miembros pueden acceder a este módulo.")
+def registrar_miembros():
+    # ================================
+    # VALIDAR SESIÓN Y GRUPO
+    # ================================
+    if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
+        st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
         return
 
-    if not id_grupo:
-        st.error("❌ No se encontró el grupo del usuario. Contacte al administrador.")
-        return
+    id_grupo = st.session_state["id_grupo"]
+    nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
-    nombre_grupo = st.session_state.get("nombre_grupo", "Sin Grupo")
+    # ================================
+    # TITULOS CENTRADOS
+    # ================================
+    st.markdown(f"<h2 style='text-align:center; color:#4C3A60;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
-    st.markdown(
-        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones grupo {nombre_grupo}</h1>",
-        unsafe_allow_html=True
-    )
+    # ================================
+    # FORMULARIO NUEVO MIEMBRO SOLO SI NO ESTAMOS EDITANDO
+    # ================================
+    if "editar_miembro" not in st.session_state:
+        with st.form("form_miembro"):
+            nombre = st.text_input("Nombre completo")
+            dui = st.text_input("DUI")
+            telefono = st.text_input("Teléfono")
+            enviar = st.form_submit_button("Registrar")
 
-    conn = obtener_conexion()
-    if not conn:
-        st.error("❌ Error al conectar a la base de datos.")
-        return
+        if enviar:
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+                cursor.execute(
+                    "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
+                    (nombre, dui, telefono)
+                )
+                con.commit()
+                id_miembro = cursor.lastrowid
 
-    cursor = conn.cursor(dictionary=True)
+                cursor.execute(
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    (id_grupo, id_miembro)
+                )
+                con.commit()
 
-    # ===============================
-    # Datos de la reunión
-    # ===============================
-    st.subheader("Información de la reunión")
-    fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
-    hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
+                st.success("Miembro registrado correctamente ✔️")
+                time.sleep(0.5)
+                st.rerun()  # recarga automática
 
-    # ===============================
-    # ASISTENCIA INTEGRADA
-    # ===============================
-    st.subheader("🧑‍🤝‍🧑 Asistencia de miembros del grupo")
+            finally:
+                cursor.close()
+                con.close()
 
-    cursor.execute("""
-        SELECT M.id_miembro, M.Nombre
-        FROM Miembros M
-        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-        WHERE GM.id_grupo = %s
-        ORDER BY M.Nombre
-    """, (id_grupo,))
-    miembros = cursor.fetchall()
-
-    if not miembros:
-        st.warning("⚠️ No hay miembros registrados en este grupo.")
-        cursor.close()
-        conn.close()
-        return
-
-    df_asistencia = pd.DataFrame(miembros)
-    df_asistencia = df_asistencia.rename(columns={"Nombre": "Miembro"})
-    df_asistencia["Asistencia"] = "Presente"
-
-    tabla_asistencia = st.data_editor(
-        df_asistencia,
-        column_config={
-            "Asistencia": st.column_config.SelectboxColumn(
-                "Asistencia",
-                options=["Presente", "Ausente"],
-                required=True
-            ),
-            "id_miembro": None
-        },
-        hide_index=True,
-        use_container_width=True,
-    )
-
-    # ===============================
-    # Agenda de la reunión
-    # ===============================
-    st.subheader("📝 Agenda de actividades")
-
-    secciones = {
-        "Empezar la reunión": [
-            "La presidenta abre formalmente la reunión.",
-            "La secretaria registra asistencia y multas.",
-            "La secretaria lee las reglas internas."
-        ],
-        "Dinero que entra": [
-            "La tesorera cuenta el dinero de la caja.",
-            "Las socias depositan ahorros.",
-            "Las socias depositan dinero de otras actividades.",
-            "La secretaria calcula el total de dinero que entra.",
-            "La tesorera verifica el monto total."
-        ],
-        "Dinero que sale": [
-            "Las socias solicitan y evalúan préstamos.",
-            "La tesorera desembolsa préstamos aprobados.",
-            "La secretaria registra desembolsos e intereses.",
-            "La secretaria calcula total de dinero que sale.",
-            "La tesorera verifica el dinero y anuncia el saldo.",
-            "La presidenta cierra la caja y entrega llaves."
-        ],
-        "Cerrar la reunión": [
-            "La presidenta pregunta si hay asuntos pendientes.",
-            "La presidenta cierra formalmente la reunión."
-        ]
-    }
-
-    colores = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
-    agenda_completa = ""
-
-    for i, (titulo, items) in enumerate(secciones.items()):
-        st.markdown(
-            f"""
-            <div style='background-color:{colores[i]}; padding:15px; border-radius:12px; 
-                        margin-bottom:12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
-                <h4 style='color:#4C3A60;'>{titulo}</h4>
-                <ul>
-                    {''.join([f"<li>{item}</li>" for item in items])}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        agenda_completa += f"**{titulo.upper()}**\n" + "\n".join(f"- {x}" for x in items) + "\n\n"
-
-    # ===============================
-    # Observaciones
-    # ===============================
-    st.subheader("🗒 Observaciones")
-    observaciones = st.text_area("Escriba aquí las observaciones de la reunión", height=150)
-
-    # ===============================
-    # GUARDAR TODO (Reunión + Asistencia)
-    # ===============================
-    if st.button("💾 Guardar reunión"):
-        
-        cursor.execute("""
-            INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (id_grupo, fecha, hora, agenda_completa, observaciones))
-        conn.commit()
-
-        for _, row in tabla_asistencia.iterrows():
-            cursor.execute("""
-                INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
-                VALUES (%s, %s, %s, %s)
-            """, (id_grupo, fecha, row["id_miembro"], row["Asistencia"]))
-
-        conn.commit()
-        st.success("✅ Reunión y asistencia guardadas con éxito.")
-        st.rerun()
-
-    # ===============================
-    # Historial de observaciones
-    # ===============================
-    st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
-
-    with st.expander("Filtrar por fecha"):
-        fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
-
-    cursor.execute("""
-        SELECT id, fecha, observaciones
-        FROM Reuniones
-        WHERE id_grupo = %s AND fecha = %s
-        ORDER BY fecha DESC
-    """, (id_grupo, fecha_seleccionada))
-
-    registros = cursor.fetchall()
-
-    if registros:
-
-        colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
-
-        for i, r in enumerate(registros):
-            color = colores_tarjeta[i % 4]
-            fecha_str = r["fecha"].strftime("%d/%m/%Y")
-
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:{color};
-                    padding:18px;
-                    border-radius:12px;
-                    margin-bottom:18px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-                ">
-                    <strong>📅 Fecha:</strong> {fecha_str}<br><br>
-                    <strong>🗒 Observaciones:</strong><br>
-                    <p style="margin-top:5px; white-space:pre-wrap;">{r['observaciones']}</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            if st.button("🗑 Borrar observación", key=f"del_{r['id']}"):
-                cursor.execute("DELETE FROM Reuniones WHERE id=%s", (r["id"],))
-                conn.commit()
-                st.success("❌ Observación eliminada.")
-                st.rerun()
-    else:
-        st.info("No hay observaciones registradas para esta fecha.")
-
-    # ===============================
-    # Historial de Asistencia
-    # ===============================
-    st.markdown("<br><h2 style='color:#4C3A60;'>📋 Historial de asistencia</h2>", unsafe_allow_html=True)
-
-    cursor.execute("""
-        SELECT A.fecha, M.Nombre, A.asistencia
-        FROM Asistencia A
-        JOIN Miembros M ON A.id_miembro = M.id_miembro
-        WHERE A.id_grupo = %s AND A.fecha = %s
-        ORDER BY M.Nombre
-    """, (id_grupo, fecha_seleccionada))
-
-    asistencias = cursor.fetchall()
-
-    if asistencias:
-
-        for registro in asistencias:
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:#E3F2FD;
-                    padding:15px;
-                    border-radius:12px;
-                    margin-bottom:12px;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-                ">
-                    <strong>🙋 Miembro:</strong> {registro['Nombre']}<br>
-                    <strong>📌 Asistencia:</strong> {registro['asistencia']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-    else:
-        st.info("No hay asistencia registrada para esta fecha.")
-
-    # ===============================
-    # Regresar
-    # ===============================
+    # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
+    st.write("---")
 
-    cursor.close()
-    conn.close()
+    # ================================
+    # Mostrar tabla y acciones
+    # ================================
+    mostrar_tabla_y_acciones(id_grupo)
+
+def mostrar_tabla_y_acciones(id_grupo):
+    # 🔥 Si estamos editando, mostrar solo el formulario de edición y salir
+    if "editar_miembro" in st.session_state:
+        editar_miembro(st.session_state["editar_miembro"])
+        return
+
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT M.id_miembro, M.nombre, M.dui, M.telefono
+            FROM Miembros M
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            ORDER BY M.id_miembro
+        """, (id_grupo,))
+        resultados = cursor.fetchall()
+        df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
+
+        if df.empty:
+            st.info("Aún no hay miembros en este grupo.")
+            return
+
+        # -------------------------------
+        # Título
+        # -------------------------------
+        st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
+
+        # -------------------------------
+        # Numeración desde 1
+        # -------------------------------
+        df_display = df.reset_index(drop=True)
+        df_display.insert(0, "No.", range(1, len(df_display) + 1))
+
+        # -------------------------------
+        # Mostrar tabla
+        # -------------------------------
+        st.dataframe(
+            df_display[["No.", "Nombre", "DUI", "Teléfono"]].style.hide(axis="index"),
+            use_container_width=True
+        )
+
+        # -------------------------------
+        # 👉 Solo el nombre en el selectbox
+        # -------------------------------
+        miembro_dict = {row['Nombre']: row for _, row in df.iterrows()}
+
+        seleccionado = st.selectbox(
+            "Selecciona un miembro para Editar/Eliminar",
+            options=list(miembro_dict.keys())
+        )
+
+        if seleccionado:
+            miembro = miembro_dict[seleccionado]
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(" ✏️ Editar"):
+                    st.session_state["editar_miembro"] = miembro
+                    st.rerun()  # 🔥 activa modo edición
+            with col2:
+                if st.button("🗑️ Eliminar"):
+                    eliminar_miembro(miembro["ID"], id_grupo)
+                    st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
+                    time.sleep(0.5)
+                    st.rerun()
+
+    finally:
+        cursor.close()
+        con.close()
+
+# ================================
+# ELIMINAR MIEMBRO
+# ================================
+def eliminar_miembro(id_miembro, id_grupo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute(
+            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
+            (id_grupo, id_miembro)
+        )
+        con.commit()
+        cursor.execute(
+            "DELETE FROM Miembros WHERE id_miembro = %s",
+            (id_miembro,)
+        )
+        con.commit()
+    finally:
+        cursor.close()
+        con.close()
+
+
+# ================================
+# EDITAR MIEMBRO
+# ================================
+def editar_miembro(row):
+    st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
+
+    with st.form("form_editar"):
+        nombre = st.text_input("Nombre completo", value=row['Nombre'])
+        dui = st.text_input("DUI", value=row['DUI'])
+        telefono = st.text_input("Teléfono", value=row['Teléfono'])
+        actualizar = st.form_submit_button("Actualizar")
+
+    if actualizar:
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+            cursor.execute(
+                "UPDATE Miembros SET Nombre=%s, DUI=%s, Telefono=%s WHERE id_miembro=%s",
+                (nombre, dui, telefono, row['ID'])
+            )
+            con.commit()
+
+            st.success("Miembro actualizado correctamente ✔️")
+            time.sleep(0.5)
+            # 🔥 salir del modo edición
+            del st.session_state["editar_miembro"]
+            st.rerun()
+
+        finally:
+            cursor.close()
+            con.close()
