@@ -121,7 +121,7 @@ div.stButton > button:hover {
         ("🏛️ GAPC", "GAPC", "gapc_btn"),
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💰 Caja", "caja", "caja_btn"),
-        ("💾 Ahorro Final", "ahorro_final", "ahorro_final_btn"),
+        ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
         ("📌 Reuniones", "reuniones", "reuniones_btn"),
     ]
 
