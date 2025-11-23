@@ -55,8 +55,7 @@ def pagina_grupos():
                 time.sleep(3)
                 mensaje.empty()
             except Exception as e:
-                # Mostrar el error completo
-                mensaje.error(f"Error al crear grupo: {str(e)}")
+                mensaje.error(f"Error al crear grupo: {e}")
                 time.sleep(3)
                 mensaje.empty()
             finally:
@@ -74,7 +73,7 @@ def pagina_grupos():
         cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
         grupos = cursor.fetchall()
     except Exception as e:
-        st.error(f"Error al cargar grupos: {str(e)}")
+        st.error(f"Error al cargar grupos: {e}")
         grupos = []
     finally:
         if 'cursor' in locals():
@@ -92,16 +91,21 @@ def pagina_grupos():
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
 
-    # ------------------ Teléfono seguro ------------------
-    if "telefono" not in st.session_state:
-        st.session_state.telefono = ""
+    # ------------------ Teléfono seguro - MEJORADO ------------------
+    if "telefono_filtrado" not in st.session_state:
+        st.session_state.telefono_filtrado = ""
 
+    # Función para actualizar el teléfono filtrado
     def actualizar_telefono():
-        st.session_state.telefono = filtrar_telefono(st.session_state.telefono_input)
+        telefono_sucio = st.session_state.telefono_input
+        st.session_state.telefono_filtrado = filtrar_telefono(telefono_sucio)
+        # Si el valor filtrado es diferente, actualizar el input
+        if telefono_sucio != st.session_state.telefono_filtrado:
+            st.session_state.telefono_input = st.session_state.telefono_filtrado
 
     telefono_input = st.text_input(
         "Teléfono",
-        value=st.session_state.telefono,
+        value=st.session_state.telefono_filtrado,
         key="telefono_input",
         on_change=actualizar_telefono,
         help="Solo se permiten números y el símbolo + al inicio"
@@ -124,12 +128,12 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
-    # ------------------- Botón registrar miembro -------------------
+    # ------------------- Botón registrar miembro - CORREGIDO -------------------
     if st.button("Registrar miembro"):
         mensaje = st.empty()
 
-        # Asegurarnos de que el teléfono esté filtrado antes de validar
-        telefono_limpio = filtrar_telefono(st.session_state.telefono)
+        # Usar SIEMPRE la versión filtrada del teléfono
+        telefono_limpio = st.session_state.telefono_filtrado
         
         # Validaciones estrictas antes del INSERT
         if not nombre_m.strip():
@@ -149,9 +153,14 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # DEBUG: Mostrar los valores que se van a insertar
-                st.write(f"DEBUG - Valores a insertar: nombre='{nombre_m}', dui='{dui}', telefono='{telefono_limpio}'")
-                
+                # DEBUG: Verificar que el teléfono cumple con la constraint
+                st.write(f"🔍 Validando teléfono: '{telefono_limpio}'")
+                if not validar_telefono(telefono_limpio):
+                    mensaje.error("❌ El teléfono no cumple con el formato requerido por la base de datos")
+                    time.sleep(3)
+                    mensaje.empty()
+                    return
+
                 # INSERT usando la versión filtrada y validada del teléfono
                 cursor.execute(
                     "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
@@ -185,22 +194,28 @@ def pagina_grupos():
                         )
                         conn.commit()
 
-                mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
+                mensaje.success(f"✅ {nombre_m} registrado correctamente en el grupo.")
                 time.sleep(3)
                 mensaje.empty()
-                # Limpiar campos después de guardar
-                st.session_state.telefono = ""
+                
+                # Limpiar campos después de guardar exitosamente
+                st.session_state.telefono_filtrado = ""
+                st.session_state.telefono_input = ""
                 st.rerun()
 
             except Exception as e:
                 if 'conn' in locals():
                     conn.rollback()
-                # Mostrar el error completo para diagnóstico
-                error_completo = f"Error al registrar miembro: {str(e)}"
-                st.error(error_completo)
-                # También mostrar en la consola para debugging
-                print(f"ERROR MySQL: {e}")
-                time.sleep(5)
+                
+                # Manejo específico del error de constraint
+                error_str = str(e)
+                if "chk_telefono_valido" in error_str or "CHECK constraint" in error_str:
+                    mensaje.error("❌ El teléfono no cumple con el formato requerido. Solo números y '+' al inicio.")
+                else:
+                    mensaje.error(f"Error al registrar miembro: {e}")
+                
+                time.sleep(3)
+                mensaje.empty()
             finally:
                 if 'cursor' in locals():
                     cursor.close()
@@ -238,7 +253,7 @@ def pagina_grupos():
         except Exception as e:
             if 'conn' in locals():
                 conn.rollback()
-            mensaje.error(f"Error al eliminar grupo: {str(e)}")
+            mensaje.error(f"Error al eliminar grupo: {e}")
             time.sleep(3)
             mensaje.empty()
         finally:
@@ -246,5 +261,3 @@ def pagina_grupos():
                 cursor.close()
             if 'conn' in locals():
                 conn.close()
-                conn.close()
-
