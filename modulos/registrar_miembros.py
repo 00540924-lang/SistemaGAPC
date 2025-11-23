@@ -158,7 +158,7 @@ def eliminar_miembro(id_miembro, id_grupo):
         # 2️⃣ Borrar otras relaciones dependientes si existen
         # 🔹 Ajusta estas tablas según tu base de datos
         cursor.execute(
-            "DELETE FROM Asistencias WHERE id_miembro = %s",
+            "DELETE FROM Asistencia WHERE id_miembro = %s",
             (id_miembro,)
         )
         cursor.execute(
