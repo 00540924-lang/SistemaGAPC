@@ -1,6 +1,13 @@
 import streamlit as st
 import time
+import re
 from modulos.config.conexion import obtener_conexion
+
+def validar_telefono(telefono):
+    """
+    Retorna True si el teléfono es válido: solo números y un + opcional al inicio
+    """
+    return re.fullmatch(r'\+?\d+', telefono) is not None
 
 def pagina_grupos():
     st.title("Gestión de Grupos")
@@ -63,7 +70,6 @@ def pagina_grupos():
     # ================= FORMULARIO NUEVO MIEMBRO =================
     st.subheader("➕ Registrar nuevo miembro")
 
-    # Campos normales fuera de form
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
     telefono = st.text_input("Teléfono")
@@ -74,10 +80,8 @@ def pagina_grupos():
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
     )
 
-    # Checkbox que aparece en tiempo real
     es_admin = st.checkbox("Este miembro forma parte de la directiva")
 
-    # Campos del admin dinámicos
     if es_admin:
         usuario_admin = st.text_input("Usuario")
         contraseña_admin = st.text_input("Contraseña", type="password")
@@ -91,11 +95,14 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
-    # Botón para registrar miembro (único submit)
     if st.button("Registrar miembro"):
         mensaje = st.empty()
         if not nombre_m.strip():
             mensaje.error("El nombre del miembro es obligatorio.")
+            time.sleep(3)
+            mensaje.empty()
+        elif not telefono.strip() or not validar_telefono(telefono):
+            mensaje.error("Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
             time.sleep(3)
             mensaje.empty()
         else:
@@ -149,7 +156,6 @@ def pagina_grupos():
                 cursor.close()
                 conn.close()
 
-
     st.write("---")
 
     # ================= ELIMINAR GRUPO =================
@@ -181,3 +187,4 @@ def pagina_grupos():
         finally:
             cursor.close()
             conn.close()
+
