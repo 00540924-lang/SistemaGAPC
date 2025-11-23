@@ -54,12 +54,14 @@ def registrar_miembros():
             finally:
                 cursor.close()
                 con.close()
- # ------------------ BOTÓN REGRESAR ------------------
+
+    # ------------------ BOTÓN REGRESAR ------------------
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
     st.write("---")
+
     # ================================
     # Mostrar tabla y acciones
     # ================================
@@ -146,16 +148,33 @@ def eliminar_miembro(id_miembro, id_grupo):
     try:
         con = obtener_conexion()
         cursor = con.cursor()
+
+        # 1️⃣ Borrar relaciones con el grupo
         cursor.execute(
-            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-            (id_grupo, id_miembro)
+            "DELETE FROM Grupomiembros WHERE id_miembro = %s",
+            (id_miembro,)
         )
-        con.commit()
+
+        # 2️⃣ Borrar otras relaciones dependientes si existen
+        # 🔹 Ajusta estas tablas según tu base de datos
+        cursor.execute(
+            "DELETE FROM Asistencias WHERE id_miembro = %s",
+            (id_miembro,)
+        )
+        cursor.execute(
+            "DELETE FROM Pagos WHERE id_miembro = %s",
+            (id_miembro,)
+        )
+
+        # 3️⃣ Finalmente, eliminar el miembro
         cursor.execute(
             "DELETE FROM Miembros WHERE id_miembro = %s",
             (id_miembro,)
         )
+
+        # Confirmar cambios
         con.commit()
+
     finally:
         cursor.close()
         con.close()
