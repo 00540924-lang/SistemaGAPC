@@ -55,7 +55,8 @@ def pagina_grupos():
                 time.sleep(3)
                 mensaje.empty()
             except Exception as e:
-                mensaje.error(f"Error al crear grupo: {e}")
+                # Mostrar el error completo
+                mensaje.error(f"Error al crear grupo: {str(e)}")
                 time.sleep(3)
                 mensaje.empty()
             finally:
@@ -73,7 +74,7 @@ def pagina_grupos():
         cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
         grupos = cursor.fetchall()
     except Exception as e:
-        st.error(f"Error al cargar grupos: {e}")
+        st.error(f"Error al cargar grupos: {str(e)}")
         grupos = []
     finally:
         if 'cursor' in locals():
@@ -91,11 +92,10 @@ def pagina_grupos():
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
 
-    # ------------------ Teléfono seguro - MEJORADO ------------------
+    # ------------------ Teléfono seguro ------------------
     if "telefono" not in st.session_state:
         st.session_state.telefono = ""
 
-    # Función para actualizar el teléfono filtrado
     def actualizar_telefono():
         st.session_state.telefono = filtrar_telefono(st.session_state.telefono_input)
 
@@ -106,9 +106,6 @@ def pagina_grupos():
         on_change=actualizar_telefono,
         help="Solo se permiten números y el símbolo + al inicio"
     )
-
-    # Mostrar el valor actual filtrado (opcional, para debug)
-    # st.write(f"Teléfono filtrado: {st.session_state.telefono}")
 
     grupo_asignado = st.selectbox(
         "Asignar al grupo",
@@ -127,7 +124,7 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
-    # ------------------- Botón registrar miembro - MEJORADO -------------------
+    # ------------------- Botón registrar miembro -------------------
     if st.button("Registrar miembro"):
         mensaje = st.empty()
 
@@ -152,6 +149,9 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
+                # DEBUG: Mostrar los valores que se van a insertar
+                st.write(f"DEBUG - Valores a insertar: nombre='{nombre_m}', dui='{dui}', telefono='{telefono_limpio}'")
+                
                 # INSERT usando la versión filtrada y validada del teléfono
                 cursor.execute(
                     "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
@@ -190,15 +190,17 @@ def pagina_grupos():
                 mensaje.empty()
                 # Limpiar campos después de guardar
                 st.session_state.telefono = ""
-                # Opcional: limpiar otros campos
-                # st.rerun()  # Puedes usar esto para refrescar el formulario
+                st.rerun()
 
             except Exception as e:
                 if 'conn' in locals():
                     conn.rollback()
-                mensaje.error(f"Error al registrar miembro: {e}")
-                time.sleep(3)
-                mensaje.empty()
+                # Mostrar el error completo para diagnóstico
+                error_completo = f"Error al registrar miembro: {str(e)}"
+                st.error(error_completo)
+                # También mostrar en la consola para debugging
+                print(f"ERROR MySQL: {e}")
+                time.sleep(5)
             finally:
                 if 'cursor' in locals():
                     cursor.close()
@@ -236,12 +238,13 @@ def pagina_grupos():
         except Exception as e:
             if 'conn' in locals():
                 conn.rollback()
-            mensaje.error(f"Error al eliminar grupo: {e}")
+            mensaje.error(f"Error al eliminar grupo: {str(e)}")
             time.sleep(3)
             mensaje.empty()
         finally:
             if 'cursor' in locals():
                 cursor.close()
             if 'conn' in locals():
+                conn.close()
                 conn.close()
 
