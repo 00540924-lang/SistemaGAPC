@@ -128,7 +128,7 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 4. DINERO QUE ENTRA - TODOS LOS CAMPOS DE SOLO LECTURA
+    # 4. DINERO QUE ENTRA - CON MÉTRICAS GRANDES
     # ===============================
     st.subheader("🟩 Dinero que entra")
     
@@ -139,72 +139,66 @@ def mostrar_caja(id_grupo):
     # Calcular total entrada
     total_entrada = multa_auto + ahorros_auto + actividades_auto + pagos_prestamos + otros_ingresos
     
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.text_input(
-                "Multas PAGADAS del día", 
-                value=f"${multa_auto:,.2f}", 
-                disabled=True,
-                help="Valor automático de multas pagadas"
-            )
-        
-        with col2:
-            st.text_input(
-                "Ahorros", 
-                value=f"${ahorros_auto:,.2f}", 
-                disabled=True,
-                help="Valor automático del módulo de ahorro"
-            )
-        
-        with col3:
-            st.text_input(
-                "Otras actividades", 
-                value=f"${actividades_auto:,.2f}", 
-                disabled=True,
-                help="Valor automático del módulo de ahorro"
-            )
-        
-        with col4:
-            st.text_input(
-                "Pago de préstamos", 
-                value=f"${pagos_prestamos:,.2f}", 
-                disabled=True,
-                help="Capital e interés"
-            )
+    # Primera fila de métricas
+    col1, col2, col3, col4 = st.columns(4)
     
-    # Segunda fila de campos para dinero que entra
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.text_input(
-                "Otros ingresos del grupo", 
-                value=f"${otros_ingresos:,.2f}", 
-                disabled=True
-            )
-        
-        with col2:
-            # Espacio vacío para alineación
-            st.write("")
-        
-        with col3:
-            # Espacio vacío para alineación
-            st.write("")
-        
-        with col4:
-            # Mostrar total entrada
-            st.text_input(
-                "🔹 Total dinero que entra", 
-                value=f"${total_entrada:,.2f}", 
-                disabled=True
-            )
+    with col1:
+        st.metric(
+            "Multas PAGADAS del día", 
+            f"${multa_auto:,.2f}",
+            help="Valor automático de multas pagadas"
+        )
+    
+    with col2:
+        st.metric(
+            "Ahorros", 
+            f"${ahorros_auto:,.2f}",
+            help="Valor automático del módulo de ahorro"
+        )
+    
+    with col3:
+        st.metric(
+            "Otras actividades", 
+            f"${actividades_auto:,.2f}",
+            help="Valor automático del módulo de ahorro"
+        )
+    
+    with col4:
+        st.metric(
+            "Pago de préstamos", 
+            f"${pagos_prestamos:,.2f}",
+            help="Capital e interés"
+        )
+
+    # Segunda fila de métricas
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            "Otros ingresos del grupo", 
+            f"${otros_ingresos:,.2f}"
+        )
+    
+    with col2:
+        # Espacio vacío para alineación
+        st.write("")
+    
+    with col3:
+        # Espacio vacío para alineación
+        st.write("")
+    
+    with col4:
+        # Mostrar total entrada como métrica grande
+        st.metric(
+            "🔹 Total dinero que entra", 
+            f"${total_entrada:,.2f}",
+            delta=None
+        )
 
     st.write("---")
 
     # ===============================
-    # 5. DINERO QUE SALE - TODOS LOS CAMPOS DE SOLO LECTURA
+    # 5. DINERO QUE SALE - CON MÉTRICAS GRANDES
     # ===============================
     st.subheader("🟥 Dinero que sale")
     
@@ -215,56 +209,52 @@ def mostrar_caja(id_grupo):
     # Calcular total salida
     total_salida = retiros_auto + desembolso + gastos_grupo
     
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.text_input(
-                "Retiros de ahorros", 
-                value=f"${retiros_auto:,.2f}", 
-                disabled=True,
-                help="Valor automático del módulo de ahorro"
-            )
-        
-        with col2:
-            st.text_input(
-                "Desembolso de préstamos", 
-                value=f"${desembolso:,.2f}", 
-                disabled=True
-            )
-        
-        with col3:
-            st.text_input(
-                "Otros gastos del grupo", 
-                value=f"${gastos_grupo:,.2f}", 
-                disabled=True
-            )
-        
-        with col4:
-            # Mostrar total salida
-            st.text_input(
-                "🔻 Total dinero que sale", 
-                value=f"${total_salida:,.2f}", 
-                disabled=True
-            )
+    # Fila de métricas para dinero que sale
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            "Retiros de ahorros", 
+            f"${retiros_auto:,.2f}",
+            help="Valor automático del módulo de ahorro"
+        )
+    
+    with col2:
+        st.metric(
+            "Desembolso de préstamos", 
+            f"${desembolso:,.2f}"
+        )
+    
+    with col3:
+        st.metric(
+            "Otros gastos del grupo", 
+            f"${gastos_grupo:,.2f}"
+        )
+    
+    with col4:
+        # Mostrar total salida como métrica grande
+        st.metric(
+            "🔻 Total dinero que sale", 
+            f"${total_salida:,.2f}",
+            delta=None
+        )
 
     st.write("---")
 
     # ===============================
-    # 6. SALDO NETO
+    # 6. SALDO NETO - CON MÉTRICA GRANDE
     # ===============================
     st.subheader("⚖️ Saldo del cierre")
     
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            saldo_neto = total_entrada - total_salida
-            st.text_input(
-                "Saldo neto", 
-                value=f"${saldo_neto:,.2f}", 
-                disabled=True
-            )
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        saldo_neto = total_entrada - total_salida
+        st.metric(
+            "Saldo neto", 
+            f"${saldo_neto:,.2f}",
+            delta=None
+        )
 
     # ===============================
     # 7. Guardado automático
