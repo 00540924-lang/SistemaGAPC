@@ -21,7 +21,7 @@ def usuario_existe(usuario):
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT COUNT(*) FROM Administradores WHERE usuario = %s",
+            "SELECT COUNT(*) FROM Administradores WHERE Usuario = %s",  # ✅ MAYÚSCULA
             (usuario,)
         )
         resultado = cursor.fetchone()
@@ -70,9 +70,9 @@ def pagina_credenciales():
                 conn = get_connection()
                 cursor = conn.cursor()
                 
-                # INSERTAR NUEVO USUARIO
+                # INSERTAR NUEVO USUARIO (✅ NOMBRES CORREGIDOS)
                 cursor.execute(
-                    "INSERT INTO Administradores (usuario, contraseña, rol) VALUES (%s, %s, %s)",
+                    "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
                     (usuario, contraseña, rol)
                 )
                 conn.commit()
@@ -109,7 +109,7 @@ def mostrar_usuarios_existentes():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT usuario, rol FROM Administradores ORDER BY usuario")
+        cursor.execute("SELECT Usuario, Rol FROM Administradores ORDER BY Usuario")  # ✅ MAYÚSCULAS
         usuarios = cursor.fetchall()
         
         if usuarios:
