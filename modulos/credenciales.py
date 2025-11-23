@@ -206,18 +206,48 @@ def pagina_credenciales():
     else:
         st.info("No hay usuarios registrados con los filtros seleccionados.")
     
-    # ESTADÍSTICAS
+    # ESTADÍSTICAS CENTRADAS
     st.write("---")
+    st.subheader("📊 Estadísticas")
+    
     col_stats1, col_stats2, col_stats3 = st.columns(3)
     
     with col_stats1:
         total_usuarios = len(obtener_usuarios())
-        st.metric("Total Usuarios", total_usuarios)
+        st.metric(
+            label="Total Usuarios", 
+            value=total_usuarios
+        )
     
     with col_stats2:
         usuarios_institucionales = len(obtener_usuarios("Institucional"))
-        st.metric("Usuarios Institucionales", usuarios_institucionales)
+        st.metric(
+            label="Usuarios Institucionales", 
+            value=usuarios_institucionales
+        )
     
     with col_stats3:
         usuarios_promotores = len(obtener_usuarios("Promotor"))
-        st.metric("Usuarios Promotores", usuarios_promotores)
+        st.metric(
+            label="Usuarios Promotores", 
+            value=usuarios_promotores
+        )
+    
+    # Centrar adicionalmente con CSS
+    st.markdown("""
+        <style>
+        /* Centrar los números de las métricas */
+        .stMetric {
+            text-align: center;
+        }
+        .stMetric label {
+            display: block;
+            text-align: center;
+            font-weight: bold;
+        }
+        .stMetric value {
+            display: block;
+            text-align: center;
+        }
+        </style>
+    """, unsafe_allow_html=True)
