@@ -90,15 +90,22 @@ div.stButton > button:hover {
         unsafe_allow_html=True
     )
 
-    # Estilo destacado para Desarrollador y Promotor
+    # Estilo destacado para Desarrollador, Promotor e Institucional
+    rol_l = rol.lower()
+    
     if usuario == "dark":
         st.markdown(
             "<p style='text-align:center; font-size:16px; color:#FF5722; font-weight:bold;'>Desarrollador</p>",
             unsafe_allow_html=True
         )
-    elif rol.lower() == "promotor":
+    elif rol_l == "promotor":
         st.markdown(
             "<p style='text-align:center; font-size:16px; color:#3F51B5; font-weight:bold;'>Promotor</p>",
+            unsafe_allow_html=True
+        )
+    elif rol_l == "institucional":
+        st.markdown(
+            "<p style='text-align:center; font-size:16px; color:#2E7D32; font-weight:bold;'>Institucional</p>",
             unsafe_allow_html=True
         )
     elif st.session_state.get("nombre_grupo"):
@@ -128,8 +135,6 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     #          FILTRO POR ROL
     # -----------------------------------------------------
-    rol_l = rol.lower()
-
     if usuario == "dark":
         modulos = modulos_base
     elif rol_l == "institucional":
