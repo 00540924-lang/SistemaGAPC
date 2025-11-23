@@ -3,6 +3,9 @@ import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import time
 
+# ================================
+# REGISTRAR MIEMBROS
+# ================================
 def registrar_miembros():
     # ================================
     # VALIDAR SESIÓN Y GRUPO
@@ -15,7 +18,7 @@ def registrar_miembros():
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
     # ================================
-    # TITULOS CENTRADOS
+    # TÍTULOS CENTRADOS
     # ================================
     st.markdown(f"<h2 style='text-align:center; color:#4C3A60;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align:center; color:#4C3A60;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
@@ -68,6 +71,9 @@ def registrar_miembros():
     mostrar_tabla_y_acciones(id_grupo)
 
 
+# ================================
+# MOSTRAR TABLA Y ACCIONES
+# ================================
 def mostrar_tabla_y_acciones(id_grupo):
     # 🔥 Si estamos editando, mostrar solo el formulario de edición y salir
     if "editar_miembro" in st.session_state:
@@ -155,14 +161,14 @@ def eliminar_miembro(id_miembro, id_grupo):
             (id_miembro,)
         )
 
-        # 2️⃣ Borrar otras relaciones dependientes si existen
-        # 🔹 Ajusta estas tablas según tu base de datos
+        # 2️⃣ Borrar otras relaciones dependientes
         cursor.execute(
             "DELETE FROM Asistencia WHERE id_miembro = %s",
             (id_miembro,)
         )
+
         cursor.execute(
-            "DELETE FROM Pagos WHERE id_miembro = %s",
+            "DELETE FROM Multas WHERE id_miembro = %s",
             (id_miembro,)
         )
 
@@ -172,7 +178,6 @@ def eliminar_miembro(id_miembro, id_grupo):
             (id_miembro,)
         )
 
-        # Confirmar cambios
         con.commit()
 
     finally:
