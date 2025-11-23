@@ -136,7 +136,7 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # INSERT usando la versión filtrada
+                # INSERT usando la versión filtrada de teléfono
                 cursor.execute(
                     "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                     (nombre_m, dui, st.session_state.telefono)
@@ -214,3 +214,4 @@ def pagina_grupos():
         finally:
             cursor.close()
             conn.close()
+
