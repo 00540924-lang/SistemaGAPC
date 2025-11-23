@@ -1,12 +1,8 @@
 import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
-import time
 
 def registrar_miembros():
-    # ================================
-    # VALIDAR SESIÓN Y GRUPO
-    # ================================
     if "id_grupo" not in st.session_state or st.session_state["id_grupo"] is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
         return
@@ -14,15 +10,12 @@ def registrar_miembros():
     id_grupo = st.session_state["id_grupo"]
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo desconocido")
 
-    # ================================
-    # TITULOS CENTRADOS
-    # ================================
     st.markdown(f"<h2 style='text-align:center; color:#4C3A60;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align:center; color:#4C3A60;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
-    # ================================
-    # FORMULARIO NUEVO MIEMBRO SOLO SI NO ESTAMOS EDITANDO
-    # ================================
+    # ==========================
+    # FORMULARIO NUEVO MIEMBRO
+    # ==========================
     if "editar_miembro" not in st.session_state:
         with st.form("form_miembro"):
             nombre = st.text_input("Nombre completo")
@@ -40,39 +33,25 @@ def registrar_miembros():
                 )
                 con.commit()
                 id_miembro = cursor.lastrowid
-
                 cursor.execute(
                     "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                     (id_grupo, id_miembro)
                 )
                 con.commit()
-
                 st.success("Miembro registrado correctamente ✔️")
-
-                # ⚡ Marca para recargar la página después del form
-                st.session_state["recargar_tabla"] = True
-
             finally:
                 cursor.close()
                 con.close()
 
-    # ================================
-    # Recarga segura fuera del form
-    # ================================
-    if st.session_state.get("recargar_tabla"):
-        st.session_state["recargar_tabla"] = False
-        st.experimental_rerun()
-
-    # ------------------ BOTÓN REGRESAR ------------------
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
-        st.experimental_rerun()
+
     st.write("---")
 
-    # ================================
-    # Mostrar tabla y acciones
-    # ================================
+    # ==========================
+    # Mostrar tabla de miembros
+    # ==========================
     mostrar_tabla_y_acciones(id_grupo)
 
 
@@ -93,20 +72,14 @@ def mostrar_tabla_y_acciones(id_grupo):
         """, (id_grupo,))
         resultados = cursor.fetchall()
         df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
-
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
             return
 
         st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
-
         df_display = df.reset_index(drop=True)
-        df_display.insert(0, "No.", range(1, len(df_display) + 1))
-
-        st.dataframe(
-            df_display[["No.", "Nombre", "DUI", "Teléfono"]].style.hide(axis="index"),
-            use_container_width=True
-        )
+        df_display.insert(0, "No.", range(1, len(df_display)+1))
+        st.dataframe(df_display[["No.", "Nombre", "DUI", "Teléfono"]].style.hide(axis="index"), use_container_width=True)
 
         miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for _, row in df.iterrows()}
         seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
@@ -117,14 +90,11 @@ def mostrar_tabla_y_acciones(id_grupo):
             with col1:
                 if st.button("✏️ Editar Miembro"):
                     st.session_state["editar_miembro"] = miembro
-                    st.experimental_rerun()
             with col2:
                 if st.button("🗑️ Eliminar Miembro"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
-                    time.sleep(1)
-                    st.experimental_rerun()
-
+                    # Después de eliminar, solo actualizar la tabla recargando la página al siguiente rerun natural
     finally:
         cursor.close()
         con.close()
@@ -139,7 +109,6 @@ def eliminar_miembro(id_miembro, id_grupo):
             (id_miembro, id_grupo)
         )
         con.commit()
-
         cursor.execute(
             "DELETE FROM Miembros WHERE id_miembro = %s",
             (id_miembro,)
