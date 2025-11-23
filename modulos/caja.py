@@ -14,6 +14,7 @@ def obtener_datos_ahorro_automaticos(id_grupo, fecha):
     if not conn:
         return 0.0, 0.0, 0.0
     
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
         
@@ -41,8 +42,9 @@ def obtener_datos_ahorro_automaticos(id_grupo, fecha):
         st.error(f"Error al obtener datos automáticos de ahorro: {e}")
         return 0.0, 0.0, 0.0
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def obtener_multas_automaticas(id_grupo, fecha):
@@ -51,6 +53,7 @@ def obtener_multas_automaticas(id_grupo, fecha):
     if not conn:
         return 0.0
     
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -70,8 +73,9 @@ def obtener_multas_automaticas(id_grupo, fecha):
         st.error(f"Error al obtener multas automáticas: {e}")
         return 0.0
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def verificar_registro_existente(id_grupo, fecha):
@@ -80,6 +84,7 @@ def verificar_registro_existente(id_grupo, fecha):
     if not conn:
         return None
     
+    cursor = None
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -94,8 +99,9 @@ def verificar_registro_existente(id_grupo, fecha):
         st.error(f"Error al verificar registro existente: {e}")
         return None
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def actualizar_registro_caja(id_caja, datos):
@@ -104,6 +110,7 @@ def actualizar_registro_caja(id_caja, datos):
     if not conn:
         return False, "Error de conexión"
     
+    cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -140,8 +147,9 @@ def actualizar_registro_caja(id_caja, datos):
     except Exception as e:
         return False, f"Error al actualizar registro: {e}"
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def crear_registro_caja(datos):
@@ -150,6 +158,7 @@ def crear_registro_caja(datos):
     if not conn:
         return False, "Error de conexión"
     
+    cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -181,8 +190,9 @@ def crear_registro_caja(datos):
     except Exception as e:
         return False, f"Error al crear registro: {e}"
     finally:
-        if conn.is_connected():
+        if cursor:
             cursor.close()
+        if conn and conn.is_connected():
             conn.close()
 
 def mostrar_caja(id_grupo):
@@ -208,13 +218,12 @@ def mostrar_caja(id_grupo):
     st.title("💰 Formulario de Caja")
 
     # ===============================
-    # 1. Conexión BD
+    # 1. Conexión BD (solo para el historial)
     # ===============================
     conn = obtener_conexion()
     if not conn:
         st.error("❌ Error al conectar a la base de datos.")
         return
-    cursor = conn.cursor(dictionary=True)
 
     # ===============================
     # 2. Fecha
@@ -414,73 +423,82 @@ def mostrar_caja(id_grupo):
         fecha_fin = None
         st.session_state["limpiar_filtros"] = False
 
-    query = "SELECT fecha, total_entrada, total_salida FROM Caja WHERE id_grupo = %s"
-    params = [id_grupo]
+    cursor = None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT fecha, total_entrada, total_salida FROM Caja WHERE id_grupo = %s"
+        params = [id_grupo]
 
-    if fecha_inicio and fecha_fin:
-        query += " AND fecha BETWEEN %s AND %s"
-        params.extend([fecha_inicio, fecha_fin])
-    elif fecha_inicio:
-        query += " AND fecha >= %s"
-        params.append(fecha_inicio)
-    elif fecha_fin:
-        query += " AND fecha <= %s"
-        params.append(fecha_fin)
+        if fecha_inicio and fecha_fin:
+            query += " AND fecha BETWEEN %s AND %s"
+            params.extend([fecha_inicio, fecha_fin])
+        elif fecha_inicio:
+            query += " AND fecha >= %s"
+            params.append(fecha_inicio)
+        elif fecha_fin:
+            query += " AND fecha <= %s"
+            params.append(fecha_fin)
 
-    query += " ORDER BY fecha DESC"
-    cursor.execute(query, tuple(params))
-    registros = cursor.fetchall()
+        query += " ORDER BY fecha DESC"
+        cursor.execute(query, tuple(params))
+        registros = cursor.fetchall()
 
-    if registros:
-        df = pd.DataFrame(registros)
-        df['fecha'] = pd.to_datetime(df['fecha'])
-        df = df.sort_values('fecha').reset_index(drop=True)
+        if registros:
+            df = pd.DataFrame(registros)
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            df = df.sort_values('fecha').reset_index(drop=True)
 
-        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
-        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
+            df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
+            df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        width = 0.35
-        x = range(len(df))
+            fig, ax = plt.subplots(figsize=(10, 5))
+            width = 0.35
+            x = range(len(df))
 
-        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
-        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
+            ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
+            ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
 
-        max_entrada = df['total_entrada'].max()
-        max_salida = df['total_salida'].max()
+            max_entrada = df['total_entrada'].max()
+            max_salida = df['total_salida'].max()
 
-        for i, row in df.iterrows():
-            entrada_val = float(row['total_entrada'])
-            salida_val = float(row['total_salida'])
-            ax.text(i - width/2, entrada_val + max_entrada*0.01,
-                    f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-            ax.text(i + width/2, salida_val + max_salida*0.01,
-                    f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+            for i, row in df.iterrows():
+                entrada_val = float(row['total_entrada'])
+                salida_val = float(row['total_salida'])
+                ax.text(i - width/2, entrada_val + max_entrada*0.01,
+                        f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+                ax.text(i + width/2, salida_val + max_salida*0.01,
+                        f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
-        ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Monto", fontsize=12)
-        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-        ax.set_xticks(x)
-        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
-        ax.grid(axis='y', linestyle='--', alpha=0.6)
-        ax.set_axisbelow(True)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.legend()
+            ax.set_xlabel("Fecha", fontsize=12)
+            ax.set_ylabel("Monto", fontsize=12)
+            ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+            ax.set_xticks(x)
+            ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
+            ax.grid(axis='y', linestyle='--', alpha=0.6)
+            ax.set_axisbelow(True)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.legend()
 
-        saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
-        st.pyplot(fig)
-        st.markdown(
-            f"""
-            <div style="text-align:left; font-size:16px; line-height:1.6;">
-                <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
-                <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
-                <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:,.2f}</strong></div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-    else:
-        st.info("No hay registros para mostrar.")
+            saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
+            st.pyplot(fig)
+            st.markdown(
+                f"""
+                <div style="text-align:left; font-size:16px; line-height:1.6;">
+                    <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
+                    <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
+                    <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:,.2f}</strong></div>
+                </div>
+                """, unsafe_allow_html=True
+            )
+        else:
+            st.info("No hay registros para mostrar.")
+
+    except Exception as e:
+        st.error(f"Error al obtener historial: {e}")
+    finally:
+        if cursor:
+            cursor.close()
 
     # ===============================
     # 9. Botón regresar
@@ -493,5 +511,5 @@ def mostrar_caja(id_grupo):
     # ===============================
     # Cerrar conexiones
     # ===============================
-    cursor.close()
-    conn.close()
+    if conn and conn.is_connected():
+        conn.close()
