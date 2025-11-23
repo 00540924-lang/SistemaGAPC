@@ -110,11 +110,16 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
+    # VARIABLE PARA CONTROLAR MENSAJES DE ERROR
+    mostrar_error_telefono = False
+    mensaje_telefono = ""
+
     # VALIDACIÓN DEL TELÉFONO (se ejecuta siempre)
     if telefono:  # Solo validar si hay contenido
         if not re.match(r'^[0-9]*$', telefono):
             st.session_state.telefono_valido = False
-            st.error("❌ Solo se permiten números en el campo de teléfono")
+            mostrar_error_telefono = True
+            mensaje_telefono = "❌ Solo se permiten números en el campo de teléfono"
         else:
             st.session_state.telefono_valido = True
             st.session_state.telefono_value = re.sub(r'[^0-9]', '', telefono)
@@ -123,17 +128,30 @@ def pagina_grupos():
     if st.button("Registrar miembro"):
         mensaje = st.empty()
         
+        # Reiniciar flags de error
+        error_nombre = False
+        error_telefono = False
+        error_admin = False
+        
+        mensajes_error = []
+        
         # VALIDACIONES ANTES DE GUARDAR
         if not nombre_m.strip():
-            mensaje.error("El nombre del miembro es obligatorio.")
-            time.sleep(3)
-            mensaje.empty()
-        elif not st.session_state.telefono_valido:
-            mensaje.error("❌ Por favor corrija el campo de teléfono (solo números permitidos)")
-            time.sleep(3)
-            mensaje.empty()
-        elif es_admin and (not usuario_admin or not contraseña_admin):
-            mensaje.warning("Debe ingresar usuario y contraseña para administrador.")
+            error_nombre = True
+            mensajes_error.append("El nombre del miembro es obligatorio.")
+        
+        if not st.session_state.telefono_valido:
+            error_telefono = True
+            mensajes_error.append("Solo se permiten números en el campo de teléfono")
+        
+        if es_admin and (not usuario_admin or not contraseña_admin):
+            error_admin = True
+            mensajes_error.append("Debe ingresar usuario y contraseña para administrador.")
+        
+        # Si hay errores, mostrarlos todos juntos
+        if mensajes_error:
+            mensaje_error_final = "❌ " + " | ".join(mensajes_error)
+            mensaje.error(mensaje_error_final)
             time.sleep(3)
             mensaje.empty()
         else:
@@ -191,6 +209,10 @@ def pagina_grupos():
             finally:
                 cursor.close()
                 conn.close()
+
+    # MOSTRAR MENSAJE DE ERROR DEL TELÉFONO (si aplica)
+    if mostrar_error_telefono:
+        st.error(mensaje_telefono)
 
     st.write("---")
 
