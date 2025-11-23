@@ -45,14 +45,13 @@ def mostrar_caja(id_grupo):
     # 2.1 Cargar multas automáticas
     # ===============================
     cursor.execute("""
-        SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
-        FROM Multas MT
-        JOIN Miembros M ON MT.id_miembro = M.id_miembro
-        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-        WHERE GM.id_grupo = %s
-        AND MT.fecha = %s
-        AND MT.pagada = 1
-    """, (id_grupo, fecha))
+    SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+    FROM Multas MT
+    JOIN Miembros M ON MT.id_miembro = M.id_miembro
+    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+    WHERE GM.id_grupo = %s
+    AND MT.fecha = %s
+""", (id_grupo, fecha))
 
     resultado_multa = cursor.fetchone()
     multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
