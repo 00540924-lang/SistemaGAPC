@@ -79,13 +79,13 @@ def pagina_grupos():
 
     # Campos del admin dinámicos
     if es_admin:
+        usuario_admin = st.text_input("Usuario (administrador)")
+        contraseña_admin = st.text_input("Contraseña (administrador)", type="password")
         usuario_admin = st.text_input("Usuario")
         contraseña_admin = st.text_input("Contraseña", type="password")
         rol_admin = st.selectbox(
             "Rol del administrador",
             options=["Institucional", "Promotor", "Miembro"],
-            "Rol",
-            options=["Miembro"],
             index=0
         )
     else:
