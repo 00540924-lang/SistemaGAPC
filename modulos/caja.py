@@ -111,21 +111,10 @@ def mostrar_caja(id_grupo):
     fecha = st.date_input("📅 Fecha de registro", date.today())
     
     # ===============================
-    # 3. DATOS AUTOMÁTICOS DEL MÓDULO DE AHORRO
+    # 3. OBTENER DATOS AUTOMÁTICOS (pero no mostrarlos)
     # ===============================
     ahorros_auto, actividades_auto, retiros_auto = obtener_datos_ahorro_automaticos(id_grupo, fecha)
     multa_auto = obtener_multas_automaticas(id_grupo, fecha)
-    
-    st.info(f"📊 **Datos automáticos del módulo de ahorro para {fecha}:**")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Ahorros Automáticos", f"${ahorros_auto:,.2f}")
-    with col2:
-        st.metric("Actividades Automáticas", f"${actividades_auto:,.2f}")
-    with col3:
-        st.metric("Retiros Automáticos", f"${retiros_auto:,.2f}")
-
-    st.write("---")
 
     # ===============================
     # 4. DINERO QUE ENTRA - CON MÉTRICAS GRANDES
@@ -358,7 +347,7 @@ def mostrar_caja(id_grupo):
             <div style="text-align:left; font-size:16px; line-height:1.6;">
                 <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
                 <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
-                <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:.2f}</strong></div>
+                <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:,.2f}</strong></div>
             </div>
             """, unsafe_allow_html=True
         )
