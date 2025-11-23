@@ -53,6 +53,7 @@ def multas_modulo():
         miembro_seleccionado = st.selectbox("Selecciona un miembro", options=list(miembro_dict.keys()))
         fecha = st.date_input("Fecha de la multa")
         monto = st.number_input("Monto a pagar", min_value=0.0, step=0.01)
+
         if st.button("💾 Registrar Multa"):
             try:
                 con = obtener_conexion()
@@ -69,6 +70,12 @@ def multas_modulo():
             finally:
                 cursor.close()
                 con.close()
+
+        # ------------------ BOTÓN REGRESAR ------------------
+        st.write("---")
+        if st.button("⬅️ Regresar al Menú (desde registro)"):
+            st.session_state["page"] = "menu"
+            st.rerun()
 
     st.write("---")
 
@@ -185,7 +192,7 @@ def mostrar_multas_pendientes(id_grupo):
 
     # ------------------ BOTÓN REGRESAR ------------------
     st.write("---")
-    if st.button("⬅️ Regresar al Menú", key="regresar_menu"):
+    if st.button("⬅️ Regresar al Menú", key="regresar_menu_pendientes"):
         st.session_state["page"] = "menu"
         st.rerun()
 
