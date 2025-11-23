@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
-from conexion import obtener_conexion
+from conexion.py import obtener_conexion
 
 
 # ------------------------------------------------------------
