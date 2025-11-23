@@ -13,6 +13,29 @@ def get_connection():
     )
 
 # ==========================
+# FUNCIÓN PARA VERIFICAR USUARIO EXISTENTE
+# ==========================
+def usuario_existe(usuario):
+    """Verifica si el usuario ya existe en la base de datos"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM Administradores WHERE usuario = %s",
+            (usuario,)
+        )
+        resultado = cursor.fetchone()
+        return resultado[0] > 0
+    except Exception as e:
+        st.error(f"Error al verificar usuario: {e}")
+        return True  # Por seguridad, asumimos que existe si hay error
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+# ==========================
 # MÓDULO DE CREDENCIALES
 # ==========================
 def pagina_credenciales():
@@ -27,33 +50,77 @@ def pagina_credenciales():
     st.subheader("➕ Registrar nueva credencial")
 
     # FORMULARIO
-    usuario = st.text_input("Usuario")
+    usuario = st.text_input("Usuario").strip()
     contraseña = st.text_input("Contraseña", type="password")
     rol = st.selectbox("Rol", options=["Institucional", "Promotor"])
 
     # BOTÓN PARA GUARDAR
     if st.button("Guardar credencial"):
-        if not usuario.strip() or not contraseña.strip():
-            st.error("Usuario y contraseña son obligatorios.")
+        # VALIDACIONES
+        if not usuario:
+            st.error("El usuario es obligatorio.")
+        elif not contraseña.strip():
+            st.error("La contraseña es obligatoria.")
+        elif len(contraseña) < 4:
+            st.error("La contraseña debe tener al menos 4 caracteres.")
+        elif usuario_existe(usuario):
+            st.error("❌ El usuario ya existe. Por favor, elige otro nombre de usuario.")
         else:
             try:
                 conn = get_connection()
                 cursor = conn.cursor()
+                
+                # INSERTAR NUEVO USUARIO
                 cursor.execute(
                     "INSERT INTO Administradores (usuario, contraseña, rol) VALUES (%s, %s, %s)",
-                    (usuario, contraseña, rol)  # <-- guardar contraseña tal cual
+                    (usuario, contraseña, rol)
                 )
                 conn.commit()
-                st.success("Credencial registrada correctamente.")
                 
-                # Mantener en la misma página
-                st.session_state["page"] = "credenciales"
-                st.stop()
-
-            except mysql.connector.IntegrityError:
-                st.error("El usuario ya existe. Elige otro.")
+                st.success("✅ Credencial registrada correctamente.")
+                
+                # Limpiar formulario
+                st.session_state["credencial_form_cleared"] = True
+                
+            except mysql.connector.IntegrityError as e:
+                # Esta excepción captura violaciones de UNIQUE KEY/PRIMARY KEY
+                if "Duplicate entry" in str(e):
+                    st.error("❌ Error: El usuario ya existe en la base de datos.")
+                else:
+                    st.error(f"❌ Error de integridad: {e}")
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"❌ Error inesperado: {e}")
             finally:
-                cursor.close()
-                conn.close()
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close()
+
+    # Limpiar campos después de guardar exitosamente
+    if st.session_state.get("credencial_form_cleared", False):
+        st.session_state["credencial_form_cleared"] = False
+        st.rerun()
+
+# ==========================
+# FUNCIÓN ADICIONAL: LISTAR USUARIOS EXISTENTES
+# ==========================
+def mostrar_usuarios_existentes():
+    """Función opcional para mostrar usuarios existentes (puedes agregarla al menú)"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT usuario, rol FROM Administradores ORDER BY usuario")
+        usuarios = cursor.fetchall()
+        
+        if usuarios:
+            st.subheader("👥 Usuarios existentes")
+            for usuario, rol in usuarios:
+                st.write(f"- **{usuario}** ({rol})")
+        else:
+            st.info("No hay usuarios registrados.")
+            
+    except Exception as e:
+        st.error(f"Error al cargar usuarios: {e}")
+    finally:
+        cursor.close()
+        conn.close()
