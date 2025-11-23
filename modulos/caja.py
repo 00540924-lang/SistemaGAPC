@@ -91,26 +91,30 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         
-        # Obtener pagos de préstamos
+        # Obtener PAGOS de préstamos (dinero que ENTRA a la caja)
         cursor.execute("""
-            SELECT COALESCE(SUM(monto_pagado), 0) as total_pagos
-            FROM pagos_prestamos PP
+            SELECT COALESCE(SUM(PP.capital), 0) as total_pagos
+            FROM prestamo_pagos PP
             JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
-            WHERE P.id_grupo = %s 
-            AND PP.fecha_pago BETWEEN %s AND %s
-            AND PP.estado = 'pagado'
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND PP.fecha BETWEEN %s AND %s
+            AND PP.estado = 'Pagado'
         """, (id_grupo, fecha_inicio, fecha_fin))
         
         resultado_pagos = cursor.fetchone()
         total_pagos = float(resultado_pagos['total_pagos']) if resultado_pagos else 0.0
         
-        # Obtener desembolsos de préstamos
+        # Obtener DESEMBOLSOS de préstamos (dinero que SALE de la caja)
         cursor.execute("""
-            SELECT COALESCE(SUM(monto_aprobado), 0) as total_desembolsos
-            FROM prestamos 
-            WHERE id_grupo = %s 
-            AND fecha_aprobacion BETWEEN %s AND %s
-            AND estado = 'aprobado'
+            SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND P.fecha_desembolso BETWEEN %s AND %s
+            AND P.estado IN ('Activo', 'Pendiente')
         """, (id_grupo, fecha_inicio, fecha_fin))
         
         resultado_desembolsos = cursor.fetchone()
@@ -207,20 +211,24 @@ def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
                 ), 0) as retiros,
                 
                 COALESCE((
-                    SELECT SUM(PP.monto_pagado)
-                    FROM pagos_prestamos PP
+                    SELECT SUM(PP.capital)
+                    FROM prestamo_pagos PP
                     JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
-                    WHERE P.id_grupo = %s 
-                    AND PP.fecha_pago = dias.fecha
-                    AND PP.estado = 'pagado'
+                    JOIN Miembros M ON P.id_miembro = M.id_miembro
+                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                    WHERE GM.id_grupo = %s 
+                    AND PP.fecha = dias.fecha
+                    AND PP.estado = 'Pagado'
                 ), 0) as pago_prestamos,
                 
                 COALESCE((
-                    SELECT SUM(P.monto_aprobado)
+                    SELECT SUM(P.monto)
                     FROM prestamos P
-                    WHERE P.id_grupo = %s 
-                    AND P.fecha_aprobacion = dias.fecha
-                    AND P.estado = 'aprobado'
+                    JOIN Miembros M ON P.id_miembro = M.id_miembro
+                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                    WHERE GM.id_grupo = %s 
+                    AND P.fecha_desembolso = dias.fecha
+                    AND P.estado IN ('Activo', 'Pendiente')
                 ), 0) as desembolso
                 
             FROM (
@@ -230,9 +238,9 @@ def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
                     UNION 
                     SELECT fecha_registro as fecha FROM ahorro_final
                     UNION 
-                    SELECT fecha_pago as fecha FROM pagos_prestamos
+                    SELECT fecha as fecha FROM prestamo_pagos
                     UNION 
-                    SELECT fecha_aprobacion as fecha FROM prestamos
+                    SELECT fecha_desembolso as fecha FROM prestamos
                 ) todas_fechas
                 WHERE fecha BETWEEN %s AND %s
             ) dias
