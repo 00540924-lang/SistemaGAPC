@@ -79,6 +79,12 @@ def prestamos_modulo():
         estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
         enviar = st.form_submit_button("💾 Guardar Préstamo")
+         # BOTÓN REGRESAR - FUERA DEL FORMULARIO
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
 
     if enviar:
         try:
