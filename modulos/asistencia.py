@@ -1,39 +1,45 @@
 import streamlit as st
-import mysql.connector
-from datetime import date
+from datetime import datetime
 from modulos.config.conexion import obtener_conexion
 import pandas as pd
 
-def mostrar_asistencia():
-    # ===============================
-    # 0. Verificar grupo del admin
-    # ===============================
-    id_grupo = st.session_state.get("id_grupo", None)
-    if not id_grupo:
-        st.error("❌ No se detectó un grupo asignado. Inicie sesión nuevamente.")
+def mostrar_reuniones(id_grupo):
+    
+    rol = st.session_state.get("rol", "").lower()
+    if rol != "miembro":
+        st.error("❌ Solo los miembros pueden acceder a este módulo.")
         return
 
-    st.title("📋 Registro de Asistencia")
+    if not id_grupo:
+        st.error("❌ No se encontró el grupo del usuario. Contacte al administrador.")
+        return
 
-    # ===============================
-    # 1. Conexión a la BD
-    # ===============================
+    nombre_grupo = st.session_state.get("nombre_grupo", "Sin Grupo")
+
+    st.markdown(
+        f"<h1 style='text-align:center; color:#4C3A60;'>📋 Registro de reuniones grupo {nombre_grupo}</h1>",
+        unsafe_allow_html=True
+    )
+
     conn = obtener_conexion()
     if not conn:
-        st.error("❌ No se pudo conectar a la base de datos.")
+        st.error("❌ Error al conectar a la base de datos.")
         return
 
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # 2. Seleccionar fecha
+    # Datos de la reunión
     # ===============================
-    fecha = st.date_input("📅 Seleccione la fecha de asistencia", date.today())
-    st.write("---")
+    st.subheader("Información de la reunión")
+    fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
+    hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
     # ===============================
-    # 3. Obtener miembros del grupo
+    # ASISTENCIA INTEGRADA
     # ===============================
+    st.subheader("🧑‍🤝‍🧑 Asistencia de miembros del grupo")
+
     cursor.execute("""
         SELECT M.id_miembro, M.Nombre
         FROM Miembros M
@@ -41,29 +47,19 @@ def mostrar_asistencia():
         WHERE GM.id_grupo = %s
         ORDER BY M.Nombre
     """, (id_grupo,))
-
     miembros = cursor.fetchall()
+
     if not miembros:
         st.warning("⚠️ No hay miembros registrados en este grupo.")
+        cursor.close()
+        conn.close()
         return
 
-    # ===============================
-    # 3.1 Obtener nombre del grupo
-    # ===============================
-    cursor.execute("SELECT Nombre_grupo FROM Grupos WHERE id_grupo = %s", (id_grupo,))
-    grupo_nombre = cursor.fetchone()
-    grupo_nombre = grupo_nombre["Nombre_grupo"] if grupo_nombre else f"ID {id_grupo}"
-
-    # ===============================
-    # 4. Crear DataFrame editable
-    # ===============================
     df_asistencia = pd.DataFrame(miembros)
     df_asistencia = df_asistencia.rename(columns={"Nombre": "Miembro"})
-    df_asistencia["Asistencia"] = "Presente"  # valor por defecto
+    df_asistencia["Asistencia"] = "Presente"
 
-    st.subheader(f"🧑‍🤝‍🧑 Miembros del grupo {grupo_nombre}")
-
-    tabla_editada = st.data_editor(
+    tabla_asistencia = st.data_editor(
         df_asistencia,
         column_config={
             "Asistencia": st.column_config.SelectboxColumn(
@@ -71,68 +67,165 @@ def mostrar_asistencia():
                 options=["Presente", "Ausente"],
                 required=True
             ),
-            "id_miembro": None  # Oculta columna id_miembro
+            "id_miembro": None
         },
         hide_index=True,
         use_container_width=True,
     )
 
-    st.write("---")
+    # ===============================
+    # Agenda de la reunión
+    # ===============================
+    st.subheader("📝 Agenda de actividades")
+
+    secciones = {
+        "Empezar la reunión": [
+            "La presidenta abre formalmente la reunión.",
+            "La secretaria registra asistencia y multas.",
+            "La secretaria lee las reglas internas."
+        ],
+        "Dinero que entra": [
+            "La tesorera cuenta el dinero de la caja.",
+            "Las socias depositan ahorros.",
+            "Las socias depositan dinero de otras actividades.",
+            "La secretaria calcula el total de dinero que entra.",
+            "La tesorera verifica el monto total."
+        ],
+        "Dinero que sale": [
+            "Las socias solicitan y evalúan préstamos.",
+            "La tesorera desembolsa préstamos aprobados.",
+            "La secretaria registra desembolsos e intereses.",
+            "La secretaria calcula total de dinero que sale.",
+            "La tesorera verifica el dinero y anuncia el saldo.",
+            "La presidenta cierra la caja y entrega llaves."
+        ],
+        "Cerrar la reunión": [
+            "La presidenta pregunta si hay asuntos pendientes.",
+            "La presidenta cierra formalmente la reunión."
+        ]
+    }
+
+    colores = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
+    agenda_completa = ""
+
+    for i, (titulo, items) in enumerate(secciones.items()):
+        st.markdown(
+            f"""
+            <div style='background-color:{colores[i]}; padding:15px; border-radius:12px; 
+                        margin-bottom:12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>
+                <h4 style='color:#4C3A60;'>{titulo}</h4>
+                <ul>
+                    {''.join([f"<li>{item}</li>" for item in items])}
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        agenda_completa += f"**{titulo.upper()}**\n" + "\n".join(f"- {x}" for x in items) + "\n\n"
 
     # ===============================
-    # 5. Guardar asistencia
+    # Observaciones
     # ===============================
-    if st.button("💾 Guardar asistencia"):
-        for _, row in tabla_editada.iterrows():
+    st.subheader("🗒 Observaciones")
+    observaciones = st.text_area("Escriba aquí las observaciones de la reunión", height=150)
+
+    # ===============================
+    # GUARDAR TODO (Reunión + Asistencia)
+    # ===============================
+    if st.button("💾 Guardar reunión"):
+        
+        cursor.execute("""
+            INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_grupo, fecha, hora, agenda_completa, observaciones))
+        conn.commit()
+
+        for _, row in tabla_asistencia.iterrows():
             cursor.execute("""
                 INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
                 VALUES (%s, %s, %s, %s)
             """, (id_grupo, fecha, row["id_miembro"], row["Asistencia"]))
+
         conn.commit()
-        st.success("✅ Asistencia registrada con éxito")
+        st.success("✅ Reunión y asistencia guardadas con éxito.")
+        st.rerun()
 
     # ===============================
-    # 6. Historial con filtro por fecha
+    # Historial de observaciones
     # ===============================
-    st.write("---")
-    st.subheader("📚 Historial de Asistencias")
+    st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
 
-    # Selector de fecha para filtrar
-    fecha_filtro = st.date_input("📅 Filtrar por fecha", value=None, key="filtro_historial")
+    with st.expander("Filtrar por fecha"):
+        fecha_seleccionada = st.date_input("Seleccione la fecha", value=datetime.now().date())
 
-    # Construir la consulta según si se selecciona fecha
-    if fecha_filtro:
-        cursor.execute("""
-            SELECT A.fecha, M.Nombre, A.asistencia
-            FROM Asistencia A
-            JOIN Miembros M ON A.id_miembro = M.id_miembro
-            WHERE A.id_grupo = %s AND A.fecha = %s
-            ORDER BY A.fecha DESC, M.Nombre
-        """, (id_grupo, fecha_filtro))
-    else:
-        cursor.execute("""
-            SELECT A.fecha, M.Nombre, A.asistencia
-            FROM Asistencia A
-            JOIN Miembros M ON A.id_miembro = M.id_miembro
-            WHERE A.id_grupo = %s
-            ORDER BY A.fecha DESC, M.Nombre
-        """, (id_grupo,))
+    cursor.execute("""
+        SELECT id, fecha, observaciones
+        FROM Reuniones
+        WHERE id_grupo = %s AND fecha = %s
+        ORDER BY fecha DESC
+    """, (id_grupo, fecha_seleccionada))
 
     registros = cursor.fetchall()
 
     if registros:
-        st.dataframe(registros, use_container_width=True)
+
+        colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
+
+        for i, r in enumerate(registros):
+            color = colores_tarjeta[i % 4]
+            fecha_str = r["fecha"].strftime("%d/%m/%Y")
+
+            st.markdown(
+                f"""
+                <div style="
+                    background-color:{color};
+                    padding:18px;
+                    border-radius:12px;
+                    margin-bottom:18px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+                ">
+                    <strong>📅 Fecha:</strong> {fecha_str}<br><br>
+                    <strong>🗒 Observaciones:</strong><br>
+                    <p style="margin-top:5px; white-space:pre-wrap;">{r['observaciones']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            if st.button("🗑 Borrar observación", key=f"del_{r['id']}"):
+                cursor.execute("DELETE FROM Reuniones WHERE id=%s", (r["id"],))
+                conn.commit()
+                st.success("❌ Observación eliminada.")
+                st.rerun()
     else:
-        st.info("No hay registros para la fecha seleccionada.")
+        st.info("No hay observaciones registradas para esta fecha.")
 
     # ===============================
-    # 7. Botón regresar
+    # Historial de Asistencia (en tabla)
     # ===============================
-    st.write("---")
+    st.markdown("<br><h2 style='color:#4C3A60;'>📋 Historial de asistencia</h2>", unsafe_allow_html=True)
+
+    cursor.execute("""
+        SELECT A.fecha, M.Nombre, A.asistencia
+        FROM Asistencia A
+        JOIN Miembros M ON A.id_miembro = M.id_miembro
+        WHERE A.id_grupo = %s AND A.fecha = %s
+        ORDER BY M.Nombre
+    """, (id_grupo, fecha_seleccionada))
+
+    asistencias = cursor.fetchall()
+
+    if asistencias:
+        st.dataframe(asistencias, use_container_width=True)
+    else:
+        st.info("No hay asistencia registrada para esta fecha.")
+
+    # ===============================
+    # Regresar
+    # ===============================
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
 
-    # Cerrar conexión
     cursor.close()
     conn.close()
