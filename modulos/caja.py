@@ -89,7 +89,7 @@ def mostrar_caja(id_grupo):
     st.info(f"📊 **Datos automáticos del módulo de ahorro para {fecha}:**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Ahorros Automáticos", f"${ahoros_auto:,.2f}")
+        st.metric("Ahorros Automáticos", f"${ahorros_auto:,.2f}")  # CORREGIDO: ahorros_auto
     with col2:
         st.metric("Actividades Automáticas", f"${actividades_auto:,.2f}")
     with col3:
@@ -128,7 +128,7 @@ def mostrar_caja(id_grupo):
         "Ahorros", 
         min_value=0.0, 
         step=0.01, 
-        value=ahorros_auto,
+        value=ahorros_auto,  # CORREGIDO: ahorros_auto
         help=f"Valor automático: ${ahorros_auto:,.2f} (puede modificar si es necesario)"
     )
     
