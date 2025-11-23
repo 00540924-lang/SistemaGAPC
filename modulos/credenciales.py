@@ -62,24 +62,53 @@ def eliminar_usuario(usuario):
 # FUNCIÓN PARA OBTENER USUARIOS
 # ==========================
 def obtener_usuarios(filtro_rol=None):
-    """Obtiene todos los usuarios, opcionalmente filtrados por rol"""
+    """Obtiene todos los usuarios, opcionalmente filtrados por rol (excluye al desarrollador)"""
     try:
         conn = get_connection()
         cursor = conn.cursor()
         
         if filtro_rol and filtro_rol != "Todos":
             cursor.execute(
-                "SELECT Usuario, Rol FROM Administradores WHERE Rol = %s ORDER BY Usuario",
+                "SELECT Usuario, Rol FROM Administradores WHERE Rol = %s AND Usuario != 'Dark' ORDER BY Usuario",
                 (filtro_rol,)
             )
         else:
-            cursor.execute("SELECT Usuario, Rol FROM Administradores ORDER BY Usuario")
+            cursor.execute("SELECT Usuario, Rol FROM Administradores WHERE Usuario != 'Dark' ORDER BY Usuario")
             
         usuarios = cursor.fetchall()
         return usuarios
     except Exception as e:
         st.error(f"Error al cargar usuarios: {e}")
         return []
+    finally:
+        cursor.close()
+        conn.close()
+
+# ==========================
+# FUNCIÓN PARA OBTENER ESTADÍSTICAS (incluye todos los usuarios)
+# ==========================
+def obtener_estadisticas():
+    """Obtiene estadísticas incluyendo todos los usuarios"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Total de usuarios (excluyendo Dark)
+        cursor.execute("SELECT COUNT(*) FROM Administradores WHERE Usuario != 'Dark'")
+        total_usuarios = cursor.fetchone()[0]
+        
+        # Usuarios institucionales (excluyendo Dark)
+        cursor.execute("SELECT COUNT(*) FROM Administradores WHERE Rol = 'Institucional' AND Usuario != 'Dark'")
+        usuarios_institucionales = cursor.fetchone()[0]
+        
+        # Usuarios promotores (excluyendo Dark)
+        cursor.execute("SELECT COUNT(*) FROM Administradores WHERE Rol = 'Promotor' AND Usuario != 'Dark'")
+        usuarios_promotores = cursor.fetchone()[0]
+        
+        return total_usuarios, usuarios_institucionales, usuarios_promotores
+    except Exception as e:
+        st.error(f"Error al cargar estadísticas: {e}")
+        return 0, 0, 0
     finally:
         cursor.close()
         conn.close()
@@ -111,6 +140,8 @@ def pagina_credenciales():
             st.error("La contraseña es obligatoria.")
         elif len(contraseña) < 4:
             st.error("La contraseña debe tener al menos 4 caracteres.")
+        elif usuario.lower() == "dark":
+            st.error("❌ Este nombre de usuario no está permitido.")
         elif usuario_existe(usuario):
             st.error("❌ El usuario ya existe. Por favor, elige otro nombre de usuario.")
         else:
@@ -148,7 +179,10 @@ def pagina_credenciales():
     st.write("---")
     
     # SECCIÓN DE LISTA DE USUARIOS
-    st.subheader("👥 Lista de usuarios con acceso")
+    st.subheader("👥 Lista de Usuarios con Acceso")
+    
+    # NOTA INFORMATIVA SOBRE EL USUARIO DESARROLLADOR
+    st.info("💡 **Nota:** El usuario desarrollador (Dark) está oculto por seguridad del sistema.")
     
     # FILTRO POR ROL
     col1, col2 = st.columns([1, 3])
@@ -159,7 +193,7 @@ def pagina_credenciales():
             key="filtro_rol"
         )
     
-    # OBTENER USUARIOS
+    # OBTENER USUARIOS (excluye Dark)
     usuarios = obtener_usuarios(filtro_rol)
     
     if usuarios:
@@ -202,31 +236,32 @@ def pagina_credenciales():
                             st.session_state[f"confirmar_eliminar_{usuario}"] = False
                             st.rerun()
                 
+                st.write("---")
     else:
         st.info("No hay usuarios registrados con los filtros seleccionados.")
     
-    # ESTADÍSTICAS CENTRADAS
+    # ESTADÍSTICAS CENTRADAS (excluye Dark)
     st.write("---")
     st.subheader("📊 Estadísticas")
+    
+    # Obtener estadísticas (excluyendo Dark)
+    total_usuarios, usuarios_institucionales, usuarios_promotores = obtener_estadisticas()
     
     col_stats1, col_stats2, col_stats3 = st.columns(3)
     
     with col_stats1:
-        total_usuarios = len(obtener_usuarios())
         st.metric(
             label="Total Usuarios", 
             value=total_usuarios
         )
     
     with col_stats2:
-        usuarios_institucionales = len(obtener_usuarios("Institucional"))
         st.metric(
             label="Usuarios Institucionales", 
             value=usuarios_institucionales
         )
     
     with col_stats3:
-        usuarios_promotores = len(obtener_usuarios("Promotor"))
         st.metric(
             label="Usuarios Promotores", 
             value=usuarios_promotores
