@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from modulos.config.conexion import obtener_conexion
+import pandas as pd
 
 def mostrar_reuniones(id_grupo):
     
@@ -28,13 +29,55 @@ def mostrar_reuniones(id_grupo):
     cursor = conn.cursor(dictionary=True)
 
     # ===============================
-    # Crear nueva reunión
+    # Datos de la reunión
     # ===============================
-
     st.subheader("Información de la reunión")
     fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
     hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
+    # ===============================
+    # ASISTENCIA INTEGRADA (Antes de agenda)
+    # ===============================
+    st.subheader("🧑‍🤝‍🧑 Asistencia de miembros del grupo")
+
+    # Obtener miembros del grupo
+    cursor.execute("""
+        SELECT M.id_miembro, M.Nombre
+        FROM Miembros M
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
+        ORDER BY M.Nombre
+    """, (id_grupo,))
+    miembros = cursor.fetchall()
+
+    if not miembros:
+        st.warning("⚠️ No hay miembros registrados en este grupo.")
+        cursor.close()
+        conn.close()
+        return
+
+    # Crear tabla editable
+    df_asistencia = pd.DataFrame(miembros)
+    df_asistencia = df_asistencia.rename(columns={"Nombre": "Miembro"})
+    df_asistencia["Asistencia"] = "Presente"
+
+    tabla_asistencia = st.data_editor(
+        df_asistencia,
+        column_config={
+            "Asistencia": st.column_config.SelectboxColumn(
+                "Asistencia",
+                options=["Presente", "Ausente"],
+                required=True
+            ),
+            "id_miembro": None
+        },
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    # ===============================
+    # Agenda de la reunión
+    # ===============================
     st.subheader("📝 Agenda de actividades")
 
     secciones = {
@@ -82,22 +125,38 @@ def mostrar_reuniones(id_grupo):
         )
         agenda_completa += f"**{titulo.upper()}**\n" + "\n".join(f"- {x}" for x in items) + "\n\n"
 
+    # ===============================
+    # Observaciones
+    # ===============================
     st.subheader("🗒 Observaciones")
     observaciones = st.text_area("Escriba aquí las observaciones de la reunión", height=150)
 
+    # ===============================
+    # GUARDAR TODO (Reunión + Asistencia)
+    # ===============================
     if st.button("💾 Guardar reunión"):
+        
+        # Guardar reunión
         cursor.execute("""
             INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
             VALUES (%s, %s, %s, %s, %s)
         """, (id_grupo, fecha, hora, agenda_completa, observaciones))
         conn.commit()
-        st.success("✅ Reunión guardada con éxito.")
+
+        # Guardar asistencia
+        for _, row in tabla_asistencia.iterrows():
+            cursor.execute("""
+                INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
+                VALUES (%s, %s, %s, %s)
+            """, (id_grupo, fecha, row["id_miembro"], row["Asistencia"]))
+
+        conn.commit()
+        st.success("✅ Reunión y asistencia guardadas con éxito.")
         st.rerun()
 
     # ===============================
     # Historial de observaciones
     # ===============================
-
     st.markdown("<br><h2 style='color:#4C3A60;'>📚 Historial de observaciones</h2>", unsafe_allow_html=True)
 
     with st.expander("Filtrar por fecha"):
@@ -113,14 +172,12 @@ def mostrar_reuniones(id_grupo):
     registros = cursor.fetchall()
 
     if registros:
-
         colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
 
         for i, r in enumerate(registros):
             color = colores_tarjeta[i % 4]
             fecha_str = r["fecha"].strftime("%d/%m/%Y")
 
-            # Tarjeta profesional
             st.markdown(
                 f"""
                 <div style="
@@ -138,7 +195,6 @@ def mostrar_reuniones(id_grupo):
                 unsafe_allow_html=True
             )
 
-            # Botón borrar (STREAMLIT)
             if st.button("🗑 Borrar observación", key=f"del_{r['id']}"):
                 cursor.execute("DELETE FROM Reuniones WHERE id=%s", (r["id"],))
                 conn.commit()
