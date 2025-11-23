@@ -3,13 +3,21 @@ import time
 import re
 from modulos.config.conexion import obtener_conexion
 
-# -------------------- Función de validación de teléfono --------------------
+# -------------------- Funciones de validación --------------------
 def validar_telefono(telefono):
-    """
-    Solo permite números y un '+' opcional al inicio.
-    Retorna True si es válido, False si contiene letras o caracteres inválidos.
-    """
+    """Solo permite números y un '+' opcional al inicio."""
     return re.fullmatch(r'\+?\d+', telefono) is not None
+
+def filtrar_telefono(telefono):
+    """
+    Permite solo números y un '+' al inicio.
+    Elimina automáticamente cualquier otro carácter.
+    """
+    if not telefono:
+        return ""
+    if telefono.startswith('+'):
+        return '+' + ''.join(filter(str.isdigit, telefono[1:]))
+    return ''.join(filter(str.isdigit, telefono))
 
 # -------------------- Función principal --------------------
 def pagina_grupos():
@@ -75,7 +83,16 @@ def pagina_grupos():
 
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
-    telefono = st.text_input("Teléfono")
+
+    # ------------------ Teléfono seguro ------------------
+    if "telefono" not in st.session_state:
+        st.session_state.telefono = ""
+    telefono = st.text_input(
+        "Teléfono",
+        value=st.session_state.telefono,
+        key="telefono_input",
+        on_change=lambda: setattr(st.session_state, "telefono", filtrar_telefono(st.session_state.telefono_input))
+    )
 
     grupo_asignado = st.selectbox(
         "Asignar al grupo",
@@ -88,11 +105,7 @@ def pagina_grupos():
     if es_admin:
         usuario_admin = st.text_input("Usuario")
         contraseña_admin = st.text_input("Contraseña", type="password")
-        rol_admin = st.selectbox(
-            "Rol",
-            options=["Miembro"],
-            index=0
-        )
+        rol_admin = st.selectbox("Rol", options=["Miembro"], index=0)
     else:
         usuario_admin = None
         contraseña_admin = None
@@ -107,11 +120,11 @@ def pagina_grupos():
             mensaje.error("El nombre del miembro es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not telefono.strip():
+        elif not st.session_state.telefono.strip():
             mensaje.error("El teléfono es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not validar_telefono(telefono):
+        elif not validar_telefono(st.session_state.telefono):
             mensaje.error("Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
             time.sleep(3)
             mensaje.empty()
@@ -123,7 +136,7 @@ def pagina_grupos():
                 # Insertar miembro
                 cursor.execute(
                     "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
-                    (nombre_m, dui, telefono)
+                    (nombre_m, dui, st.session_state.telefono)
                 )
                 conn.commit()
                 miembro_id = cursor.lastrowid
@@ -156,6 +169,7 @@ def pagina_grupos():
                 mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
                 time.sleep(3)
                 mensaje.empty()
+                st.session_state.telefono = ""  # limpiar el input después de guardar
 
             except Exception as e:
                 conn.rollback()
