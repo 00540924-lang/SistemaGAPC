@@ -128,46 +128,49 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 4. DINERO QUE ENTRA - NUEVO DISEÑO
+    # 4. DINERO QUE ENTRA - TODOS LOS CAMPOS DE SOLO LECTURA
     # ===============================
     st.subheader("🟩 Dinero que entra")
     
-    # Crear un contenedor con estilo para mejor presentación
+    # Valores fijos (puedes cambiar estos según necesites)
+    pagos_prestamos = 0.0
+    otros_ingresos = 0.0
+    
+    # Calcular total entrada
+    total_entrada = multa_auto + ahorros_auto + actividades_auto + pagos_prestamos + otros_ingresos
+    
     with st.container():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.text_input(
                 "Multas PAGADAS del día", 
-                value=f"${multa_auto:.2f}", 
+                value=f"${multa_auto:,.2f}", 
                 disabled=True,
                 help="Valor automático de multas pagadas"
             )
-            multa = multa_auto
         
         with col2:
-            ahorros = st.number_input(
+            st.text_input(
                 "Ahorros", 
-                min_value=0.0, 
-                step=0.01, 
-                value=ahorros_auto,
-                help=f"Valor automático: ${ahorros_auto:,.2f}"
+                value=f"${ahorros_auto:,.2f}", 
+                disabled=True,
+                help="Valor automático del módulo de ahorro"
             )
         
         with col3:
-            otras_actividades = st.number_input(
+            st.text_input(
                 "Otras actividades", 
-                min_value=0.0, 
-                step=0.01, 
-                value=actividades_auto,
-                help=f"Valor automático: ${actividades_auto:,.2f}"
+                value=f"${actividades_auto:,.2f}", 
+                disabled=True,
+                help="Valor automático del módulo de ahorro"
             )
         
         with col4:
-            pagos_prestamos = st.number_input(
+            st.text_input(
                 "Pago de préstamos", 
-                min_value=0.0, 
-                step=0.01,
+                value=f"${pagos_prestamos:,.2f}", 
+                disabled=True,
                 help="Capital e interés"
             )
     
@@ -176,10 +179,10 @@ def mostrar_caja(id_grupo):
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            otros_ingresos = st.number_input(
+            st.text_input(
                 "Otros ingresos del grupo", 
-                min_value=0.0, 
-                step=0.01
+                value=f"${otros_ingresos:,.2f}", 
+                disabled=True
             )
         
         with col2:
@@ -191,8 +194,7 @@ def mostrar_caja(id_grupo):
             st.write("")
         
         with col4:
-            # Calcular y mostrar total entrada
-            total_entrada = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
+            # Mostrar total entrada
             st.text_input(
                 "🔹 Total dinero que entra", 
                 value=f"${total_entrada:,.2f}", 
@@ -202,39 +204,44 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 5. DINERO QUE SALE - NUEVO DISEÑO
+    # 5. DINERO QUE SALE - TODOS LOS CAMPOS DE SOLO LECTURA
     # ===============================
     st.subheader("🟥 Dinero que sale")
+    
+    # Valores fijos (puedes cambiar estos según necesites)
+    desembolso = 0.0
+    gastos_grupo = 0.0
+    
+    # Calcular total salida
+    total_salida = retiros_auto + desembolso + gastos_grupo
     
     with st.container():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            retiro_ahorros = st.number_input(
+            st.text_input(
                 "Retiros de ahorros", 
-                min_value=0.0, 
-                step=0.01, 
-                value=retiros_auto,
-                help=f"Valor automático: ${retiros_auto:,.2f}"
+                value=f"${retiros_auto:,.2f}", 
+                disabled=True,
+                help="Valor automático del módulo de ahorro"
             )
         
         with col2:
-            desembolso = st.number_input(
+            st.text_input(
                 "Desembolso de préstamos", 
-                min_value=0.0, 
-                step=0.01
+                value=f"${desembolso:,.2f}", 
+                disabled=True
             )
         
         with col3:
-            gastos_grupo = st.number_input(
+            st.text_input(
                 "Otros gastos del grupo", 
-                min_value=0.0, 
-                step=0.01
+                value=f"${gastos_grupo:,.2f}", 
+                disabled=True
             )
         
         with col4:
-            # Calcular y mostrar total salida
-            total_salida = retiro_ahorros + desembolso + gastos_grupo
+            # Mostrar total salida
             st.text_input(
                 "🔻 Total dinero que sale", 
                 value=f"${total_salida:,.2f}", 
@@ -244,7 +251,7 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 6. SALDO NETO - NUEVO DISEÑO
+    # 6. SALDO NETO
     # ===============================
     st.subheader("⚖️ Saldo del cierre")
     
@@ -262,7 +269,7 @@ def mostrar_caja(id_grupo):
     # ===============================
     # 7. Guardado automático
     # ===============================
-    if multa > 0 or ahorros > 0 or otras_actividades > 0 or pagos_prestamos > 0 or otros_ingresos > 0 or total_salida > 0:
+    if total_entrada > 0 or total_salida > 0:
         cursor.execute("""
             INSERT INTO Caja (
                 id_grupo, fecha, multas, ahorros, otras_actividades, 
@@ -273,9 +280,9 @@ def mostrar_caja(id_grupo):
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             id_grupo, fecha,
-            multa, ahorros, otras_actividades,
+            multa_auto, ahorros_auto, actividades_auto,
             pagos_prestamos, otros_ingresos, total_entrada,
-            retiro_ahorros, desembolso, gastos_grupo, total_salida,
+            retiros_auto, desembolso, gastos_grupo, total_salida,
             saldo_neto
         ))
         conn.commit()
