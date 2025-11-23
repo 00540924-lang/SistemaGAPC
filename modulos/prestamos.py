@@ -26,7 +26,7 @@ def prestamos_modulo():
     # --------------------------------------
     con = obtener_conexion()
     cursor = con.cursor()
-    cursor.execute("SELECT nombre FROM Grupos WHERE id_grupo = %s", (id_grupo,))
+    cursor.execute("SELECT Nombre_grupo FROM Grupos WHERE id_grupo = %s", (id_grupo,))
     grupo = cursor.fetchone()
     con.close()
 
