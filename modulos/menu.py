@@ -9,119 +9,202 @@ def mostrar_menu():
         return
 
     # -----------------------------------------------------
-    #      🎨 CSS - Botones con animación + colores
+    #      🎨 CSS - Diseño Profesional y Moderno
     # -----------------------------------------------------
     st.markdown("""
-<style>
-/* Botones de módulos grandes */
-div.row-widget.stButton > button {
-    width: 240px !important;
-    height: 90px !important;
-    padding: 0 !important;
-    margin: 8px !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    color: #4C3A60 !important;
-
-    border-radius: 12px !important;
-    border: none !important;
-
-    transition: transform 0.25s ease, box-shadow 0.25s ease !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-}
-
-div.row-widget.stButton > button:hover {
-    transform: scale(1.07) !important;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
-}
-
-/* Colores específicos para cada botón usando keys únicos */
-button[key='btn_credenciales'] { background-color: #F4B400 !important; }
-button[key='btn_registrar_miembros'] { background-color: #8E24AA !important; color: white !important; }
-button[key='btn_grupos'] { background-color: #E53935 !important; color: white !important; }
-button[key='btn_reglamento'] { background-color: #1E88E5 !important; color: white !important; }
-button[key='btn_reportes'] { background-color: #43A047 !important; color: white !important; }
-button[key='btn_multas'] { background-color: #6D4C41 !important; color: white !important; }
-button[key='btn_asistencia'] { background-color: #FF7043 !important; color: white !important; }
-button[key='btn_GAPC'] { background-color: #29B6F6 !important; color: white !important; }
-button[key='btn_prestamos'] { background-color: #9C27B0 !important; color: white !important; }
-button[key='btn_caja'] { background-color: #00BFA5 !important; color: white !important; }
-button[key='btn_ahorro_final'] { background-color: #FF9800 !important; color: white !important; }
-button[key='btn_reuniones'] { background-color: #FF5252 !important; color: white !important; }
-
-/* Botón de cerrar sesión más pequeño */
-button[key='logout'] {
-    width: 160px !important;
-    height: 50px !important;
-    background-color: #424242 !important;
-    color: white !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
-    font-weight: 500 !important;
-    transition: transform 0.2s ease !important;
-    margin: 0 auto !important;
-    display: block !important;
-}
-
-button[key='logout']:hover {
-    transform: scale(1.05) !important;
-    background-color: #000000 !important;
-}
-
-/* Contenedor centrado para el botón de logout */
-div[data-testid='stVerticalBlock'] > div:has(button[key='logout']) {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-}
-</style>
-""", unsafe_allow_html=True)
+    <style>
+    /* Reset y configuración general */
+    .main .block-container {
+        padding-top: 2rem;
+    }
+    
+    /* Títulos y textos */
+    .custom-title {
+        text-align: center;
+        color: #2C3E50;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .user-info {
+        text-align: center;
+        color: #5D6D7E;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .role-badge {
+        text-align: center;
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        display: inline-block;
+        margin: 0.5rem auto 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Contenedor principal de botones */
+    .buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+        padding: 0 1rem;
+    }
+    
+    /* Botones de módulos - Diseño profesional */
+    .module-button {
+        width: 100% !important;
+        height: 100px !important;
+        border: none !important;
+        border-radius: 16px !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        color: white !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        padding-left: 1.5rem !important;
+    }
+    
+    .module-button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .module-button:hover::before {
+        left: 100%;
+    }
+    
+    .module-button:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.25) !important;
+    }
+    
+    .module-button:active {
+        transform: translateY(-2px) !important;
+    }
+    
+    /* Iconos en botones */
+    .button-icon {
+        font-size: 1.8rem !important;
+        margin-right: 1rem !important;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+    
+    /* Colores específicos para cada módulo */
+    button[key='btn_credenciales'] {
+        background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%) !important;
+        color: #2C3E50 !important;
+    }
+    
+    button[key='btn_grupos'] {
+        background: linear-gradient(135deg, #A8E6CF 0%, #3EDBF0 100%) !important;
+        color: #2C3E50 !important;
+    }
+    
+    button[key='btn_reportes'] {
+        background: linear-gradient(135deg, #FFD3A5 0%, #FD6585 100%) !important;
+        color: #2C3E50 !important;
+    }
+    
+    button[key='btn_GAPC'] {
+        background: linear-gradient(135deg, #6A11CB 0%, #2575FC 100%) !important;
+        color: white !important;
+    }
+    
+    /* Botón de cerrar sesión */
+    .logout-container {
+        display: flex;
+        justify-content: center;
+        margin: 3rem 0 1rem 0;
+        padding: 1rem;
+    }
+    
+    button[key='logout'] {
+        width: 200px !important;
+        height: 60px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+    }
+    
+    button[key='logout']:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    }
+    
+    /* Separador */
+    .separator {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #667eea, transparent);
+        margin: 2rem 0;
+        border: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .buttons-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .module-button {
+            height: 90px !important;
+            font-size: 1rem !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     # -----------------------------------------------------
-    #                    TÍTULO
+    #                    ENCABEZADO
     # -----------------------------------------------------
-    st.markdown("<h1 style='text-align:center;color:#4C3A60;'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
-
-    # -----------------------------------------------------
-    #        MOSTRAR USUARIO Y TEXTO SEGÚN ROL
-    # -----------------------------------------------------
+    st.markdown("<h1 class='custom-title'>Menú Principal – GAPC</h1>", unsafe_allow_html=True)
+    
+    # Información del usuario
     st.markdown(
-        f"<p style='text-align:center; font-size:18px; color:#4C3A60;'>Usuario: {st.session_state['usuario']}</p>",
+        f"<div class='user-info'>Usuario: <strong>{st.session_state['usuario']}</strong></div>", 
         unsafe_allow_html=True
     )
 
-    # Estilo destacado para Desarrollador, Promotor e Institucional
+    # Badge del rol con colores específicos
     rol_l = rol.lower()
+    role_colors = {
+        "dark": "background: linear-gradient(135deg, #FF6B6B, #FFE66D); color: #2C3E50;",
+        "promotor": "background: linear-gradient(135deg, #4ECDC4, #44A08D); color: white;",
+        "institucional": "background: linear-gradient(135deg, #667eea, #764ba2); color: white;",
+        "miembro": "background: linear-gradient(135deg, #FD746C, #FF9068); color: white;"
+    }
     
-    if usuario == "dark":
-        st.markdown(
-            "<p style='text-align:center; font-size:16px; color:#FF5722; font-weight:bold;'>Desarrollador</p>",
-            unsafe_allow_html=True
-        )
-    elif rol_l == "promotor":
-        st.markdown(
-            "<p style='text-align:center; font-size:16px; color:#3F51B5; font-weight:bold;'>Promotor</p>",
-            unsafe_allow_html=True
-        )
-    elif rol_l == "institucional":
-        st.markdown(
-            "<p style='text-align:center; font-size:16px; color:#2E7D32; font-weight:bold;'>Institucional</p>",
-            unsafe_allow_html=True
-        )
-    elif st.session_state.get("nombre_grupo"):
-        st.markdown(
-            f"<p style='text-align:center; font-size:16px; color:#6D4C41;'>Grupo: {st.session_state['nombre_grupo']}</p>",
-            unsafe_allow_html=True
-        )
+    role_style = role_colors.get(rol_l, "background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: white;")
+    st.markdown(
+        f"<div class='role-badge' style='{role_style}'>{rol.capitalize()}</div>", 
+        unsafe_allow_html=True
+    )
 
     # -----------------------------------------------------
     #                   MÓDULOS BASE
@@ -157,23 +240,37 @@ div[data-testid='stVerticalBlock'] > div:has(button[key='logout']) {
         return
 
     # -----------------------------------------------------
-    #               GRID DE BOTONES
+    #               GRID DE BOTONES MODERNO
     # -----------------------------------------------------
+    st.markdown("<div class='buttons-grid'>", unsafe_allow_html=True)
+    
+    # Crear columnas responsivas
     cols = st.columns(3)
-
+    
     for i, (texto, modulo) in enumerate(modulos):
         with cols[i % 3]:
-            if st.button(texto, key=f"btn_{modulo}"):
+            if st.button(
+                texto,
+                key=f"btn_{modulo}",
+                use_container_width=True
+            ):
                 st.session_state.page = modulo
                 st.rerun()
                 return
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
-    #               BOTÓN CERRAR SESIÓN (MÁS PEQUEÑO)
+    #               SEPARADOR Y BOTÓN LOGOUT
     # -----------------------------------------------------
-    st.write("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔒 Cerrar sesión", key="logout"):
-            st.session_state.clear()
-            st.rerun()
+    st.markdown("<div class='separator'></div>", unsafe_allow_html=True)
+    
+    st.markdown("<div class='logout-container'>", unsafe_allow_html=True)
+    if st.button("🚪 Cerrar sesión", key="logout", use_container_width=False):
+        st.session_state.clear()
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Ejecutar la función
+if __name__ == "__main__":
+    mostrar_menu()
