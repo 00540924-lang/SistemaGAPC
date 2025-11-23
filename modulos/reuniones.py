@@ -202,7 +202,7 @@ def mostrar_reuniones(id_grupo):
 
     # ---- Asistencia ----
     cursor.execute("""
-        SELECT M.Nombre, A.asistencia
+        SELECT A.fecha, M.Nombre, A.asistencia
         FROM Asistencia A
         JOIN Miembros M ON A.id_miembro = M.id_miembro
         WHERE A.id_grupo = %s AND A.fecha = %s
@@ -213,7 +213,22 @@ def mostrar_reuniones(id_grupo):
 
     if asistencias:
         df_asistencias = pd.DataFrame(asistencias)
-        st.dataframe(df_asistencias.style.set_properties(**{'text-align': 'center'}), use_container_width=True)
+        
+        # Formatear la columna 'asistencia' con colores
+        def color_asistencia(val):
+            if val == "Presente":
+                return 'color: green; font-weight: bold; text-align: center;'
+            elif val == "Ausente":
+                return 'color: red; font-weight: bold; text-align: center;'
+            else:
+                return 'text-align: center;'
+
+        # Aplicar estilos: centrar Fecha y Miembro, y color Asistencia
+        st.dataframe(
+            df_asistencias.style.set_properties(subset=["fecha", "Nombre"], **{'text-align': 'center'})
+                              .applymap(color_asistencia, subset=["asistencia"]),
+            use_container_width=True
+        )
     else:
         st.info("No hay asistencia registrada para esta fecha.")
 
