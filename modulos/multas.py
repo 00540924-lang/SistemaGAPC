@@ -92,13 +92,13 @@ def mostrar_tabla_multas(id_grupo):
         con = obtener_conexion()
         cursor = con.cursor()
         cursor.execute("""
-            SELECT MT.id_multa, M.nombre, MT.fecha, MT.monto_a_pagar, MT.pagada
-            FROM Multas MT
-            JOIN Miembros M ON MT.id_miembro = M.id_miembro
-            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-            WHERE GM.id_grupo = %s
-            ORDER BY MT.id_multa
-        """, (id_grupo,))
+    SELECT MT.id_multa, M.nombre, MT.fecha, MT.monto_a_pagar
+    FROM Multas MT
+    JOIN Miembros M ON MT.id_miembro = M.id_miembro
+    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+    WHERE GM.id_grupo = %s
+    ORDER BY MT.id_multa
+""", (id_grupo,))
         resultados = cursor.fetchall()
         # Convertir pagada a Sí/No para mostrar en tabla
         df = pd.DataFrame(resultados, columns=["ID", "Miembro", "Fecha", "Monto", "Pagada"])
