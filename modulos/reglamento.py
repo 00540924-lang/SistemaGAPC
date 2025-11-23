@@ -19,11 +19,11 @@ def obtener_miembros_grupo(id_grupo):
         )
         cursor = conn.cursor()
         
-        # CONSULTA AJUSTADA PARA TU ESTRUCTURA
+        # CONSULTA CORREGIDA CON LA ESTRUCTURA REAL
         cursor.execute("""
             SELECT m.nombre 
             FROM Miembros m
-            INNER JOIN Grupomiembros gm ON m.id = gm.id_miembro
+            INNER JOIN Grupomiembros gm ON m.id_miembro = gm.id_miembro
             WHERE gm.id_grupo = %s 
             ORDER BY m.nombre
         """, (id_grupo,))
