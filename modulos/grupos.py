@@ -8,17 +8,6 @@ def validar_telefono(telefono):
     """Solo permite números y un '+' opcional al inicio."""
     return re.fullmatch(r'\+?\d+', telefono) is not None
 
-def filtrar_telefono(telefono):
-    """
-    Permite solo números y un '+' al inicio.
-    Elimina automáticamente cualquier otro carácter.
-    """
-    if not telefono:
-        return ""
-    if telefono.startswith('+'):
-        return '+' + ''.join(filter(str.isdigit, telefono[1:]))
-    return ''.join(filter(str.isdigit, telefono))
-
 # -------------------- Función principal --------------------
 def pagina_grupos():
     st.title("Gestión de Grupos")
@@ -91,39 +80,104 @@ def pagina_grupos():
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
 
-    # ------------------ Teléfono seguro - MEJORADO ------------------
-    if "telefono_limpio" not in st.session_state:
-        st.session_state.telefono_limpio = ""
+    # ------------------ SOLUCIÓN DEFINITIVA PARA TELÉFONO ------------------
+    st.markdown("""
+    <style>
+    .telefono-input {
+        font-size: 16px;
+        padding: 8px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # Función para filtrar en cada cambio
-    def filtrar_y_actualizar():
-        texto_actual = st.session_state.telefono_input
-        # Filtrar solo números y +
-        telefono_filtrado = filtrar_telefono(texto_actual)
+    # Inicializar estado
+    if "telefono_seguro" not in st.session_state:
+        st.session_state.telefono_seguro = ""
+
+    # Componente personalizado con JavaScript
+    st.markdown("**Teléfono ***")
+    
+    # Input con JavaScript que bloquea caracteres no numéricos
+    telefono_html = f"""
+    <input type="text" 
+           id="telefonoInput" 
+           class="telefono-input"
+           value="{st.session_state.telefono_seguro}" 
+           placeholder="Solo números y + al inicio"
+           onkeydown="return validarTecla(event)"
+           oninput="filtrarTelefono(this)"
+           style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+    
+    <script>
+    function validarTecla(event) {{
+        const tecla = event.key;
+        const valorActual = event.target.value;
         
-        # Si hay diferencia, actualizar el estado
-        if texto_actual != telefono_filtrado:
-            st.session_state.telefono_input = telefono_filtrado
-            st.session_state.telefono_limpio = telefono_filtrado
-            # Mostrar advertencia temporal
-            warning_msg = st.warning("❌ Se han eliminado caracteres no válidos. Solo se permiten números y el símbolo + al inicio.")
-            time.sleep(2)
-            warning_msg.empty()
-        else:
-            st.session_state.telefono_limpio = telefono_filtrado
+        // Permitir teclas de control (backspace, delete, tab, etc.)
+        if (event.ctrlKey || event.altKey || tecla === 'Backspace' || tecla === 'Delete' || 
+            tecla === 'Tab' || tecla === 'Escape' || tecla === 'Enter') {{
+            return true;
+        }}
+        
+        // Permitir '+' solo al inicio
+        if (tecla === '+' && valorActual === '') {{
+            return true;
+        }}
+        
+        // Permitir solo números
+        if (!/^[0-9]$/.test(tecla)) {{
+            event.preventDefault();
+            return false;
+        }}
+        
+        return true;
+    }}
+    
+    function filtrarTelefono(input) {{
+        let valor = input.value;
+        
+        // Si empieza con +, permitir solo números después
+        if (valor.startsWith('+')) {{
+            input.value = '+' + valor.substring(1).replace(/[^0-9]/g, '');
+        }} else {{
+            // Si no empieza con +, permitir solo números
+            input.value = valor.replace(/[^0-9]/g, '');
+        }}
+        
+        // Actualizar el estado de Streamlit
+        window.parent.postMessage({{
+            type: 'streamlit:setComponentValue',
+            value: input.value
+        }}, '*');
+    }}
+    
+    // Actualizar el input al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {{
+        const input = document.getElementById('telefonoInput');
+        if (input) {{
+            filtrarTelefono(input);
+        }}
+    }});
+    </script>
+    """
+    
+    st.components.v1.html(telefono_html, height=80)
 
-    telefono_input = st.text_input(
-        "Teléfono *",
-        value=st.session_state.telefono_limpio,
-        key="telefono_input",
-        on_change=filtrar_y_actualizar,
-        help="Solo se permiten números y el símbolo + al inicio",
-        placeholder="Ej: +50312345678 o 12345678"
+    # Input oculto para capturar el valor del JavaScript
+    telefono_value = st.text_input(
+        "Teléfono (valor real)",
+        value=st.session_state.telefono_seguro,
+        key="telefono_hidden",
+        label_visibility="collapsed"
     )
 
-    # Mostrar el valor actual filtrado
-    if st.session_state.telefono_limpio:
-        st.caption(f"📞 Teléfono validado: {st.session_state.telefono_limpio}")
+    # Actualizar el estado cuando cambia el valor
+    if telefono_value != st.session_state.telefono_seguro:
+        st.session_state.telefono_seguro = telefono_value
+
+    # Mostrar el valor actual
+    if st.session_state.telefono_seguro:
+        st.caption(f"📞 Teléfono ingresado: {st.session_state.telefono_seguro}")
 
     grupo_asignado = st.selectbox(
         "Asignar al grupo",
@@ -146,8 +200,8 @@ def pagina_grupos():
     if st.button("Registrar miembro"):
         mensaje = st.empty()
 
-        # Usar SIEMPRE la versión filtrada del teléfono
-        telefono_final = st.session_state.telefono_limpio
+        # Usar SIEMPRE la versión segura del teléfono
+        telefono_final = st.session_state.telefono_seguro
         
         # Validaciones estrictas antes del INSERT
         if not nombre_m.strip():
@@ -167,7 +221,7 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # INSERT usando la versión filtrada y validada del teléfono
+                # INSERT usando la versión segura del teléfono
                 cursor.execute(
                     "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
                     (nombre_m, dui, telefono_final)
@@ -205,20 +259,13 @@ def pagina_grupos():
                 mensaje.empty()
                 
                 # Limpiar campos después de guardar exitosamente
-                st.session_state.telefono_limpio = ""
+                st.session_state.telefono_seguro = ""
                 st.rerun()
 
             except Exception as e:
                 if 'conn' in locals():
                     conn.rollback()
-                
-                # Manejo específico del error de constraint
-                error_str = str(e)
-                if "chk_telefono_valido" in error_str or "CHECK constraint" in error_str:
-                    mensaje.error("❌ Error de base de datos: El teléfono no cumple con el formato requerido.")
-                else:
-                    mensaje.error(f"❌ Error al registrar miembro: {e}")
-                
+                mensaje.error(f"❌ Error al registrar miembro: {e}")
                 time.sleep(3)
                 mensaje.empty()
             finally:
