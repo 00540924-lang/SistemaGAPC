@@ -42,16 +42,17 @@ def mostrar_caja(id_grupo):
     fecha = st.date_input("📅 Fecha de registro", date.today())
 
     # ===============================
-    # 2.1 Cargar multas automáticas
+    # 2.1 Cargar multas pagadas automáticas
     # ===============================
     cursor.execute("""
-    SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
-    FROM Multas MT
-    JOIN Miembros M ON MT.id_miembro = M.id_miembro
-    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-    WHERE GM.id_grupo = %s
-    AND MT.fecha = %s
-""", (id_grupo, fecha))
+        SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+        FROM Multas MT
+        JOIN Miembros M ON MT.id_miembro = M.id_miembro
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
+        AND MT.fecha = %s
+        AND MT.pagada = 1
+    """, (id_grupo, fecha))
 
     resultado_multa = cursor.fetchone()
     multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
@@ -63,7 +64,7 @@ def mostrar_caja(id_grupo):
     # ===============================
     st.subheader("🟩 Dinero que entra")
 
-    st.text_input("Multas pagadas (automáticas del día)", value=f"${multa_auto:.2f}", disabled=True)
+    st.text_input("Multas PAGADAS del día", value=f"${multa_auto:.2f}", disabled=True)
 
     multa = multa_auto
 
@@ -96,38 +97,10 @@ def mostrar_caja(id_grupo):
     st.number_input("⚖️ Saldo del cierre", value=saldo_neto, disabled=True)
 
     # ===============================
-    # 6. GUARDADO AUTOMÁTICO EN BD
+    # 6. Guardado automático
     # ===============================
+    if multa > 0 or ahorros > 0 or otras_actividades > 0 or pagos_prestamos > 0 or otros_ingresos > 0 or total_salida > 0:
 
-    # Verificar si ya existe registro para la fecha
-    cursor.execute("SELECT id_caja FROM Caja WHERE id_grupo = %s AND fecha = %s",
-                   (id_grupo, fecha))
-    existe = cursor.fetchone()
-
-    if existe:
-        # UPDATE si ya hay registro
-        cursor.execute("""
-            UPDATE Caja SET 
-                multas = %s,
-                ahorros = %s,
-                otras_actividades = %s,
-                pago_prestamos = %s,
-                otros_ingresos = %s,
-                total_entrada = %s,
-                retiro_ahorros = %s,
-                desembolso = %s,
-                gastos_grupo = %s,
-                total_salida = %s,
-                saldo_cierre = %s
-            WHERE id_caja = %s
-        """, (
-            multa, ahorros, otras_actividades,
-            pagos_prestamos, otros_ingresos, total_entrada,
-            retiro_ahorros, desembolso, gastos_grupo, total_salida,
-            saldo_neto, existe["id_caja"]
-        ))
-    else:
-        # INSERT si no existe
         cursor.execute("""
             INSERT INTO Caja (
                 id_grupo, fecha, multas, ahorros, otras_actividades, 
@@ -144,95 +117,32 @@ def mostrar_caja(id_grupo):
             saldo_neto
         ))
 
-    conn.commit()
-    st.success("💾 Registro de Caja actualizado automáticamente ✔️")
+        conn.commit()
+        st.success("✅ Registro de caja guardado automáticamente.")
 
     # ===============================
-    # 7. Historial con gráfico y filtros
+    # 7. Historial
     # ===============================
     st.write("---")
     st.subheader("📚 Historial de Caja")
-    st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    col1, col2, col3 = st.columns([1,1,1])
-    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
-    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
-
-    if col3.button("🧹 Limpiar filtros"):
-        st.session_state["limpiar_filtros"] = True
-
-    if st.session_state.get("limpiar_filtros", False):
-        fecha_inicio = None
-        fecha_fin = None
-        st.session_state["limpiar_filtros"] = False
-
-    query = """
+    cursor.execute("""
         SELECT fecha, total_entrada, total_salida
         FROM Caja
         WHERE id_grupo = %s
-    """
-    params = [id_grupo]
+        ORDER BY fecha DESC
+    """, (id_grupo,))
 
-    if fecha_inicio and fecha_fin:
-        query += " AND fecha BETWEEN %s AND %s"
-        params.extend([fecha_inicio, fecha_fin])
-    elif fecha_inicio:
-        query += " AND fecha >= %s"
-        params.append(fecha_inicio)
-    elif fecha_fin:
-        query += " AND fecha <= %s"
-        params.append(fecha_fin)
-
-    query += " ORDER BY fecha DESC"
-
-    cursor.execute(query, tuple(params))
     registros = cursor.fetchall()
 
     if registros:
         df = pd.DataFrame(registros)
-        df['fecha'] = pd.to_datetime(df['fecha'])
-        df = df.sort_values('fecha').reset_index(drop=True)
-
-        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
-        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
-
-        fig, ax = plt.subplots(figsize=(10, 5))
-        width = 0.35
-        x = range(len(df))
-
-        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
-        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
-
-        max_entrada = df['total_entrada'].max()
-        max_salida = df['total_salida'].max()
-
-        for i, row in df.iterrows():
-            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
-                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8)
-            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
-                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8)
-
-        ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Monto", fontsize=12)
-        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-        ax.set_xticks(list(x))
-        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right')
-        ax.grid(axis='y', linestyle='--', alpha=0.6)
-        ax.legend()
-
-        st.pyplot(fig)
-
-    else:
-        st.info("No hay registros para mostrar.")
-
-    # ===============================
-    # 8. Regresar
-    # ===============================
-    st.write("---")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
+        st.dataframe(df)
 
     cursor.close()
     conn.close()
 
+    st.write("---")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
