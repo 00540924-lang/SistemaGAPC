@@ -74,6 +74,117 @@ def obtener_multas_automaticas(id_grupo, fecha):
             cursor.close()
             conn.close()
 
+def verificar_registro_existente(id_grupo, fecha):
+    """Verifica si ya existe un registro de caja para esta fecha y grupo"""
+    conn = obtener_conexion()
+    if not conn:
+        return None
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id_caja FROM Caja 
+            WHERE id_grupo = %s AND fecha = %s
+        """, (id_grupo, fecha))
+        
+        resultado = cursor.fetchone()
+        return resultado['id_caja'] if resultado else None
+        
+    except Exception as e:
+        st.error(f"Error al verificar registro existente: {e}")
+        return None
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def actualizar_registro_caja(id_caja, datos):
+    """Actualiza un registro existente de caja"""
+    conn = obtener_conexion()
+    if not conn:
+        return False, "Error de conexión"
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Caja SET
+                multas = %s,
+                ahorros = %s,
+                otras_actividades = %s,
+                pago_prestamos = %s,
+                otros_ingresos = %s,
+                total_entrada = %s,
+                retiro_ahorros = %s,
+                desembolso = %s,
+                gastos_grupo = %s,
+                total_salida = %s,
+                saldo_cierre = %s
+            WHERE id_caja = %s
+        """, (
+            datos['multas'],
+            datos['ahorros'],
+            datos['otras_actividades'],
+            datos['pago_prestamos'],
+            datos['otros_ingresos'],
+            datos['total_entrada'],
+            datos['retiro_ahorros'],
+            datos['desembolso'],
+            datos['gastos_grupo'],
+            datos['total_salida'],
+            datos['saldo_cierre'],
+            id_caja
+        ))
+        conn.commit()
+        return True, "Registro actualizado correctamente"
+        
+    except Exception as e:
+        return False, f"Error al actualizar registro: {e}"
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def crear_registro_caja(datos):
+    """Crea un nuevo registro de caja"""
+    conn = obtener_conexion()
+    if not conn:
+        return False, "Error de conexión"
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO Caja (
+                id_grupo, fecha, multas, ahorros, otras_actividades, 
+                pago_prestamos, otros_ingresos, total_entrada,
+                retiro_ahorros, desembolso, gastos_grupo, total_salida,
+                saldo_cierre
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            datos['id_grupo'],
+            datos['fecha'],
+            datos['multas'],
+            datos['ahorros'],
+            datos['otras_actividades'],
+            datos['pago_prestamos'],
+            datos['otros_ingresos'],
+            datos['total_entrada'],
+            datos['retiro_ahorros'],
+            datos['desembolso'],
+            datos['gastos_grupo'],
+            datos['total_salida'],
+            datos['saldo_cierre']
+        ))
+        conn.commit()
+        return True, "Registro creado correctamente"
+        
+    except Exception as e:
+        return False, f"Error al crear registro: {e}"
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def mostrar_caja(id_grupo):
     """
     Módulo de caja con gráfico de historial.
@@ -246,26 +357,43 @@ def mostrar_caja(id_grupo):
         )
 
     # ===============================
-    # 7. Guardado automático
+    # 7. GUARDADO INTELIGENTE (ACTUALIZAR O CREAR)
     # ===============================
     if total_entrada > 0 or total_salida > 0:
-        cursor.execute("""
-            INSERT INTO Caja (
-                id_grupo, fecha, multas, ahorros, otras_actividades, 
-                pago_prestamos, otros_ingresos, total_entrada,
-                retiro_ahorros, desembolso, gastos_grupo, total_salida,
-                saldo_cierre
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            id_grupo, fecha,
-            multa_auto, ahorros_auto, actividades_auto,
-            pagos_prestamos, otros_ingresos, total_entrada,
-            retiros_auto, desembolso, gastos_grupo, total_salida,
-            saldo_neto
-        ))
-        conn.commit()
-        st.success("✅ Registro de caja guardado automáticamente.")
+        # Verificar si ya existe un registro para esta fecha
+        id_caja_existente = verificar_registro_existente(id_grupo, fecha)
+        
+        # Preparar los datos para guardar
+        datos_caja = {
+            'id_grupo': id_grupo,
+            'fecha': fecha,
+            'multas': multa_auto,
+            'ahorros': ahorros_auto,
+            'otras_actividades': actividades_auto,
+            'pago_prestamos': pagos_prestamos,
+            'otros_ingresos': otros_ingresos,
+            'total_entrada': total_entrada,
+            'retiro_ahorros': retiros_auto,
+            'desembolso': desembolso,
+            'gastos_grupo': gastos_grupo,
+            'total_salida': total_salida,
+            'saldo_cierre': saldo_neto
+        }
+        
+        if id_caja_existente:
+            # Actualizar registro existente
+            success, message = actualizar_registro_caja(id_caja_existente, datos_caja)
+            if success:
+                st.success(f"✅ Registro de caja actualizado correctamente (ID: {id_caja_existente})")
+            else:
+                st.error(f"❌ Error al actualizar: {message}")
+        else:
+            # Crear nuevo registro
+            success, message = crear_registro_caja(datos_caja)
+            if success:
+                st.success("✅ Nuevo registro de caja creado correctamente")
+            else:
+                st.error(f"❌ Error al crear: {message}")
 
     # ===============================
     # 8. Historial con gráfico y filtros
