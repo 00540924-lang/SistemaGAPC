@@ -49,7 +49,7 @@ def registrar_miembros():
 
                 st.success("Miembro registrado correctamente ✔️")
                 time.sleep(0.5)
-                st.rerun()  # recarga automática
+                st.experimental_rerun()  # recarga automática
 
             finally:
                 cursor.close()
@@ -59,13 +59,14 @@ def registrar_miembros():
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
-        st.rerun()
+        st.experimental_rerun()
     st.write("---")
 
     # ================================
     # Mostrar tabla y acciones
     # ================================
     mostrar_tabla_y_acciones(id_grupo)
+
 
 def mostrar_tabla_y_acciones(id_grupo):
     # 🔥 Si estamos editando, mostrar solo el formulario de edición y salir
@@ -110,37 +111,9 @@ def mostrar_tabla_y_acciones(id_grupo):
         )
 
         # -------------------------------
-        # 👉 Solo el nombre en el selectbox
-        # -------------------------------
-        miembro_dict = {row['Nombre']: row for _, row in df.iterrows()}
-
-        seleccionado = st.selectbox(
-            "Selecciona un miembro para Editar/Eliminar",
-            options=list(miembro_dict.keys())
-        )
-
-        if seleccionado:
-            miembro = miembro_dict[seleccionado]
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(" ✏️ Editar"):
-                    st.session_state["editar_miembro"] = miembro
-                    st.rerun()  # 🔥 activa modo edición
-            with col2:
-                if st.button("🗑️ Eliminar"):
-                    eliminar_miembro(miembro["ID"], id_grupo)
-                    st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
-                    time.sleep(0.5)
-                    st.rerun()
-
-    finally:
-        cursor.close()
-        con.close()
-
-# ================================
         # Seleccionar miembro para editar/eliminar
-        # ================================
-        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
+        # -------------------------------
+        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for _, row in df.iterrows()}
         seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
 
         if seleccionado:
@@ -148,10 +121,11 @@ def mostrar_tabla_y_acciones(id_grupo):
 
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Editar Miembro"):
-                    editar_miembro(miembro)
+                if st.button("✏️ Editar Miembro"):
+                    st.session_state["editar_miembro"] = miembro
+                    st.experimental_rerun()
             with col2:
-                if st.button("Eliminar Miembro"):
+                if st.button("🗑️ Eliminar Miembro"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
                     time.sleep(1)
@@ -159,11 +133,26 @@ def mostrar_tabla_y_acciones(id_grupo):
 
     finally:
         cursor.close()
-@@ -134,7 +118,6 @@ def eliminar_miembro(id_miembro, id_grupo):
+        con.close()
+
+
+def eliminar_miembro(id_miembro, id_grupo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        # Eliminar del grupo primero
+        cursor.execute(
+            "DELETE FROM Grupomiembros WHERE id_miembro = %s AND id_grupo = %s",
+            (id_miembro, id_grupo)
+        )
+        con.commit()
+
+        # Luego eliminar de la tabla Miembros
+        cursor.execute(
+            "DELETE FROM Miembros WHERE id_miembro = %s",
             (id_miembro,)
         )
         con.commit()
-        st.success("Miembro eliminado ✔️")
     finally:
         cursor.close()
         con.close()
