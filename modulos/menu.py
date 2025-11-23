@@ -13,16 +13,12 @@ def mostrar_menu():
     # -----------------------------------------------------
     st.markdown("""
 <style>
-div.stButton {
-    display: flex !important;
-    justify-content: center !important;
-}
-
 /* Botones de módulos grandes */
-div.stButton > button {
+div.row-widget.stButton > button {
     width: 240px !important;
     height: 90px !important;
     padding: 0 !important;
+    margin: 8px !important;
 
     display: flex !important;
     align-items: center !important;
@@ -43,13 +39,27 @@ div.stButton > button {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
 }
 
-div.stButton > button:hover {
+div.row-widget.stButton > button:hover {
     transform: scale(1.07) !important;
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
+/* Colores específicos para cada botón usando keys únicos */
+button[key='btn_credenciales'] { background-color: #F4B400 !important; }
+button[key='btn_registrar_miembros'] { background-color: #8E24AA !important; color: white !important; }
+button[key='btn_grupos'] { background-color: #E53935 !important; color: white !important; }
+button[key='btn_reglamento'] { background-color: #1E88E5 !important; color: white !important; }
+button[key='btn_reportes'] { background-color: #43A047 !important; color: white !important; }
+button[key='btn_multas'] { background-color: #6D4C41 !important; color: white !important; }
+button[key='btn_asistencia'] { background-color: #FF7043 !important; color: white !important; }
+button[key='btn_GAPC'] { background-color: #29B6F6 !important; color: white !important; }
+button[key='btn_prestamos'] { background-color: #9C27B0 !important; color: white !important; }
+button[key='btn_caja'] { background-color: #00BFA5 !important; color: white !important; }
+button[key='btn_ahorro_final'] { background-color: #FF9800 !important; color: white !important; }
+button[key='btn_reuniones'] { background-color: #FF5252 !important; color: white !important; }
+
 /* Botón de cerrar sesión más pequeño */
-#logout_btn > button {
+button[key='logout'] {
     width: 160px !important;
     height: 50px !important;
     background-color: #424242 !important;
@@ -58,25 +68,21 @@ div.stButton > button:hover {
     font-size: 16px !important;
     font-weight: 500 !important;
     transition: transform 0.2s ease !important;
+    margin: 0 auto !important;
+    display: block !important;
 }
-#logout_btn > button:hover {
+
+button[key='logout']:hover {
     transform: scale(1.05) !important;
     background-color: #000000 !important;
 }
 
-/* Colores personalizados para módulos */
-#proyectos_btn > button { background-color: #F4B400 !important; }
-#usuarios_btn > button { background-color: #8E24AA !important; }
-#grupos_btn > button { background-color: #E53935 !important; }
-#documentos_btn > button { background-color: #1E88E5 !important; }
-#reportes_btn > button { background-color: #43A047 !important; }
-#configuracion_btn > button { background-color: #6D4C41 !important; }
-#asistencia_btn > button { background-color: #FF7043 !important; }
-#gapc_btn > button { background-color: #29B6F6 !important; }
-#prestamos_btn > button { background-color: #9C27B0 !important; }
-#caja_btn > button { background-color: #00BFA5 !important; }
-#ahorro_final_btn > button { background-color: #FF9800 !important; }
-#reuniones_btn > button { background-color: #FF5252 !important; }
+/* Contenedor centrado para el botón de logout */
+div[data-testid='stVerticalBlock'] > div:has(button[key='logout']) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -121,18 +127,18 @@ div.stButton > button:hover {
     #                   MÓDULOS BASE
     # -----------------------------------------------------
     modulos_base = [
-        ("📁 Credenciales", "credenciales", "proyectos_btn"),
-        ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
-        ("📝 Grupos", "grupos", "grupos_btn"),
-        ("📜 Reglamento", "reglamento", "documentos_btn"),
-        ("📊 Reportes", "reportes", "reportes_btn"),
-        ("💸 Multas", "multas", "configuracion_btn"),
-        ("📋 Asistencia", "asistencia", "asistencia_btn"),
-        ("🏛️ GAPC", "GAPC", "gapc_btn"),
-        ("💼 Préstamos", "prestamos", "prestamos_btn"),
-        ("💰 Caja", "caja", "caja_btn"),
-        ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
-        ("📌 Reuniones", "reuniones", "reuniones_btn"),
+        ("📁 Credenciales", "credenciales"),
+        ("👥 Gestión de Miembros", "registrar_miembros"),
+        ("📝 Grupos", "grupos"),
+        ("📜 Reglamento", "reglamento"),
+        ("📊 Reportes", "reportes"),
+        ("💸 Multas", "multas"),
+        ("📋 Asistencia", "asistencia"),
+        ("🏛️ GAPC", "GAPC"),
+        ("💼 Préstamos", "prestamos"),
+        ("💰 Caja", "caja"),
+        ("💾 Ahorro", "ahorro_final"),
+        ("📌 Reuniones", "reuniones"),
     ]
 
     # -----------------------------------------------------
@@ -155,27 +161,19 @@ div.stButton > button:hover {
     # -----------------------------------------------------
     cols = st.columns(3)
 
-    for i, (texto, modulo, css_id) in enumerate(modulos):
+    for i, (texto, modulo) in enumerate(modulos):
         with cols[i % 3]:
-            cont = st.container()
-            with cont:
-                cont.markdown(f"<div id='{css_id}'>", unsafe_allow_html=True)
-                if st.button(texto, key=f"btn_{modulo}"):
-                    st.session_state.page = modulo
-                    st.rerun()
-                    return
-            cont.markdown("</div>", unsafe_allow_html=True)
+            if st.button(texto, key=f"btn_{modulo}"):
+                st.session_state.page = modulo
+                st.rerun()
+                return
 
     # -----------------------------------------------------
     #               BOTÓN CERRAR SESIÓN (MÁS PEQUEÑO)
     # -----------------------------------------------------
     st.write("---")
-    logout_container = st.container()
-    with logout_container:
-        logout_container.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
-        logout_container.markdown("<div id='logout_btn'>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
-        logout_container.markdown("</div>", unsafe_allow_html=True)
-        logout_container.markdown("</div>", unsafe_allow_html=True)
