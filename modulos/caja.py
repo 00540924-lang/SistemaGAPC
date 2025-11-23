@@ -40,21 +40,22 @@ def mostrar_caja(id_grupo):
     # 2. Fecha
     # ===============================
     fecha = st.date_input("📅 Fecha de registro", date.today())
-    # ===============================
-# 2.1 Cargar multas automáticamente según la fecha seleccionada
-# ===============================
-cursor.execute("""
-    SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
-    FROM Multas MT
-    JOIN Miembros M ON MT.id_miembro = M.id_miembro
-    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-    WHERE GM.id_grupo = %s
-    AND MT.fecha = %s
-    AND MT.pagada = 1
-""", (id_grupo, fecha))
 
-resultado_multa = cursor.fetchone()
-multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+    # ===============================
+    # 2.1 Cargar multas automáticas
+    # ===============================
+    cursor.execute("""
+        SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+        FROM Multas MT
+        JOIN Miembros M ON MT.id_miembro = M.id_miembro
+        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+        WHERE GM.id_grupo = %s
+        AND MT.fecha = %s
+        AND MT.pagada = 1
+    """, (id_grupo, fecha))
+
+    resultado_multa = cursor.fetchone()
+    multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
 
     st.write("---")
 
@@ -62,7 +63,12 @@ multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
     # 3. DINERO QUE ENTRA
     # ===============================
     st.subheader("🟩 Dinero que entra")
-    multa = st.number_input("Multas pagadas (automáticas del día)", min_value=0.0, step=0.01, value=multa_auto)
+
+    # 👉 Aquí el usuario NO puede editar el valor
+    st.text_input("Multas pagadas (automáticas del día)", value=f"${multa_auto:.2f}", disabled=True)
+
+    multa = multa_auto  # para usar en los cálculos
+
     ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
     otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
     pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
@@ -76,6 +82,7 @@ multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
     # ===============================
     st.write("---")
     st.subheader("🟥 Dinero que sale")
+
     retiro_ahorros = st.number_input("Retiros de ahorros", min_value=0.0, step=0.01)
     desembolso = st.number_input("Desembolso de préstamos", min_value=0.0, step=0.01)
     gastos_grupo = st.number_input("Otros gastos del grupo", min_value=0.0, step=0.01)
@@ -121,16 +128,13 @@ multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
     st.subheader("📚 Historial de Caja")
     st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    # Columnas para filtros y botón limpiar
     col1, col2, col3 = st.columns([1,1,1])
     fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
     fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
 
-    # Botón para limpiar filtros usando flag
     if col3.button("🧹 Limpiar filtros"):
         st.session_state["limpiar_filtros"] = True
 
-    # Aplicar filtro vacío si se presionó limpiar
     if st.session_state.get("limpiar_filtros", False):
         fecha_inicio = None
         fecha_fin = None
@@ -163,7 +167,6 @@ multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
         df['fecha'] = pd.to_datetime(df['fecha'])
         df = df.sort_values('fecha').reset_index(drop=True)
 
-        # Reemplazar None o NaN por 0 y convertir a float
         df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
         df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
@@ -178,35 +181,21 @@ multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
         max_salida = df['total_salida'].max()
 
         for i, row in df.iterrows():
-            entrada_val = float(row['total_entrada'])
-            salida_val = float(row['total_salida'])
-            ax.text(i - width/2, entrada_val + max_entrada*0.01,
-                    f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-            ax.text(i + width/2, salida_val + max_salida*0.01,
-                    f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
+                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8)
+            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
+                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8)
 
         ax.set_xlabel("Fecha", fontsize=12)
         ax.set_ylabel("Monto", fontsize=12)
         ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-        ax.set_xticks(x)
-        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right')
         ax.grid(axis='y', linestyle='--', alpha=0.6)
-        ax.set_axisbelow(True)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
         ax.legend()
 
-        saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
         st.pyplot(fig)
-        st.markdown(
-            f"""
-            <div style="text-align:left; font-size:16px; line-height:1.6;">
-        <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
-        <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
-        <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:.2f}</strong></div>
-    </div>
-    """, unsafe_allow_html=True
-)
+
     else:
         st.info("No hay registros para mostrar.")
 
