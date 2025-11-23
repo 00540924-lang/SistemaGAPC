@@ -16,7 +16,7 @@ def get_connection():
 # MÓDULO DE CREDENCIALES
 # ==========================
 def pagina_credenciales():
-    st.title("Registro de Credenciales de Directiva")
+    st.title("Registro de nuevas credenciales")
 
     # BOTÓN PARA VOLVER AL MENÚ
     if st.button("⬅️ Regresar al menú"):
@@ -29,7 +29,7 @@ def pagina_credenciales():
     # FORMULARIO
     usuario = st.text_input("Usuario")
     contraseña = st.text_input("Contraseña", type="password")
-    rol = st.selectbox("Rol", options=["Institucional", "Promotor", "Miembro"])
+    rol = st.selectbox("Rol", options=["Institucional", "Promotor"])
 
     # BOTÓN PARA GUARDAR
     if st.button("Guardar credencial"):
