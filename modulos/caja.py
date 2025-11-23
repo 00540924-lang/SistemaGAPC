@@ -45,6 +45,35 @@ def obtener_datos_ahorro_automaticos(id_grupo, fecha):
             cursor.close()
             conn.close()
 
+def obtener_multas_automaticas(id_grupo, fecha):
+    """Obtiene las multas pagadas automáticamente"""
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha = %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha))
+
+        resultado_multa = cursor.fetchone()
+        return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+        
+    except Exception as e:
+        st.error(f"Error al obtener multas automáticas: {e}")
+        return 0.0
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def mostrar_caja(id_grupo):
     """
     Módulo de caja con gráfico de historial.
@@ -82,100 +111,156 @@ def mostrar_caja(id_grupo):
     fecha = st.date_input("📅 Fecha de registro", date.today())
     
     # ===============================
-    # 2.1 OBTENER DATOS AUTOMÁTICOS DEL MÓDULO DE AHORRO
+    # 3. DATOS AUTOMÁTICOS DEL MÓDULO DE AHORRO
     # ===============================
     ahorros_auto, actividades_auto, retiros_auto = obtener_datos_ahorro_automaticos(id_grupo, fecha)
+    multa_auto = obtener_multas_automaticas(id_grupo, fecha)
     
     st.info(f"📊 **Datos automáticos del módulo de ahorro para {fecha}:**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Ahorros Automáticos", f"${ahorros_auto:,.2f}")  # CORREGIDO: ahorros_auto
+        st.metric("Ahorros Automáticos", f"${ahorros_auto:,.2f}")
     with col2:
         st.metric("Actividades Automáticas", f"${actividades_auto:,.2f}")
     with col3:
         st.metric("Retiros Automáticos", f"${retiros_auto:,.2f}")
 
-    # ===============================
-    # 2.2 Cargar multas pagadas automáticas
-    # ===============================
-    cursor.execute("""
-        SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
-        FROM Multas MT
-        JOIN Miembros M ON MT.id_miembro = M.id_miembro
-        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-        WHERE GM.id_grupo = %s
-        AND MT.fecha = %s
-        AND MT.pagada = 1
-    """, (id_grupo, fecha))
-
-    resultado_multa = cursor.fetchone()
-    multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
-
     st.write("---")
 
     # ===============================
-    # 3. DINERO QUE ENTRA
+    # 4. DINERO QUE ENTRA - NUEVO DISEÑO
     # ===============================
     st.subheader("🟩 Dinero que entra")
     
-    # Mostrar valores automáticos pero permitir edición manual si es necesario
-    st.text_input("Multas PAGADAS del día", value=f"${multa_auto:.2f}", disabled=True)
-
-    multa = multa_auto
+    # Crear un contenedor con estilo para mejor presentación
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.text_input(
+                "Multas PAGADAS del día", 
+                value=f"${multa_auto:.2f}", 
+                disabled=True,
+                help="Valor automático de multas pagadas"
+            )
+            multa = multa_auto
+        
+        with col2:
+            ahorros = st.number_input(
+                "Ahorros", 
+                min_value=0.0, 
+                step=0.01, 
+                value=ahorros_auto,
+                help=f"Valor automático: ${ahorros_auto:,.2f}"
+            )
+        
+        with col3:
+            otras_actividades = st.number_input(
+                "Otras actividades", 
+                min_value=0.0, 
+                step=0.01, 
+                value=actividades_auto,
+                help=f"Valor automático: ${actividades_auto:,.2f}"
+            )
+        
+        with col4:
+            pagos_prestamos = st.number_input(
+                "Pago de préstamos", 
+                min_value=0.0, 
+                step=0.01,
+                help="Capital e interés"
+            )
     
-    # Usar valores automáticos como valor por defecto, pero permitir modificación
-    ahorros = st.number_input(
-        "Ahorros", 
-        min_value=0.0, 
-        step=0.01, 
-        value=ahorros_auto,  # CORREGIDO: ahorros_auto
-        help=f"Valor automático: ${ahorros_auto:,.2f} (puede modificar si es necesario)"
-    )
-    
-    otras_actividades = st.number_input(
-        "Otras actividades", 
-        min_value=0.0, 
-        step=0.01, 
-        value=actividades_auto,
-        help=f"Valor automático: ${actividades_auto:,.2f} (puede modificar si es necesario)"
-    )
-    
-    pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
-    otros_ingresos = st.number_input("Otros ingresos del grupo", min_value=0.0, step=0.01)
+    # Segunda fila de campos para dinero que entra
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            otros_ingresos = st.number_input(
+                "Otros ingresos del grupo", 
+                min_value=0.0, 
+                step=0.01
+            )
+        
+        with col2:
+            # Espacio vacío para alineación
+            st.write("")
+        
+        with col3:
+            # Espacio vacío para alineación
+            st.write("")
+        
+        with col4:
+            # Calcular y mostrar total entrada
+            total_entrada = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
+            st.text_input(
+                "🔹 Total dinero que entra", 
+                value=f"${total_entrada:,.2f}", 
+                disabled=True
+            )
 
-    total_entrada = multa + ahorros + otras_actividades + pagos_prestamos + otros_ingresos
-    st.number_input("🔹 Total dinero que entra", value=total_entrada, disabled=True)
-
-    # ===============================
-    # 4. DINERO QUE SALE
-    # ===============================
     st.write("---")
+
+    # ===============================
+    # 5. DINERO QUE SALE - NUEVO DISEÑO
+    # ===============================
     st.subheader("🟥 Dinero que sale")
-
-    # Usar retiros automáticos como valor por defecto
-    retiro_ahorros = st.number_input(
-        "Retiros de ahorros", 
-        min_value=0.0, 
-        step=0.01, 
-        value=retiros_auto,
-        help=f"Valor automático: ${retiros_auto:,.2f} (puede modificar si es necesario)"
-    )
     
-    desembolso = st.number_input("Desembolso de préstamos", min_value=0.0, step=0.01)
-    gastos_grupo = st.number_input("Otros gastos del grupo", min_value=0.0, step=0.01)
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            retiro_ahorros = st.number_input(
+                "Retiros de ahorros", 
+                min_value=0.0, 
+                step=0.01, 
+                value=retiros_auto,
+                help=f"Valor automático: ${retiros_auto:,.2f}"
+            )
+        
+        with col2:
+            desembolso = st.number_input(
+                "Desembolso de préstamos", 
+                min_value=0.0, 
+                step=0.01
+            )
+        
+        with col3:
+            gastos_grupo = st.number_input(
+                "Otros gastos del grupo", 
+                min_value=0.0, 
+                step=0.01
+            )
+        
+        with col4:
+            # Calcular y mostrar total salida
+            total_salida = retiro_ahorros + desembolso + gastos_grupo
+            st.text_input(
+                "🔻 Total dinero que sale", 
+                value=f"${total_salida:,.2f}", 
+                disabled=True
+            )
 
-    total_salida = retiro_ahorros + desembolso + gastos_grupo
-    st.number_input("🔻 Total dinero que sale", value=total_salida, disabled=True)
-
-    # ===============================
-    # 5. Saldo neto
-    # ===============================
     st.write("---")
-    saldo_neto = total_entrada - total_salida
-    st.number_input("⚖️ Saldo del cierre", value=saldo_neto, disabled=True)
 
     # ===============================
-    # 6. Guardado automático
+    # 6. SALDO NETO - NUEVO DISEÑO
+    # ===============================
+    st.subheader("⚖️ Saldo del cierre")
+    
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            saldo_neto = total_entrada - total_salida
+            st.text_input(
+                "Saldo neto", 
+                value=f"${saldo_neto:,.2f}", 
+                disabled=True
+            )
+
+    # ===============================
+    # 7. Guardado automático
     # ===============================
     if multa > 0 or ahorros > 0 or otras_actividades > 0 or pagos_prestamos > 0 or otros_ingresos > 0 or total_salida > 0:
         cursor.execute("""
@@ -197,7 +282,7 @@ def mostrar_caja(id_grupo):
         st.success("✅ Registro de caja guardado automáticamente.")
 
     # ===============================
-    # 7. Historial con gráfico y filtros
+    # 8. Historial con gráfico y filtros
     # ===============================
     st.write("---")
     st.subheader("📊 Historial de Caja")
@@ -284,7 +369,7 @@ def mostrar_caja(id_grupo):
         st.info("No hay registros para mostrar.")
 
     # ===============================
-    # 8. Botón regresar
+    # 9. Botón regresar
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
