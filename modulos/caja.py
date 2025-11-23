@@ -266,33 +266,6 @@ def mostrar_caja(id_grupo):
 
         # Mostrar el gráfico
         st.pyplot(fig)
-
-        # Resumen rápido debajo del gráfico
-        st.markdown("---")
-        col1, col2, col3 = st.columns(3)
-        
-        total_entradas = df['total_entrada'].sum()
-        total_salidas = df['total_salida'].sum()
-        saldo_neto = total_entradas - total_salidas
-        
-        with col1:
-            st.metric(
-                "Total Entradas", 
-                f"${total_entradas:,.2f}",
-                delta=f"${total_entradas:,.2f}" if total_entradas > 0 else None
-            )
-        with col2:
-            st.metric(
-                "Total Salidas", 
-                f"${total_salidas:,.2f}",
-                delta=f"-${total_salidas:,.2f}" if total_salidas > 0 else None
-            )
-        with col3:
-            st.metric(
-                "Saldo Neto", 
-                f"${saldo_neto:,.2f}",
-                delta_color="normal" if saldo_neto >= 0 else "inverse"
-            )
             
     else:
         st.info("📊 No hay datos para mostrar en el gráfico. Seleccione un rango de fechas y haga clic en 'Calcular Totales'.")
