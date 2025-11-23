@@ -246,10 +246,11 @@ def editar_multa(multa):
         finally:
             cursor.close()
             con.close()
-
-    # ------------------ BOTÓN REGRESAR ------------------
-    st.write("")
+ # ------------------ BOTÓN REGRESAR ------------------
     if st.button("⬅️ Regresar al Menú"):
+        # Limpiamos el estado de edición
+        if "editar_multa" in st.session_state:
+            del st.session_state["editar_multa"]
+        # Redirigimos al menú
         st.session_state["page"] = "menu"
         st.rerun()
-    st.write("---")
