@@ -37,19 +37,6 @@ def registrar_miembros():
     st.markdown("<h1 style='text-align:center; color:#4C3A60;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
     # ================================
-    # FUNCIÓN DE VALIDACIÓN PARA TELÉFONO (REGISTRO)
-    # ================================
-    def validar_telefono_input():
-        """Valida el teléfono y actualiza el estado"""
-        telefono = st.session_state.telefono_input
-        if telefono and not re.match(r'^[0-9]*$', telefono):
-            st.session_state.telefono_valido = False
-        else:
-            st.session_state.telefono_valido = True
-            # Guardar el valor limpio
-            st.session_state.telefono_value = re.sub(r'[^0-9]', '', telefono)
-
-    # ================================
     # FORMULARIO NUEVO MIEMBRO SOLO SI NO ESTAMOS EDITANDO
     # ================================
     if "editar_miembro" not in st.session_state:
@@ -57,34 +44,41 @@ def registrar_miembros():
             nombre = st.text_input("Nombre completo")
             dui = st.text_input("DUI")
             
-            # CAMPO DE TELÉFONO CON VALIDACIÓN
+            # CAMPO DE TELÉFONO CON VALIDACIÓN (SIN on_change)
             telefono = st.text_input(
                 "Teléfono",
                 value=st.session_state.telefono_value,
                 key="telefono_input",
-                on_change=validar_telefono_input,
                 help="Ingrese solo números"
             )
             
-            # MOSTRAR ERROR SI ES INVÁLIDO
-            if not st.session_state.telefono_valido:
-                st.error("❌ Solo se permiten números en el campo de teléfono")
-            
             enviar = st.form_submit_button("Registrar")
+
+        # VALIDACIÓN DESPUÉS DEL FORMULARIO
+        if telefono:  # Solo validar si hay contenido
+            if not re.match(r'^[0-9]*$', telefono):
+                st.session_state.telefono_valido = False
+                st.error("❌ Solo se permiten números en el campo de teléfono")
+            else:
+                st.session_state.telefono_valido = True
+                st.session_state.telefono_value = re.sub(r'[^0-9]', '', telefono)
 
         if enviar:
             # VALIDACIÓN FINAL ANTES DE GUARDAR
             if not st.session_state.telefono_valido:
                 st.error("Por favor corrija el campo de teléfono antes de registrar")
-            elif not st.session_state.telefono_value:
+            elif not telefono.strip():
                 st.error("⚠️ El campo teléfono es requerido")
             else:
+                # Usar el valor limpio del teléfono
+                telefono_limpio = re.sub(r'[^0-9]', '', telefono)
+                
                 try:
                     con = obtener_conexion()
                     cursor = con.cursor()
                     cursor.execute(
                         "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
-                        (nombre, dui, st.session_state.telefono_value)  # Usar el valor limpio
+                        (nombre, dui, telefono_limpio)
                     )
                     con.commit()
                     id_miembro = cursor.lastrowid
@@ -244,53 +238,47 @@ def eliminar_miembro(id_miembro, id_grupo):
 # EDITAR MIEMBRO
 # ================================
 def editar_miembro(row):
-    # ================================
-    # FUNCIÓN DE VALIDACIÓN PARA TELÉFONO (EDICIÓN)
-    # ================================
-    def validar_telefono_edit_input():
-        """Valida el teléfono en edición y actualiza el estado"""
-        telefono = st.session_state.telefono_edit_input
-        if telefono and not re.match(r'^[0-9]*$', telefono):
-            st.session_state.telefono_edit_valido = False
-        else:
-            st.session_state.telefono_edit_valido = True
-            # Guardar el valor limpio
-            st.session_state.telefono_edit_value = re.sub(r'[^0-9]', '', telefono)
-
     st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
 
     with st.form("form_editar"):
         nombre = st.text_input("Nombre completo", value=row['Nombre'])
         dui = st.text_input("DUI", value=row['DUI'])
         
-        # CAMPO DE TELÉFONO CON VALIDACIÓN (EDICIÓN)
+        # CAMPO DE TELÉFONO CON VALIDACIÓN (SIN on_change)
         telefono = st.text_input(
             "Teléfono", 
             value=st.session_state.telefono_edit_value,
             key="telefono_edit_input",
-            on_change=validar_telefono_edit_input,
             help="Ingrese solo números"
         )
         
-        # MOSTRAR ERROR SI ES INVÁLIDO
-        if not st.session_state.telefono_edit_valido:
-            st.error("❌ Solo se permiten números en el campo de teléfono")
-        
         actualizar = st.form_submit_button("Actualizar")
+
+    # VALIDACIÓN DESPUÉS DEL FORMULARIO (EDICIÓN)
+    if telefono:  # Solo validar si hay contenido
+        if not re.match(r'^[0-9]*$', telefono):
+            st.session_state.telefono_edit_valido = False
+            st.error("❌ Solo se permiten números en el campo de teléfono")
+        else:
+            st.session_state.telefono_edit_valido = True
+            st.session_state.telefono_edit_value = re.sub(r'[^0-9]', '', telefono)
 
     if actualizar:
         # VALIDACIÓN FINAL ANTES DE ACTUALIZAR
         if not st.session_state.telefono_edit_valido:
             st.error("Por favor corrija el campo de teléfono antes de actualizar")
-        elif not st.session_state.telefono_edit_value:
+        elif not telefono.strip():
             st.error("⚠️ El campo teléfono es requerido")
         else:
+            # Usar el valor limpio del teléfono
+            telefono_limpio = re.sub(r'[^0-9]', '', telefono)
+            
             try:
                 con = obtener_conexion()
                 cursor = con.cursor()
                 cursor.execute(
                     "UPDATE Miembros SET Nombre=%s, DUI=%s, Telefono=%s WHERE id_miembro=%s",
-                    (nombre, dui, st.session_state.telefono_edit_value, row['ID'])  # Usar el valor limpio
+                    (nombre, dui, telefono_limpio, row['ID'])
                 )
                 con.commit()
 
