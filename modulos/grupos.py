@@ -59,8 +59,10 @@ def pagina_grupos():
                 time.sleep(3)
                 mensaje.empty()
             finally:
-                cursor.close()
-                conn.close()
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close()
 
     st.write("---")
 
@@ -70,9 +72,14 @@ def pagina_grupos():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
         grupos = cursor.fetchall()
+    except Exception as e:
+        st.error(f"Error al cargar grupos: {e}")
+        grupos = []
     finally:
-        cursor.close()
-        conn.close()
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
 
     if not grupos:
         st.info("No hay grupos registrados aún.")
@@ -84,18 +91,24 @@ def pagina_grupos():
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
 
-    # ------------------ Teléfono seguro ------------------
+    # ------------------ Teléfono seguro - MEJORADO ------------------
     if "telefono" not in st.session_state:
         st.session_state.telefono = ""
+
+    # Función para actualizar el teléfono filtrado
+    def actualizar_telefono():
+        st.session_state.telefono = filtrar_telefono(st.session_state.telefono_input)
 
     telefono_input = st.text_input(
         "Teléfono",
         value=st.session_state.telefono,
         key="telefono_input",
-        on_change=lambda: setattr(
-            st.session_state, "telefono", filtrar_telefono(st.session_state.telefono_input)
-        )
+        on_change=actualizar_telefono,
+        help="Solo se permiten números y el símbolo + al inicio"
     )
+
+    # Mostrar el valor actual filtrado (opcional, para debug)
+    # st.write(f"Teléfono filtrado: {st.session_state.telefono}")
 
     grupo_asignado = st.selectbox(
         "Asignar al grupo",
@@ -114,20 +127,23 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
-    # ------------------- Botón registrar miembro -------------------
+    # ------------------- Botón registrar miembro - MEJORADO -------------------
     if st.button("Registrar miembro"):
         mensaje = st.empty()
 
+        # Asegurarnos de que el teléfono esté filtrado antes de validar
+        telefono_limpio = filtrar_telefono(st.session_state.telefono)
+        
         # Validaciones estrictas antes del INSERT
         if not nombre_m.strip():
             mensaje.error("El nombre del miembro es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not st.session_state.telefono.strip():
+        elif not telefono_limpio.strip():
             mensaje.error("El teléfono es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not validar_telefono(st.session_state.telefono):
+        elif not validar_telefono(telefono_limpio):
             mensaje.error("Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
             time.sleep(3)
             mensaje.empty()
@@ -136,10 +152,10 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # INSERT usando la versión filtrada de teléfono
+                # INSERT usando la versión filtrada y validada del teléfono
                 cursor.execute(
-                    "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
-                    (nombre_m, dui, st.session_state.telefono)
+                    "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
+                    (nombre_m, dui, telefono_limpio)
                 )
                 conn.commit()
                 miembro_id = cursor.lastrowid
@@ -172,16 +188,22 @@ def pagina_grupos():
                 mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
                 time.sleep(3)
                 mensaje.empty()
-                st.session_state.telefono = ""  # Limpiar input después de guardar
+                # Limpiar campos después de guardar
+                st.session_state.telefono = ""
+                # Opcional: limpiar otros campos
+                # st.rerun()  # Puedes usar esto para refrescar el formulario
 
             except Exception as e:
-                conn.rollback()
+                if 'conn' in locals():
+                    conn.rollback()
                 mensaje.error(f"Error al registrar miembro: {e}")
                 time.sleep(3)
                 mensaje.empty()
             finally:
-                cursor.close()
-                conn.close()
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals():
+                    conn.close()
 
     st.write("---")
 
@@ -211,7 +233,15 @@ def pagina_grupos():
             mensaje.success("Grupo y miembros asociados eliminados correctamente.")
             time.sleep(3)
             mensaje.empty()
+        except Exception as e:
+            if 'conn' in locals():
+                conn.rollback()
+            mensaje.error(f"Error al eliminar grupo: {e}")
+            time.sleep(3)
+            mensaje.empty()
         finally:
-            cursor.close()
-            conn.close()
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
 
