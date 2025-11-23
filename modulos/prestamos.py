@@ -72,7 +72,7 @@ def prestamos_modulo():
         st.warning("⚠ No hay miembros registrados en este grupo.")
         return
 
-    miembros_dict = {f"{m[1]} - {m[2]}": m[0] for m in miembros}
+    miembros_dict = {m[1]: m[0] for m in miembros}
 
     # =====================================================
     #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO
