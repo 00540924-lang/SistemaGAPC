@@ -6,6 +6,34 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 
 # ============================================================
+# FUNCIÓN PARA OBTENER MIEMBROS DEL GRUPO
+# ============================================================
+def obtener_miembros_grupo(id_grupo):
+    """Obtiene la lista de miembros del grupo desde la base de datos"""
+    try:
+        conn = mysql.connector.connect(
+            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
+            user="uiazxdhtd3r8o7uv",
+            password="uGjZ9MXWemv7vPsjOdA5",
+            database="bzn5gsi7ken7lufcglbg"
+        )
+        cursor = conn.cursor()
+        
+        # ⚠️ AJUSTA ESTA CONSULTA SEGÚN TU ESTRUCTURA DE BASE DE DATOS
+        # Ejemplo: si tienes una tabla 'Miembros' con columna 'nombre'
+        cursor.execute("SELECT nombre FROM Miembros WHERE id_grupo = %s ORDER BY nombre", (id_grupo,))
+        
+        miembros = [fila[0] for fila in cursor.fetchall()]
+        return miembros
+        
+    except Exception as e:
+        st.error(f"Error al cargar miembros: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+# ============================================================
 # FUNCIÓN PARA GENERAR PDF
 # ============================================================
 def generar_pdf(reglamento, nombre_grupo):
@@ -114,10 +142,65 @@ def mostrar_reglamento():
         frecuencia_reunion = st.text_input("Frecuencia:", val("frecuencia_reunion"))
 
         st.subheader("🏛 Comité")
-        presidenta = st.text_input("Presidenta:", val("presidenta"))
-        secretaria = st.text_input("Secretaria:", val("secretaria"))
-        tesorera = st.text_input("Tesorera:", val("tesorera"))
-        responsable_llave = st.text_input("Responsable de llave:", val("responsable_llave"))
+        
+        # OBTENER MIEMBROS DEL GRUPO
+        miembros = obtener_miembros_grupo(id_grupo)
+        
+        if miembros:
+            # Encontrar índices actuales para preseleccionar
+            def encontrar_indice(valor_actual):
+                if valor_actual and valor_actual in miembros:
+                    return miembros.index(valor_actual)
+                return 0
+            
+            presidenta_actual = val("presidenta")
+            secretaria_actual = val("secretaria")
+            tesorera_actual = val("tesorera")
+            responsable_llave_actual = val("responsable_llave")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                presidenta = st.selectbox(
+                    "Presidenta:",
+                    options=miembros,
+                    index=encontrar_indice(presidenta_actual),
+                    key="presidenta_select"
+                )
+                
+                secretaria = st.selectbox(
+                    "Secretaria:",
+                    options=miembros,
+                    index=encontrar_indice(secretaria_actual),
+                    key="secretaria_select"
+                )
+            
+            with col2:
+                tesorera = st.selectbox(
+                    "Tesorera:",
+                    options=miembros,
+                    index=encontrar_indice(tesorera_actual),
+                    key="tesorera_select"
+                )
+                
+                responsable_llave = st.selectbox(
+                    "Responsable de llave:",
+                    options=miembros,
+                    index=encontrar_indice(responsable_llave_actual),
+                    key="responsable_llave_select"
+                )
+            
+            # Validar que no se repitan miembros
+            roles_seleccionados = [presidenta, secretaria, tesorera, responsable_llave]
+            if len(roles_seleccionados) != len(set(roles_seleccionados)):
+                st.error("❌ Un mismo miembro no puede tener múltiples roles en el comité.")
+        
+        else:
+            st.warning("No hay miembros registrados en el grupo. Use campos de texto temporalmente.")
+            presidenta = st.text_input("Presidenta:", val("presidenta"))
+            secretaria = st.text_input("Secretaria:", val("secretaria"))
+            tesorera = st.text_input("Tesorera:", val("tesorera"))
+            responsable_llave = st.text_input("Responsable de llave:", val("responsable_llave"))
 
         st.subheader("🧾 Asistencia")
         multa_ausencia = st.number_input("Multa por ausencia:", value=float(val("multa_ausencia", 0)))
