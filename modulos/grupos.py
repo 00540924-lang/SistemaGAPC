@@ -92,24 +92,37 @@ def pagina_grupos():
     dui = st.text_input("DUI")
 
     # ------------------ Teléfono seguro - MEJORADO ------------------
-    if "telefono_filtrado" not in st.session_state:
-        st.session_state.telefono_filtrado = ""
+    if "telefono_limpio" not in st.session_state:
+        st.session_state.telefono_limpio = ""
 
-    # Función para actualizar el teléfono filtrado
-    def actualizar_telefono():
-        telefono_sucio = st.session_state.telefono_input
-        st.session_state.telefono_filtrado = filtrar_telefono(telefono_sucio)
-        # Si el valor filtrado es diferente, actualizar el input
-        if telefono_sucio != st.session_state.telefono_filtrado:
-            st.session_state.telefono_input = st.session_state.telefono_filtrado
+    # Función para filtrar en cada cambio
+    def filtrar_y_actualizar():
+        texto_actual = st.session_state.telefono_input
+        # Filtrar solo números y +
+        telefono_filtrado = filtrar_telefono(texto_actual)
+        
+        # Si hay diferencia, actualizar el estado y mostrar advertencia
+        if texto_actual != telefono_filtrado:
+            st.session_state.telefono_input = telefono_filtrado
+            st.session_state.telefono_limpio = telefono_filtrado
+            # Mostrar advertencia temporal
+            st.warning("❌ Se han eliminado caracteres no válidos. Solo se permiten números y el símbolo + al inicio.")
+            time.sleep(2)
+        else:
+            st.session_state.telefono_limpio = telefono_filtrado
 
     telefono_input = st.text_input(
-        "Teléfono",
-        value=st.session_state.telefono_filtrado,
+        "Teléfono *",
+        value=st.session_state.telefono_limpio,
         key="telefono_input",
-        on_change=actualizar_telefono,
-        help="Solo se permiten números y el símbolo + al inicio"
+        on_change=filtrar_y_actualizar,
+        help="Solo se permiten números y el símbolo + al inicio",
+        placeholder="Ej: +50312345678 o 12345678"
     )
+
+    # Mostrar el valor actual filtrado (para debug)
+    if st.session_state.telefono_limpio:
+        st.caption(f"📞 Teléfono validado: {st.session_state.telefono_limpio}")
 
     grupo_asignado = st.selectbox(
         "Asignar al grupo",
@@ -128,24 +141,24 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
-    # ------------------- Botón registrar miembro - CORREGIDO -------------------
+    # ------------------- Botón registrar miembro -------------------
     if st.button("Registrar miembro"):
         mensaje = st.empty()
 
         # Usar SIEMPRE la versión filtrada del teléfono
-        telefono_limpio = st.session_state.telefono_filtrado
+        telefono_final = st.session_state.telefono_limpio
         
         # Validaciones estrictas antes del INSERT
         if not nombre_m.strip():
-            mensaje.error("El nombre del miembro es obligatorio.")
+            mensaje.error("❌ El nombre del miembro es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not telefono_limpio.strip():
-            mensaje.error("El teléfono es obligatorio.")
+        elif not telefono_final.strip():
+            mensaje.error("❌ El teléfono es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not validar_telefono(telefono_limpio):
-            mensaje.error("Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
+        elif not validar_telefono(telefono_final):
+            mensaje.error("❌ Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
             time.sleep(3)
             mensaje.empty()
         else:
@@ -153,18 +166,10 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # DEBUG: Verificar que el teléfono cumple con la constraint
-                st.write(f"🔍 Validando teléfono: '{telefono_limpio}'")
-                if not validar_telefono(telefono_limpio):
-                    mensaje.error("❌ El teléfono no cumple con el formato requerido por la base de datos")
-                    time.sleep(3)
-                    mensaje.empty()
-                    return
-
                 # INSERT usando la versión filtrada y validada del teléfono
                 cursor.execute(
                     "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
-                    (nombre_m, dui, telefono_limpio)
+                    (nombre_m, dui, telefono_final)
                 )
                 conn.commit()
                 miembro_id = cursor.lastrowid
@@ -199,8 +204,7 @@ def pagina_grupos():
                 mensaje.empty()
                 
                 # Limpiar campos después de guardar exitosamente
-                st.session_state.telefono_filtrado = ""
-                st.session_state.telefono_input = ""
+                st.session_state.telefono_limpio = ""
                 st.rerun()
 
             except Exception as e:
@@ -210,9 +214,9 @@ def pagina_grupos():
                 # Manejo específico del error de constraint
                 error_str = str(e)
                 if "chk_telefono_valido" in error_str or "CHECK constraint" in error_str:
-                    mensaje.error("❌ El teléfono no cumple con el formato requerido. Solo números y '+' al inicio.")
+                    mensaje.error("❌ Error de base de datos: El teléfono no cumple con el formato requerido.")
                 else:
-                    mensaje.error(f"Error al registrar miembro: {e}")
+                    mensaje.error(f"❌ Error al registrar miembro: {e}")
                 
                 time.sleep(3)
                 mensaje.empty()
