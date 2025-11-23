@@ -17,132 +17,180 @@ def registrar_miembros():
     # ================================
     # TITULOS CENTRADOS
     # ================================
-    st.markdown(f"<h2 style='text-align:center;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center; color:#4C3A60;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#4C3A60;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
 
     # ================================
-    # FORMULARIO NUEVO MIEMBRO
+    # FORMULARIO NUEVO MIEMBRO SOLO SI NO ESTAMOS EDITANDO
     # ================================
-    with st.form("form_miembro"):
-        nombre = st.text_input("Nombre completo")
-        dui = st.text_input("DUI")
-        telefono = st.text_input("Teléfono")
-        enviar = st.form_submit_button("Registrar")
+    if "editar_miembro" not in st.session_state:
+        with st.form("form_miembro"):
+            nombre = st.text_input("Nombre completo")
+            dui = st.text_input("DUI")
+            telefono = st.text_input("Teléfono")
+            enviar = st.form_submit_button("Registrar")
 
-    if enviar:
-        try:
-            con = obtener_conexion()
-            cursor = con.cursor()
-            cursor.execute(
-                "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
-                (nombre, dui, telefono)
-            )
-            con.commit()
-            id_miembro = cursor.lastrowid
-            cursor.execute(
-                "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
-                (id_grupo, id_miembro)
-            )
-            con.commit()
-            st.success("Miembro registrado correctamente ✔️")
-            time.sleep(1)
-            st.experimental_rerun()
-        except Exception as e:
-            st.error(f"Error: {e}")
-        finally:
-            cursor.close()
-            con.close()
+        if enviar:
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+                cursor.execute(
+                    "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
+                    (nombre, dui, telefono)
+                )
+                con.commit()
+                id_miembro = cursor.lastrowid
 
+                cursor.execute(
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    (id_grupo, id_miembro)
+                )
+                con.commit()
+
+                st.success("Miembro registrado correctamente ✔️")
+                time.sleep(0.5)
+                st.rerun()  # recarga automática
+
+            finally:
+                cursor.close()
+                con.close()
+ # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
     # ================================
-    # MOSTRAR MIEMBROS CON TABLA ALINEADA
-    # MOSTRAR MIEMBROS EN TABLA BONITA
+    # Mostrar tabla y acciones
     # ================================
+    mostrar_tabla_y_acciones(id_grupo)
+
+
+def mostrar_tabla_y_acciones(id_grupo):
+    # 🔥 Si estamos editando, mostrar solo el formulario de edición y salir
+    if "editar_miembro" in st.session_state:
+        editar_miembro(st.session_state["editar_miembro"])
+        return
+
     try:
         con = obtener_conexion()
-@@ -64,53 +64,37 @@
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT M.id_miembro, M.nombre, M.dui, M.telefono
             FROM Miembros M
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s
-            ORDER BY M.nombre
+            ORDER BY M.id_miembro
         """, (id_grupo,))
         resultados = cursor.fetchall()
         df = pd.DataFrame(resultados, columns=["ID", "Nombre", "DUI", "Teléfono"])
 
         if df.empty:
             st.info("Aún no hay miembros en este grupo.")
-        else:
-            # -------------------------------
-            # CSS para simular bordes de tabla
-            # -------------------------------
-            st.markdown("""
-                <style>
-                .fila, .cabecera {
-                    border-bottom: 1px solid #ccc;
-                    padding: 4px 0;
-                }
-                .cabecera {
-                    font-weight: bold;
-                    border-bottom: 2px solid #999;
-                }
-                </style>
-            """, unsafe_allow_html=True)
-
-            # -------------------------------
-            # Cabecera
-            # -------------------------------
-            col_headers = st.columns([1,3,2,2,2])
-            headers = ["No.", "Nombre", "DUI", "Teléfono", "Acciones"]
-            for col, header in zip(col_headers, headers):
-                col.markdown(f"<div class='cabecera'>{header}</div>", unsafe_allow_html=True)
-
-            # -------------------------------
-            # Filas de datos con botones
-            # -------------------------------
-            for idx, row in df.iterrows():
-                cols = st.columns([1,3,2,2,2])
-                cols[0].markdown(f"<div class='fila'>{idx+1}</div>", unsafe_allow_html=True)
-                cols[1].markdown(f"<div class='fila'>{row['Nombre']}</div>", unsafe_allow_html=True)
-                cols[2].markdown(f"<div class='fila'>{row['DUI']}</div>", unsafe_allow_html=True)
-                cols[3].markdown(f"<div class='fila'>{row['Teléfono']}</div>", unsafe_allow_html=True)
-                with cols[4]:
-                    if st.button("Editar", key=f"editar_{row['ID']}"):
-                        editar_miembro(row)
-                        st.experimental_rerun()
-                    if st.button("Eliminar", key=f"eliminar_{row['ID']}"):
-                        eliminar_miembro(row["ID"], id_grupo)
-                        st.experimental_rerun()
             return
 
-        # Mostrar tabla con Streamlit nativo
-        st.dataframe(df.drop(columns="ID"), use_container_width=True)
+        # -------------------------------
+        # Título
+        # -------------------------------
+        st.markdown("<h3 style='text-align:center;'>📋 Lista de Miembros Registrados</h3>", unsafe_allow_html=True)
 
-        # ================================
-        # Seleccionar miembro para editar/eliminar
-        # ================================
-        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
-        seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
+        # -------------------------------
+        # Numeración desde 1
+        # -------------------------------
+        df_display = df.reset_index(drop=True)
+        df_display.insert(0, "No.", range(1, len(df_display) + 1))
+
+        # -------------------------------
+        # Mostrar tabla
+        # -------------------------------
+        st.dataframe(
+            df_display[["No.", "Nombre", "DUI", "Teléfono"]].style.hide(axis="index"),
+            use_container_width=True
+        )
+
+        # -------------------------------
+        # 👉 Solo el nombre en el selectbox
+        # -------------------------------
+        miembro_dict = {row['Nombre']: row for _, row in df.iterrows()}
+
+        seleccionado = st.selectbox(
+            "Selecciona un miembro para Editar/Eliminar",
+            options=list(miembro_dict.keys())
+        )
 
         if seleccionado:
             miembro = miembro_dict[seleccionado]
-
             col1, col2 = st.columns(2)
+
             with col1:
-                if st.button("Editar Miembro"):
-                    editar_miembro(miembro)
+                if st.button(" ✏️ Editar"):
+                    st.session_state["editar_miembro"] = miembro
+                    st.rerun()  # 🔥 activa modo edición
+
             with col2:
-                if st.button("Eliminar Miembro"):
+                if st.button("🗑️ Eliminar"):
                     eliminar_miembro(miembro["ID"], id_grupo)
                     st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
-                    time.sleep(1)
-                    st.experimental_rerun()
+                    time.sleep(0.5)
+                    st.rerun()
 
-    finally:
-        cursor.close()
-@@ -134,7 +118,6 @@
-            (id_miembro,)
-        )
-        con.commit()
-        st.success("Miembro eliminado ✔️")
     finally:
         cursor.close()
         con.close()
+
+
+# ================================
+# ELIMINAR MIEMBRO
+# ================================
+def eliminar_miembro(id_miembro, id_grupo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute(
+            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
+            (id_grupo, id_miembro)
+        )
+        con.commit()
+        cursor.execute(
+            "DELETE FROM Miembros WHERE id_miembro = %s",
+            (id_miembro,)
+        )
+        con.commit()
+    finally:
+        cursor.close()
+        con.close()
+
+
+# ================================
+# EDITAR MIEMBRO
+# ================================
+def editar_miembro(row):
+    st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
+
+    with st.form("form_editar"):
+        nombre = st.text_input("Nombre completo", value=row['Nombre'])
+        dui = st.text_input("DUI", value=row['DUI'])
+        telefono = st.text_input("Teléfono", value=row['Teléfono'])
+        actualizar = st.form_submit_button("Actualizar")
+
+    if actualizar:
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+            cursor.execute(
+                "UPDATE Miembros SET Nombre=%s, DUI=%s, Telefono=%s WHERE id_miembro=%s",
+                (nombre, dui, telefono, row['ID'])
+            )
+            con.commit()
+
+            st.success("Miembro actualizado correctamente ✔️")
+            time.sleep(0.5)
+
+            # 🔥 salir del modo edición
+            del st.session_state["editar_miembro"]
+
+            st.rerun()
+
+        finally:
+            cursor.close()
+            con.close()
