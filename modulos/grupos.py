@@ -87,11 +87,14 @@ def pagina_grupos():
     # ------------------ Teléfono seguro ------------------
     if "telefono" not in st.session_state:
         st.session_state.telefono = ""
-    telefono = st.text_input(
+
+    telefono_input = st.text_input(
         "Teléfono",
         value=st.session_state.telefono,
         key="telefono_input",
-        on_change=lambda: setattr(st.session_state, "telefono", filtrar_telefono(st.session_state.telefono_input))
+        on_change=lambda: setattr(
+            st.session_state, "telefono", filtrar_telefono(st.session_state.telefono_input)
+        )
     )
 
     grupo_asignado = st.selectbox(
@@ -115,7 +118,7 @@ def pagina_grupos():
     if st.button("Registrar miembro"):
         mensaje = st.empty()
 
-        # Validaciones previas
+        # Validaciones estrictas antes del INSERT
         if not nombre_m.strip():
             mensaje.error("El nombre del miembro es obligatorio.")
             time.sleep(3)
@@ -133,7 +136,7 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # Insertar miembro
+                # INSERT usando la versión filtrada
                 cursor.execute(
                     "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
                     (nombre_m, dui, st.session_state.telefono)
@@ -141,7 +144,7 @@ def pagina_grupos():
                 conn.commit()
                 miembro_id = cursor.lastrowid
 
-                # Crear relación con grupo
+                # Relación con grupo
                 cursor.execute(
                     "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                     (grupo_asignado, miembro_id)
@@ -169,7 +172,7 @@ def pagina_grupos():
                 mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
                 time.sleep(3)
                 mensaje.empty()
-                st.session_state.telefono = ""  # limpiar el input después de guardar
+                st.session_state.telefono = ""  # Limpiar input después de guardar
 
             except Exception as e:
                 conn.rollback()
@@ -211,5 +214,3 @@ def pagina_grupos():
         finally:
             cursor.close()
             conn.close()
-
-
