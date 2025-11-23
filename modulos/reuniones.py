@@ -36,11 +36,10 @@ def mostrar_reuniones(id_grupo):
     hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
 
     # ===============================
-    # ASISTENCIA INTEGRADA (Antes de agenda)
+    # ASISTENCIA INTEGRADA
     # ===============================
     st.subheader("🧑‍🤝‍🧑 Asistencia de miembros del grupo")
 
-    # Obtener miembros del grupo
     cursor.execute("""
         SELECT M.id_miembro, M.Nombre
         FROM Miembros M
@@ -56,7 +55,6 @@ def mostrar_reuniones(id_grupo):
         conn.close()
         return
 
-    # Crear tabla editable
     df_asistencia = pd.DataFrame(miembros)
     df_asistencia = df_asistencia.rename(columns={"Nombre": "Miembro"})
     df_asistencia["Asistencia"] = "Presente"
@@ -136,14 +134,12 @@ def mostrar_reuniones(id_grupo):
     # ===============================
     if st.button("💾 Guardar reunión"):
         
-        # Guardar reunión
         cursor.execute("""
             INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
             VALUES (%s, %s, %s, %s, %s)
         """, (id_grupo, fecha, hora, agenda_completa, observaciones))
         conn.commit()
 
-        # Guardar asistencia
         for _, row in tabla_asistencia.iterrows():
             cursor.execute("""
                 INSERT INTO Asistencia (id_grupo, fecha, id_miembro, asistencia)
@@ -172,6 +168,7 @@ def mostrar_reuniones(id_grupo):
     registros = cursor.fetchall()
 
     if registros:
+
         colores_tarjeta = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#FCE4EC"]
 
         for i, r in enumerate(registros):
@@ -200,9 +197,44 @@ def mostrar_reuniones(id_grupo):
                 conn.commit()
                 st.success("❌ Observación eliminada.")
                 st.rerun()
-
     else:
         st.info("No hay observaciones registradas para esta fecha.")
+
+    # ===============================
+    # Historial de Asistencia
+    # ===============================
+    st.markdown("<br><h2 style='color:#4C3A60;'>📋 Historial de asistencia</h2>", unsafe_allow_html=True)
+
+    cursor.execute("""
+        SELECT A.fecha, M.Nombre, A.asistencia
+        FROM Asistencia A
+        JOIN Miembros M ON A.id_miembro = M.id_miembro
+        WHERE A.id_grupo = %s AND A.fecha = %s
+        ORDER BY M.Nombre
+    """, (id_grupo, fecha_seleccionada))
+
+    asistencias = cursor.fetchall()
+
+    if asistencias:
+
+        for registro in asistencias:
+            st.markdown(
+                f"""
+                <div style="
+                    background-color:#E3F2FD;
+                    padding:15px;
+                    border-radius:12px;
+                    margin-bottom:12px;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+                ">
+                    <strong>🙋 Miembro:</strong> {registro['Nombre']}<br>
+                    <strong>📌 Asistencia:</strong> {registro['asistencia']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    else:
+        st.info("No hay asistencia registrada para esta fecha.")
 
     # ===============================
     # Regresar
@@ -213,4 +245,5 @@ def mostrar_reuniones(id_grupo):
 
     cursor.close()
     conn.close()
+
 
