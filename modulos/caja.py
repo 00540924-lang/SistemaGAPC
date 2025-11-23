@@ -14,32 +14,39 @@ def obtener_datos_ahorro_automaticos(id_grupo, fecha):
     if not conn:
         return 0.0, 0.0, 0.0
     
+    cursor = None
     try:
-        with conn.cursor(dictionary=True) as cursor:
-            # Obtener la suma de ahorros, actividades y retiros del módulo de ahorro
-            cursor.execute("""
-                SELECT 
-                    COALESCE(SUM(ahorros), 0) as total_ahorros,
-                    COALESCE(SUM(actividades), 0) as total_actividades,
-                    COALESCE(SUM(retiros), 0) as total_retiros
-                FROM ahorro_final 
-                WHERE id_grupo = %s AND fecha_registro = %s
-            """, (id_grupo, fecha))
-            
-            resultado = cursor.fetchone()
-            
-            if resultado:
-                return (
-                    float(resultado['total_ahorros']),
-                    float(resultado['total_actividades']),
-                    float(resultado['total_retiros'])
-                )
-            return 0.0, 0.0, 0.0
-            
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        
+        # Obtener la suma de ahorros, actividades y retiros del módulo de ahorro
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(ahorros), 0) as total_ahorros,
+                COALESCE(SUM(actividades), 0) as total_actividades,
+                COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro = %s
+        """, (id_grupo, fecha))
+        
+        resultado = cursor.fetchone()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        if resultado:
+            return (
+                float(resultado['total_ahorros']),
+                float(resultado['total_actividades']),
+                float(resultado['total_retiros'])
+            )
+        return 0.0, 0.0, 0.0
+        
     except Exception as e:
         st.error(f"Error al obtener datos automáticos de ahorro: {e}")
         return 0.0, 0.0, 0.0
     finally:
+        if cursor:
+            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
@@ -49,108 +56,119 @@ def obtener_multas_automaticas(id_grupo, fecha):
     if not conn:
         return 0.0
     
+    cursor = None
     try:
-        with conn.cursor(dictionary=True) as cursor:
-            cursor.execute("""
-                SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
-                FROM Multas MT
-                JOIN Miembros M ON MT.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s
-                AND MT.fecha = %s
-                AND MT.pagada = 1
-            """, (id_grupo, fecha))
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        cursor.execute("""
+            SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha = %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha))
 
-            resultado_multa = cursor.fetchone()
-            return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
-            
+        resultado_multa = cursor.fetchone()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+        
     except Exception as e:
         st.error(f"Error al obtener multas automáticas: {e}")
         return 0.0
     finally:
+        if cursor:
+            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
-def verificar_y_actualizar_registro_caja(id_grupo, fecha, datos):
-    """Verifica si existe registro y lo actualiza o crea uno nuevo"""
+def manejar_registro_caja(id_grupo, fecha, datos):
+    """Maneja la creación o actualización de registros de caja en una sola conexión"""
     conn = obtener_conexion()
     if not conn:
         return False, "Error de conexión"
     
+    cursor = None
     try:
-        with conn.cursor(dictionary=True) as cursor:
-            # Verificar si ya existe un registro
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        
+        # PRIMERO: Verificar si existe un registro
+        cursor.execute("SELECT id_caja FROM Caja WHERE id_grupo = %s AND fecha = %s", (id_grupo, fecha))
+        registro_existente = cursor.fetchone()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        if registro_existente:
+            # SEGUNDO: Actualizar registro existente
             cursor.execute("""
-                SELECT id_caja FROM Caja 
-                WHERE id_grupo = %s AND fecha = %s
-            """, (id_grupo, fecha))
+                UPDATE Caja SET
+                    multas = %s,
+                    ahorros = %s,
+                    otras_actividades = %s,
+                    pago_prestamos = %s,
+                    otros_ingresos = %s,
+                    total_entrada = %s,
+                    retiro_ahorros = %s,
+                    desembolso = %s,
+                    gastos_grupo = %s,
+                    total_salida = %s,
+                    saldo_cierre = %s
+                WHERE id_caja = %s
+            """, (
+                datos['multas'],
+                datos['ahorros'],
+                datos['otras_actividades'],
+                datos['pago_prestamos'],
+                datos['otros_ingresos'],
+                datos['total_entrada'],
+                datos['retiro_ahorros'],
+                datos['desembolso'],
+                datos['gastos_grupo'],
+                datos['total_salida'],
+                datos['saldo_cierre'],
+                registro_existente['id_caja']
+            ))
+            conn.commit()
+            return True, f"Registro actualizado correctamente (ID: {registro_existente['id_caja']})"
+        else:
+            # SEGUNDO: Crear nuevo registro
+            cursor.execute("""
+                INSERT INTO Caja (
+                    id_grupo, fecha, multas, ahorros, otras_actividades, 
+                    pago_prestamos, otros_ingresos, total_entrada,
+                    retiro_ahorros, desembolso, gastos_grupo, total_salida,
+                    saldo_cierre
+                )
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                datos['id_grupo'],
+                datos['fecha'],
+                datos['multas'],
+                datos['ahorros'],
+                datos['otras_actividades'],
+                datos['pago_prestamos'],
+                datos['otros_ingresos'],
+                datos['total_entrada'],
+                datos['retiro_ahorros'],
+                datos['desembolso'],
+                datos['gastos_grupo'],
+                datos['total_salida'],
+                datos['saldo_cierre']
+            ))
+            conn.commit()
+            return True, "Nuevo registro creado correctamente"
             
-            resultado = cursor.fetchone()
-            
-            if resultado:
-                # Actualizar registro existente
-                cursor.execute("""
-                    UPDATE Caja SET
-                        multas = %s,
-                        ahorros = %s,
-                        otras_actividades = %s,
-                        pago_prestamos = %s,
-                        otros_ingresos = %s,
-                        total_entrada = %s,
-                        retiro_ahorros = %s,
-                        desembolso = %s,
-                        gastos_grupo = %s,
-                        total_salida = %s,
-                        saldo_cierre = %s
-                    WHERE id_caja = %s
-                """, (
-                    datos['multas'],
-                    datos['ahorros'],
-                    datos['otras_actividades'],
-                    datos['pago_prestamos'],
-                    datos['otros_ingresos'],
-                    datos['total_entrada'],
-                    datos['retiro_ahorros'],
-                    datos['desembolso'],
-                    datos['gastos_grupo'],
-                    datos['total_salida'],
-                    datos['saldo_cierre'],
-                    resultado['id_caja']
-                ))
-                conn.commit()
-                return True, f"Registro actualizado correctamente (ID: {resultado['id_caja']})"
-            else:
-                # Crear nuevo registro
-                cursor.execute("""
-                    INSERT INTO Caja (
-                        id_grupo, fecha, multas, ahorros, otras_actividades, 
-                        pago_prestamos, otros_ingresos, total_entrada,
-                        retiro_ahorros, desembolso, gastos_grupo, total_salida,
-                        saldo_cierre
-                    )
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (
-                    datos['id_grupo'],
-                    datos['fecha'],
-                    datos['multas'],
-                    datos['ahorros'],
-                    datos['otras_actividades'],
-                    datos['pago_prestamos'],
-                    datos['otros_ingresos'],
-                    datos['total_entrada'],
-                    datos['retiro_ahorros'],
-                    datos['desembolso'],
-                    datos['gastos_grupo'],
-                    datos['total_salida'],
-                    datos['saldo_cierre']
-                ))
-                conn.commit()
-                return True, "Nuevo registro creado correctamente"
-                
     except Exception as e:
-        conn.rollback()
-        return False, f"Error en la base de datos: {e}"
+        if conn:
+            conn.rollback()
+        return False, f"Error en la base de datos: {str(e)}"
     finally:
+        if cursor:
+            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
@@ -160,29 +178,37 @@ def obtener_historial_caja(id_grupo, fecha_inicio=None, fecha_fin=None):
     if not conn:
         return []
     
+    cursor = None
     try:
-        with conn.cursor(dictionary=True) as cursor:
-            query = "SELECT fecha, total_entrada, total_salida FROM Caja WHERE id_grupo = %s"
-            params = [id_grupo]
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        query = "SELECT fecha, total_entrada, total_salida FROM Caja WHERE id_grupo = %s"
+        params = [id_grupo]
 
-            if fecha_inicio and fecha_fin:
-                query += " AND fecha BETWEEN %s AND %s"
-                params.extend([fecha_inicio, fecha_fin])
-            elif fecha_inicio:
-                query += " AND fecha >= %s"
-                params.append(fecha_inicio)
-            elif fecha_fin:
-                query += " AND fecha <= %s"
-                params.append(fecha_fin)
+        if fecha_inicio and fecha_fin:
+            query += " AND fecha BETWEEN %s AND %s"
+            params.extend([fecha_inicio, fecha_fin])
+        elif fecha_inicio:
+            query += " AND fecha >= %s"
+            params.append(fecha_inicio)
+        elif fecha_fin:
+            query += " AND fecha <= %s"
+            params.append(fecha_fin)
 
-            query += " ORDER BY fecha DESC"
-            cursor.execute(query, tuple(params))
-            return cursor.fetchall()
+        query += " ORDER BY fecha DESC"
+        cursor.execute(query, tuple(params))
+        registros = cursor.fetchall()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        return registros
             
     except Exception as e:
         st.error(f"Error al obtener historial: {e}")
         return []
     finally:
+        if cursor:
+            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
@@ -369,7 +395,7 @@ def mostrar_caja(id_grupo):
             'saldo_cierre': saldo_neto
         }
         
-        success, message = verificar_y_actualizar_registro_caja(id_grupo, fecha, datos_caja)
+        success, message = manejar_registro_caja(id_grupo, fecha, datos_caja)
         if success:
             st.success(f"✅ {message}")
         else:
