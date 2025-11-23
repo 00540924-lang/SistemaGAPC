@@ -131,6 +131,34 @@ def pagina_credenciales():
     st.write("---")
     st.subheader("➕ Registrar nueva credencial")
 
+    # ==========================
+# FUNCIÓN PARA TARJETA CON GRADIENTE
+# ==========================
+def tarjeta_gradiente(titulo, contenido, color_inicio="#667eea", color_fin="#764ba2", ancho=800, alto=120):
+    """
+    Crea una tarjeta con gradiente de colores
+    """
+    st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, {color_inicio}, {color_fin});
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        text-align: center;
+        color: white;
+        margin: 20px auto;
+        width: {ancho}px;
+        height: {alto}px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    ">
+        <h2 style="margin: 0; font-size: 28px; font-weight: bold;">{titulo}</h2>
+        <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">{contenido}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     # FORMULARIO DE REGISTRO
     usuario = st.text_input("Usuario").strip()
     contraseña = st.text_input("Contraseña", type="password")
