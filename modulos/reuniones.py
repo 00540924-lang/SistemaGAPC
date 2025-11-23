@@ -201,7 +201,7 @@ def mostrar_reuniones(id_grupo):
         st.info("No hay observaciones registradas para esta fecha.")
 
     # ===============================
-    # Historial de Asistencia
+    # Historial de Asistencia (en tabla)
     # ===============================
     st.markdown("<br><h2 style='color:#4C3A60;'>📋 Historial de asistencia</h2>", unsafe_allow_html=True)
 
@@ -216,23 +216,7 @@ def mostrar_reuniones(id_grupo):
     asistencias = cursor.fetchall()
 
     if asistencias:
-
-        for registro in asistencias:
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:#E3F2FD;
-                    padding:15px;
-                    border-radius:12px;
-                    margin-bottom:12px;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-                ">
-                    <strong>🙋 Miembro:</strong> {registro['Nombre']}<br>
-                    <strong>📌 Asistencia:</strong> {registro['asistencia']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        st.dataframe(asistencias, use_container_width=True)
     else:
         st.info("No hay asistencia registrada para esta fecha.")
 
