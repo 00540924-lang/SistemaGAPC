@@ -40,13 +40,29 @@ def mostrar_caja(id_grupo):
     # 2. Fecha
     # ===============================
     fecha = st.date_input("📅 Fecha de registro", date.today())
+    # ===============================
+# 2.1 Cargar multas automáticamente según la fecha seleccionada
+# ===============================
+cursor.execute("""
+    SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+    FROM Multas MT
+    JOIN Miembros M ON MT.id_miembro = M.id_miembro
+    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+    WHERE GM.id_grupo = %s
+    AND MT.fecha = %s
+    AND MT.pagada = 1
+""", (id_grupo, fecha))
+
+resultado_multa = cursor.fetchone()
+multa_auto = float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+
     st.write("---")
 
     # ===============================
     # 3. DINERO QUE ENTRA
     # ===============================
     st.subheader("🟩 Dinero que entra")
-    multa = st.number_input("Multas pagadas", min_value=0.0, step=0.01)
+    multa = st.number_input("Multas pagadas (automáticas del día)", min_value=0.0, step=0.01, value=multa_auto)
     ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
     otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
     pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
