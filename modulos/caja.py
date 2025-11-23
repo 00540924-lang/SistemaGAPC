@@ -51,8 +51,8 @@ def obtener_totales_por_rango(id_grupo, fecha_inicio, fecha_fin):
         if conn and conn.is_connected():
             conn.close()
 
-def obtener_historial_caja(id_grupo, fecha_inicio=None, fecha_fin=None):
-    """Obtiene el historial de caja con filtros opcionales"""
+def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
+    """Obtiene los datos para el gráfico con filtros opcionales"""
     conn = obtener_conexion()
     if not conn:
         return []
@@ -61,9 +61,7 @@ def obtener_historial_caja(id_grupo, fecha_inicio=None, fecha_fin=None):
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         query = """
-            SELECT fecha, multas, ahorros, otras_actividades, pago_prestamos, 
-                   otros_ingresos, total_entrada, retiro_ahorros, desembolso, 
-                   gastos_grupo, total_salida, saldo_cierre 
+            SELECT fecha, total_entrada, total_salida 
             FROM Caja WHERE id_grupo = %s
         """
         params = [id_grupo]
@@ -78,7 +76,7 @@ def obtener_historial_caja(id_grupo, fecha_inicio=None, fecha_fin=None):
             query += " AND fecha <= %s"
             params.append(fecha_fin)
 
-        query += " ORDER BY fecha DESC"
+        query += " ORDER BY fecha ASC"
         cursor.execute(query, tuple(params))
         registros = cursor.fetchall()
         
@@ -88,7 +86,7 @@ def obtener_historial_caja(id_grupo, fecha_inicio=None, fecha_fin=None):
         return registros
             
     except Exception as e:
-        st.error(f"Error al obtener historial: {e}")
+        st.error(f"Error al obtener datos para gráfico: {e}")
         return []
     finally:
         if cursor:
@@ -194,96 +192,110 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 2. HISTORIAL DETALLADO CON GRÁFICO
+    # 2. GRÁFICO ACTUALIZABLE AUTOMÁTICAMENTE
     # ===============================
-    st.subheader("📋 Historial Detallado")
-    st.info("Filtre por fecha o deje vacío para ver todos los registros.")
+    st.subheader("📈 Gráfico de Movimientos de Caja")
+    
+    # Obtener datos para el gráfico usando las mismas fechas del filtro superior
+    datos_grafico = obtener_datos_grafico(id_grupo, fecha_inicio_totales, fecha_fin_totales)
 
-    col1, col2, col3 = st.columns([1,1,1])
-    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
-    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
+    if datos_grafico:
+        df = pd.DataFrame(datos_grafico)
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df = df.sort_values('fecha').reset_index(drop=True)
 
-    if col3.button("🧹 Limpiar filtros", key="limpiar_historial"):
-        st.session_state["limpiar_filtros"] = True
+        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
+        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
-    if st.session_state.get("limpiar_filtros", False):
-        fecha_inicio = None
-        fecha_fin = None
-        st.session_state["limpiar_filtros"] = False
-
-    # Obtener historial
-    registros = obtener_historial_caja(id_grupo, fecha_inicio, fecha_fin)
-
-    if registros:
-        # Mostrar tabla con todos los datos
-        st.markdown("### 📊 Tabla de Movimientos")
-        df_detalle = pd.DataFrame(registros)
-        
-        # Formatear columnas monetarias
-        columnas_monetarias = ['multas', 'ahorros', 'otras_actividades', 'pago_prestamos', 
-                              'otros_ingresos', 'total_entrada', 'retiro_ahorros', 
-                              'desembolso', 'gastos_grupo', 'total_salida', 'saldo_cierre']
-        
-        for col in columnas_monetarias:
-            if col in df_detalle.columns:
-                df_detalle[col] = df_detalle[col].apply(lambda x: f"${x:,.2f}" if pd.notnull(x) else "$0.00")
-        
-        st.dataframe(df_detalle, use_container_width=True)
-
-        # Gráfico de entradas vs salidas
-        st.markdown("### 📈 Gráfico de Entradas vs Salidas")
-        df_grafico = pd.DataFrame(registros)
-        df_grafico['fecha'] = pd.to_datetime(df_grafico['fecha'])
-        df_grafico = df_grafico.sort_values('fecha').reset_index(drop=True)
-
-        df_grafico['total_entrada'] = df_grafico['total_entrada'].fillna(0).astype(float)
-        df_grafico['total_salida'] = df_grafico['total_salida'].fillna(0).astype(float)
-
-        fig, ax = plt.subplots(figsize=(10, 5))
+        # Crear el gráfico
+        fig, ax = plt.subplots(figsize=(12, 6))
         width = 0.35
-        x = range(len(df_grafico))
+        x = range(len(df))
 
-        ax.bar([i - width/2 for i in x], df_grafico['total_entrada'], width=width, color='#4CAF50', label='Entradas')
-        ax.bar([i + width/2 for i in x], df_grafico['total_salida'], width=width, color='#F44336', label='Salidas')
+        # Barras para entradas y salidas
+        barras_entrada = ax.bar([i - width/2 for i in x], df['total_entrada'], 
+                               width=width, color='#4CAF50', label='Entradas', alpha=0.8)
+        barras_salida = ax.bar([i + width/2 for i in x], df['total_salida'], 
+                              width=width, color='#F44336', label='Salidas', alpha=0.8)
 
-        max_entrada = df_grafico['total_entrada'].max()
-        max_salida = df_grafico['total_salida'].max()
+        # Encontrar valores máximos para posicionar los textos
+        max_entrada = df['total_entrada'].max()
+        max_salida = df['total_salida'].max()
+        max_valor = max(max_entrada, max_salida)
 
-        for i, row in df_grafico.iterrows():
+        # Agregar valores en las barras (solo si hay espacio suficiente)
+        for i, row in df.iterrows():
             entrada_val = float(row['total_entrada'])
             salida_val = float(row['total_salida'])
-            ax.text(i - width/2, entrada_val + max_entrada*0.01,
-                    f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-            ax.text(i + width/2, salida_val + max_salida*0.01,
-                    f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
+            
+            if entrada_val > 0:
+                ax.text(i - width/2, entrada_val + max_valor*0.01,
+                        f"${entrada_val:,.0f}", ha='center', va='bottom', 
+                        fontsize=8, color='#2E7D32', fontweight='bold')
+            
+            if salida_val > 0:
+                ax.text(i + width/2, salida_val + max_valor*0.01,
+                        f"${salida_val:,.0f}", ha='center', va='bottom', 
+                        fontsize=8, color='#B71C1C', fontweight='bold')
 
-        ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Monto", fontsize=12)
-        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+        # Configurar el gráfico
+        ax.set_xlabel("Fecha", fontsize=12, fontweight='bold')
+        ax.set_ylabel("Monto ($)", fontsize=12, fontweight='bold')
+        
+        # Título dinámico con el rango de fechas
+        titulo = "Movimientos de Caja"
+        if fecha_inicio_totales and fecha_fin_totales:
+            titulo += f" ({fecha_inicio_totales} al {fecha_fin_totales})"
+        
+        ax.set_title(titulo, fontsize=16, fontweight='bold', pad=20)
+        
         ax.set_xticks(x)
-        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df_grafico['fecha']], rotation=45, ha='right', fontsize=9)
-        ax.grid(axis='y', linestyle='--', alpha=0.6)
+        ax.set_xticklabels([d.strftime('%d/%m/%Y') for d in df['fecha']], 
+                          rotation=45, ha='right', fontsize=9)
+        
+        ax.grid(axis='y', linestyle='--', alpha=0.3)
         ax.set_axisbelow(True)
+        
+        # Remover bordes
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.legend()
-
-        saldo_final = df_grafico['total_entrada'].sum() - df_grafico['total_salida'].sum()
-        st.pyplot(fig)
+        ax.spines['left'].set_alpha(0.3)
+        ax.spines['bottom'].set_alpha(0.3)
         
-        # Resumen del período filtrado
-        st.markdown("### 💰 Resumen del Período")
+        ax.legend(frameon=True, fancybox=True, shadow=True)
+
+        # Mostrar el gráfico
+        st.pyplot(fig)
+
+        # Resumen rápido debajo del gráfico
+        st.markdown("---")
         col1, col2, col3 = st.columns(3)
         
+        total_entradas = df['total_entrada'].sum()
+        total_salidas = df['total_salida'].sum()
+        saldo_neto = total_entradas - total_salidas
+        
         with col1:
-            st.metric("Total Entradas", f"${df_grafico['total_entrada'].sum():,.2f}")
+            st.metric(
+                "Total Entradas", 
+                f"${total_entradas:,.2f}",
+                delta=f"${total_entradas:,.2f}" if total_entradas > 0 else None
+            )
         with col2:
-            st.metric("Total Salidas", f"${df_grafico['total_salida'].sum():,.2f}")
+            st.metric(
+                "Total Salidas", 
+                f"${total_salidas:,.2f}",
+                delta=f"-${total_salidas:,.2f}" if total_salidas > 0 else None
+            )
         with col3:
-            st.metric("Saldo Neto", f"${saldo_final:,.2f}")
+            st.metric(
+                "Saldo Neto", 
+                f"${saldo_neto:,.2f}",
+                delta_color="normal" if saldo_neto >= 0 else "inverse"
+            )
             
     else:
-        st.info("No hay registros para mostrar.")
+        st.info("📊 No hay datos para mostrar en el gráfico. Seleccione un rango de fechas y haga clic en 'Calcular Totales'.")
 
     # ===============================
     # 3. Botón regresar
