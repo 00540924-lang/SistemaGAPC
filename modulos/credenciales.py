@@ -21,19 +21,68 @@ def usuario_existe(usuario):
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT COUNT(*) FROM Administradores WHERE Usuario = %s",  # ✅ MAYÚSCULA
+            "SELECT COUNT(*) FROM Administradores WHERE Usuario = %s",
             (usuario,)
         )
         resultado = cursor.fetchone()
         return resultado[0] > 0
     except Exception as e:
         st.error(f"Error al verificar usuario: {e}")
-        return True  # Por seguridad, asumimos que existe si hay error
+        return True
     finally:
         if 'cursor' in locals():
             cursor.close()
         if 'conn' in locals():
             conn.close()
+
+# ==========================
+# FUNCIÓN PARA ELIMINAR USUARIO
+# ==========================
+def eliminar_usuario(usuario):
+    """Elimina un usuario de la base de datos"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM Administradores WHERE Usuario = %s",
+            (usuario,)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        st.error(f"Error al eliminar usuario: {e}")
+        return False
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+# ==========================
+# FUNCIÓN PARA OBTENER USUARIOS
+# ==========================
+def obtener_usuarios(filtro_rol=None):
+    """Obtiene todos los usuarios, opcionalmente filtrados por rol"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        if filtro_rol and filtro_rol != "Todos":
+            cursor.execute(
+                "SELECT Usuario, Rol FROM Administradores WHERE Rol = %s ORDER BY Usuario",
+                (filtro_rol,)
+            )
+        else:
+            cursor.execute("SELECT Usuario, Rol FROM Administradores ORDER BY Usuario")
+            
+        usuarios = cursor.fetchall()
+        return usuarios
+    except Exception as e:
+        st.error(f"Error al cargar usuarios: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 # ==========================
 # MÓDULO DE CREDENCIALES
@@ -49,14 +98,13 @@ def pagina_credenciales():
     st.write("---")
     st.subheader("➕ Registrar nueva credencial")
 
-    # FORMULARIO
+    # FORMULARIO DE REGISTRO
     usuario = st.text_input("Usuario").strip()
     contraseña = st.text_input("Contraseña", type="password")
     rol = st.selectbox("Rol", options=["Institucional", "Promotor"])
 
     # BOTÓN PARA GUARDAR
     if st.button("Guardar credencial"):
-        # VALIDACIONES
         if not usuario:
             st.error("El usuario es obligatorio.")
         elif not contraseña.strip():
@@ -70,7 +118,6 @@ def pagina_credenciales():
                 conn = get_connection()
                 cursor = conn.cursor()
                 
-                # INSERTAR NUEVO USUARIO (✅ NOMBRES CORREGIDOS)
                 cursor.execute(
                     "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
                     (usuario, contraseña, rol)
@@ -78,12 +125,9 @@ def pagina_credenciales():
                 conn.commit()
                 
                 st.success("✅ Credencial registrada correctamente.")
-                
-                # Limpiar formulario - SOLO marcar para limpiar, sin st.rerun() aquí
                 st.session_state["credencial_form_cleared"] = True
                 
             except mysql.connector.IntegrityError as e:
-                # Esta excepción captura violaciones de UNIQUE KEY/PRIMARY KEY
                 if "Duplicate entry" in str(e):
                     st.error("❌ Error: El usuario ya existe en la base de datos.")
                 else:
@@ -96,32 +140,84 @@ def pagina_credenciales():
                 if 'conn' in locals():
                     conn.close()
 
-    # Limpiar campos después de guardar exitosamente - ELIMINAR st.rerun() de aquí
+    # Limpiar campos después de guardar exitosamente
     if st.session_state.get("credencial_form_cleared", False):
         st.session_state["credencial_form_cleared"] = False
-        # SOLO mostrar un mensaje informativo opcional, sin recargar la página
         st.info("💡 Los campos se han limpiado. Puedes registrar otra credencial si lo deseas.")
 
-# ==========================
-# FUNCIÓN ADICIONAL: LISTAR USUARIOS EXISTENTES
-# ==========================
-def mostrar_usuarios_existentes():
-    """Función opcional para mostrar usuarios existentes (puedes agregarla al menú)"""
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT Usuario, Rol FROM Administradores ORDER BY Usuario")  # ✅ MAYÚSCULAS
-        usuarios = cursor.fetchall()
+    st.write("---")
+    
+    # SECCIÓN DE LISTA DE USUARIOS
+    st.subheader("👥 Lista de Usuarios con Acceso")
+    
+    # FILTRO POR ROL
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        filtro_rol = st.selectbox(
+            "Filtrar por rol:",
+            options=["Todos", "Institucional", "Promotor"],
+            key="filtro_rol"
+        )
+    
+    # OBTENER USUARIOS
+    usuarios = obtener_usuarios(filtro_rol)
+    
+    if usuarios:
+        st.write(f"**Mostrando {len(usuarios)} usuario(s):**")
         
-        if usuarios:
-            st.subheader("👥 Usuarios existentes")
-            for usuario, rol in usuarios:
-                st.write(f"- **{usuario}** ({rol})")
-        else:
-            st.info("No hay usuarios registrados.")
-            
-    except Exception as e:
-        st.error(f"Error al cargar usuarios: {e}")
-    finally:
-        cursor.close()
-        conn.close()
+        # MOSTRAR USUARIOS EN TARJETAS
+        for i, (usuario, rol) in enumerate(usuarios):
+            with st.container():
+                col1, col2, col3 = st.columns([3, 2, 1])
+                
+                with col1:
+                    st.write(f"**Usuario:** {usuario}")
+                
+                with col2:
+                    st.write(f"**Rol:** {rol}")
+                
+                with col3:
+                    # BOTÓN PARA ELIMINAR CON CONFIRMACIÓN
+                    if st.button("🗑️ Eliminar", key=f"eliminar_{usuario}"):
+                        st.session_state[f"confirmar_eliminar_{usuario}"] = True
+                
+                # CONFIRMACIÓN DE ELIMINACIÓN
+                if st.session_state.get(f"confirmar_eliminar_{usuario}", False):
+                    st.warning(f"¿Estás seguro de que quieres eliminar al usuario **{usuario}**?")
+                    col_conf1, col_conf2 = st.columns(2)
+                    
+                    with col_conf1:
+                        if st.button("✅ Sí, eliminar", key=f"si_eliminar_{usuario}"):
+                            if eliminar_usuario(usuario):
+                                st.success(f"✅ Usuario **{usuario}** eliminado correctamente.")
+                                # Limpiar estado de confirmación
+                                st.session_state[f"confirmar_eliminar_{usuario}"] = False
+                                # Recargar la página para actualizar la lista
+                                st.rerun()
+                            else:
+                                st.error("❌ Error al eliminar el usuario.")
+                    
+                    with col_conf2:
+                        if st.button("❌ Cancelar", key=f"no_eliminar_{usuario}"):
+                            st.session_state[f"confirmar_eliminar_{usuario}"] = False
+                            st.rerun()
+                
+                st.write("---")
+    else:
+        st.info("No hay usuarios registrados con los filtros seleccionados.")
+    
+    # ESTADÍSTICAS
+    st.write("---")
+    col_stats1, col_stats2, col_stats3 = st.columns(3)
+    
+    with col_stats1:
+        total_usuarios = len(obtener_usuarios())
+        st.metric("Total Usuarios", total_usuarios)
+    
+    with col_stats2:
+        usuarios_institucionales = len(obtener_usuarios("Institucional"))
+        st.metric("Usuarios Institucionales", usuarios_institucionales)
+    
+    with col_stats3:
+        usuarios_promotores = len(obtener_usuarios("Promotor"))
+        st.metric("Usuarios Promotores", usuarios_promotores)
