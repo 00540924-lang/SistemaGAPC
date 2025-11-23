@@ -82,8 +82,8 @@ def pagina_grupos():
         usuario_admin = st.text_input("Usuario")
         contraseña_admin = st.text_input("Contraseña", type="password")
         rol_admin = st.selectbox(
-            "Rol del administrador",
-            options=["Institucional", "Promotor", "Miembro"],
+            "Rol",
+            options=["Miembro"],
             index=0
         )
     else:
