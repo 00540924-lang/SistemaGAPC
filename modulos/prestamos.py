@@ -97,7 +97,8 @@ def prestamos_modulo():
         estado = st.selectbox("Estado del préstamo", ["Pendiente", "Activo", "Finalizado"])
 
         enviar = st.form_submit_button("💾 Guardar Préstamo")
-         # BOTÓN REGRESAR - FUERA DEL FORMULARIO
+
+    # BOTÓN REGRESAR - FUERA DEL FORMULARIO
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
@@ -109,6 +110,12 @@ def prestamos_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
 
+            # PRIMERO: Verificar la estructura de la tabla
+            cursor.execute("DESCRIBE prestamos")
+            estructura = cursor.fetchall()
+            st.info(f"Estructura de la tabla prestamos: {[col[0] for col in estructura]}")
+
+            # INTENTAR INSERT con manejo de errores detallado
             cursor.execute("""
                 INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, estado, interes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -125,11 +132,24 @@ def prestamos_modulo():
             con.commit()
             st.success("✅ Préstamo registrado correctamente")
             time.sleep(0.5)
-            st.experimental_rerun()
+            st.rerun()
 
+        except Exception as e:
+            st.error(f"❌ Error al registrar préstamo: {str(e)}")
+            # Mostrar información de depuración
+            st.info("**Información para depuración:**")
+            st.write(f"- ID Miembro: {miembros_dict[miembro_seleccionado]}")
+            st.write(f"- Propósito: {proposito}")
+            st.write(f"- Monto: {monto}")
+            st.write(f"- Fecha Desembolso: {fecha_desembolso}")
+            st.write(f"- Fecha Vencimiento: {fecha_vencimiento}")
+            st.write(f"- Estado: {estado}")
+            st.write(f"- Interés: {interes_por_10}")
         finally:
-            cursor.close()
-            con.close()
+            if 'cursor' in locals():
+                cursor.close()
+            if 'con' in locals() and con.is_connected():
+                con.close()
 
     mostrar_lista_prestamos(id_grupo)
 
@@ -224,8 +244,12 @@ def mostrar_formulario_pagos(id_prestamo):
             con.commit()
             st.success("💰 Pago registrado correctamente")
             time.sleep(0.5)
-            st.experimental_rerun()
+            st.rerun()
 
+        except Exception as e:
+            st.error(f"❌ Error al registrar pago: {str(e)}")
         finally:
-            cursor.close()
-            con.close()
+            if 'cursor' in locals():
+                cursor.close()
+            if 'con' in locals() and con.is_connected():
+                con.close()
