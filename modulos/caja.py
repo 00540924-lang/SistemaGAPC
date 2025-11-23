@@ -5,13 +5,46 @@ from modulos.config.conexion import obtener_conexion
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def obtener_totales_por_rango(id_grupo, fecha_inicio, fecha_fin):
-    """
-    Obtiene los totales acumulados de todos los campos de caja para un rango de fechas
-    """
+def obtener_multas_pagadas_rango(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene las multas pagadas directamente de la tabla Multas"""
     conn = obtener_conexion()
     if not conn:
-        return None
+        return 0.0
+    
+    cursor = None
+    try:
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        cursor.execute("""
+            SELECT COALESCE(SUM(MT.monto_a_pagar), 0) AS total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha BETWEEN %s AND %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha_inicio, fecha_fin))
+
+        resultado_multa = cursor.fetchone()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+        
+    except Exception as e:
+        st.error(f"Error al obtener multas pagadas: {e}")
+        return 0.0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+def obtener_ahorros_rango(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene los datos de ahorro directamente del módulo de ahorro"""
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0, 0.0, 0.0
     
     cursor = None
     try:
@@ -19,20 +52,11 @@ def obtener_totales_por_rango(id_grupo, fecha_inicio, fecha_fin):
         
         cursor.execute("""
             SELECT 
-                COALESCE(SUM(multas), 0) as total_multas,
                 COALESCE(SUM(ahorros), 0) as total_ahorros,
-                COALESCE(SUM(otras_actividades), 0) as total_actividades,
-                COALESCE(SUM(pago_prestamos), 0) as total_pago_prestamos,
-                COALESCE(SUM(otros_ingresos), 0) as total_otros_ingresos,
-                COALESCE(SUM(total_entrada), 0) as total_entrada,
-                COALESCE(SUM(retiro_ahorros), 0) as total_retiros,
-                COALESCE(SUM(desembolso), 0) as total_desembolso,
-                COALESCE(SUM(gastos_grupo), 0) as total_gastos_grupo,
-                COALESCE(SUM(total_salida), 0) as total_salida,
-                COALESCE(SUM(saldo_cierre), 0) as total_saldo_cierre,
-                COUNT(*) as total_registros
-            FROM Caja 
-            WHERE id_grupo = %s AND fecha BETWEEN %s AND %s
+                COALESCE(SUM(actividades), 0) as total_actividades,
+                COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro BETWEEN %s AND %s
         """, (id_grupo, fecha_inicio, fecha_fin))
         
         resultado = cursor.fetchone()
@@ -40,19 +64,108 @@ def obtener_totales_por_rango(id_grupo, fecha_inicio, fecha_fin):
         # Asegurarse de que no hay más resultados
         cursor.fetchall()
         
-        return resultado
-            
+        if resultado:
+            return (
+                float(resultado['total_ahorros']),
+                float(resultado['total_actividades']),
+                float(resultado['total_retiros'])
+            )
+        return 0.0, 0.0, 0.0
+        
     except Exception as e:
-        st.error(f"Error al obtener totales por rango: {e}")
-        return None
+        st.error(f"Error al obtener datos de ahorro: {e}")
+        return 0.0, 0.0, 0.0
     finally:
         if cursor:
             cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
+def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene los datos de préstamos directamente de las tablas de préstamos"""
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0, 0.0
+    
+    cursor = None
+    try:
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        
+        # Obtener pagos de préstamos
+        cursor.execute("""
+            SELECT COALESCE(SUM(monto_pagado), 0) as total_pagos
+            FROM pagos_prestamos PP
+            JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+            WHERE P.id_grupo = %s 
+            AND PP.fecha_pago BETWEEN %s AND %s
+            AND PP.estado = 'pagado'
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        resultado_pagos = cursor.fetchone()
+        total_pagos = float(resultado_pagos['total_pagos']) if resultado_pagos else 0.0
+        
+        # Obtener desembolsos de préstamos
+        cursor.execute("""
+            SELECT COALESCE(SUM(monto_aprobado), 0) as total_desembolsos
+            FROM prestamos 
+            WHERE id_grupo = %s 
+            AND fecha_aprobacion BETWEEN %s AND %s
+            AND estado = 'aprobado'
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        resultado_desembolsos = cursor.fetchone()
+        total_desembolsos = float(resultado_desembolsos['total_desembolsos']) if resultado_desembolsos else 0.0
+        
+        return total_pagos, total_desembolsos
+        
+    except Exception as e:
+        st.error(f"Error al obtener datos de préstamos: {e}")
+        return 0.0, 0.0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+def obtener_totales_por_rango(id_grupo, fecha_inicio, fecha_fin):
+    """
+    Obtiene los totales acumulados consultando directamente las tablas origen
+    """
+    # Obtener datos de cada módulo
+    total_multas = obtener_multas_pagadas_rango(id_grupo, fecha_inicio, fecha_fin)
+    total_ahorros, total_actividades, total_retiros = obtener_ahorros_rango(id_grupo, fecha_inicio, fecha_fin)
+    total_pago_prestamos, total_desembolso = obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin)
+    
+    # Valores por defecto para campos que no tenemos en otros módulos
+    total_otros_ingresos = 0.0
+    total_gastos_grupo = 0.0
+    
+    # Calcular totales
+    total_entrada = total_multas + total_ahorros + total_actividades + total_pago_prestamos + total_otros_ingresos
+    total_salida = total_retiros + total_desembolso + total_gastos_grupo
+    total_saldo_cierre = total_entrada - total_salida
+    
+    # Contar registros (podemos estimar basado en si hay datos)
+    total_registros = 1 if any([total_multas, total_ahorros, total_actividades, total_retiros, 
+                               total_pago_prestamos, total_desembolso]) else 0
+    
+    return {
+        'total_multas': total_multas,
+        'total_ahorros': total_ahorros,
+        'total_actividades': total_actividades,
+        'total_pago_prestamos': total_pago_prestamos,
+        'total_otros_ingresos': total_otros_ingresos,
+        'total_entrada': total_entrada,
+        'total_retiros': total_retiros,
+        'total_desembolso': total_desembolso,
+        'total_gastos_grupo': total_gastos_grupo,
+        'total_salida': total_salida,
+        'total_saldo_cierre': total_saldo_cierre,
+        'total_registros': total_registros
+    }
+
 def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
-    """Obtiene los datos para el gráfico con filtros opcionales"""
+    """Obtiene los datos para el gráfico consultando directamente las tablas origen"""
     conn = obtener_conexion()
     if not conn:
         return []
@@ -60,28 +173,91 @@ def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
     cursor = None
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
+        
+        # Consulta para obtener datos diarios de todos los módulos
         query = """
-            SELECT fecha, total_entrada, total_salida 
-            FROM Caja WHERE id_grupo = %s
+            SELECT 
+                fecha,
+                COALESCE((
+                    SELECT SUM(MT.monto_a_pagar)
+                    FROM Multas MT
+                    JOIN Miembros M ON MT.id_miembro = M.id_miembro
+                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                    WHERE GM.id_grupo = %s
+                    AND MT.fecha = dias.fecha
+                    AND MT.pagada = 1
+                ), 0) as multas,
+                
+                COALESCE((
+                    SELECT SUM(ahorros) 
+                    FROM ahorro_final 
+                    WHERE id_grupo = %s AND fecha_registro = dias.fecha
+                ), 0) as ahorros,
+                
+                COALESCE((
+                    SELECT SUM(actividades) 
+                    FROM ahorro_final 
+                    WHERE id_grupo = %s AND fecha_registro = dias.fecha
+                ), 0) as actividades,
+                
+                COALESCE((
+                    SELECT SUM(retiros) 
+                    FROM ahorro_final 
+                    WHERE id_grupo = %s AND fecha_registro = dias.fecha
+                ), 0) as retiros,
+                
+                COALESCE((
+                    SELECT SUM(PP.monto_pagado)
+                    FROM pagos_prestamos PP
+                    JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+                    WHERE P.id_grupo = %s 
+                    AND PP.fecha_pago = dias.fecha
+                    AND PP.estado = 'pagado'
+                ), 0) as pago_prestamos,
+                
+                COALESCE((
+                    SELECT SUM(P.monto_aprobado)
+                    FROM prestamos P
+                    WHERE P.id_grupo = %s 
+                    AND P.fecha_aprobacion = dias.fecha
+                    AND P.estado = 'aprobado'
+                ), 0) as desembolso
+                
+            FROM (
+                SELECT DISTINCT fecha
+                FROM (
+                    SELECT fecha FROM Multas
+                    UNION 
+                    SELECT fecha_registro as fecha FROM ahorro_final
+                    UNION 
+                    SELECT fecha_pago as fecha FROM pagos_prestamos
+                    UNION 
+                    SELECT fecha_aprobacion as fecha FROM prestamos
+                ) todas_fechas
+                WHERE fecha BETWEEN %s AND %s
+            ) dias
+            ORDER BY fecha ASC
         """
-        params = [id_grupo]
-
-        if fecha_inicio and fecha_fin:
-            query += " AND fecha BETWEEN %s AND %s"
-            params.extend([fecha_inicio, fecha_fin])
-        elif fecha_inicio:
-            query += " AND fecha >= %s"
-            params.append(fecha_inicio)
-        elif fecha_fin:
-            query += " AND fecha <= %s"
-            params.append(fecha_fin)
-
-        query += " ORDER BY fecha ASC"
+        
+        params = [id_grupo, id_grupo, id_grupo, id_grupo, id_grupo, id_grupo, fecha_inicio, fecha_fin]
         cursor.execute(query, tuple(params))
         registros = cursor.fetchall()
         
         # Asegurarse de que no hay más resultados
         cursor.fetchall()
+        
+        # Procesar los registros para calcular total_entrada y total_salida
+        for registro in registros:
+            registro['total_entrada'] = (
+                registro['multas'] + 
+                registro['ahorros'] + 
+                registro['actividades'] + 
+                registro['pago_prestamos']
+            )
+            registro['total_salida'] = (
+                registro['retiros'] + 
+                registro['desembolso']
+            )
         
         return registros
             
@@ -185,7 +361,7 @@ def mostrar_caja(id_grupo):
                         delta_color="normal" if saldo_neto >= 0 else "inverse"
                     )
                 
-                st.info(f"📋 Período analizado: {fecha_inicio_totales} al {fecha_fin_totales} - {totales['total_registros']} registros encontrados")
+                st.info(f"📋 Período analizado: {fecha_inicio_totales} al {fecha_fin_totales}")
             else:
                 st.warning(f"ℹ️ No se encontraron registros para el período: {fecha_inicio_totales} al {fecha_fin_totales}")
 
