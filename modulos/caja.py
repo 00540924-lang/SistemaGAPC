@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 def mostrar_caja(id_grupo):
     """
-    Módulo de caja.
+    Módulo de caja con gráfico de historial.
     Recibe id_grupo desde app.py (obligatorio para miembros).
     """
 
@@ -63,11 +63,9 @@ def mostrar_caja(id_grupo):
     # 3. DINERO QUE ENTRA
     # ===============================
     st.subheader("🟩 Dinero que entra")
-
     st.text_input("Multas PAGADAS del día", value=f"${multa_auto:.2f}", disabled=True)
 
     multa = multa_auto
-
     ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
     otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
     pagos_prestamos = st.number_input("Pago de préstamos (capital e interés)", min_value=0.0, step=0.01)
@@ -121,28 +119,89 @@ def mostrar_caja(id_grupo):
         st.success("✅ Registro de caja guardado automáticamente.")
 
     # ===============================
-    # 7. Historial
+    # 7. Historial con gráfico y filtros
     # ===============================
     st.write("---")
-    st.subheader("📚 Historial de Caja")
+    st.subheader("📊 Historial de Caja")
+    st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    cursor.execute("""
+    col1, col2, col3 = st.columns([1,1,1])
+    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
+    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
+
+    if col3.button("🧹 Limpiar filtros"):
+        st.session_state["limpiar_filtros"] = True
+
+    if st.session_state.get("limpiar_filtros", False):
+        fecha_inicio = None
+        fecha_fin = None
+        st.session_state["limpiar_filtros"] = False
+
+    query = """
         SELECT fecha, total_entrada, total_salida
         FROM Caja
         WHERE id_grupo = %s
-        ORDER BY fecha DESC
-    """, (id_grupo,))
+    """
+    params = [id_grupo]
 
+    if fecha_inicio and fecha_fin:
+        query += " AND fecha BETWEEN %s AND %s"
+        params.extend([fecha_inicio, fecha_fin])
+    elif fecha_inicio:
+        query += " AND fecha >= %s"
+        params.append(fecha_inicio)
+    elif fecha_fin:
+        query += " AND fecha <= %s"
+        params.append(fecha_fin)
+
+    query += " ORDER BY fecha DESC"
+
+    cursor.execute(query, tuple(params))
     registros = cursor.fetchall()
 
     if registros:
         df = pd.DataFrame(registros)
-        st.dataframe(df)
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df = df.sort_values('fecha').reset_index(drop=True)
 
-    cursor.close()
-    conn.close()
+        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
+        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
+        fig, ax = plt.subplots(figsize=(10, 5))
+        width = 0.35
+        x = range(len(df))
+
+        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
+        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
+
+        max_entrada = df['total_entrada'].max()
+        max_salida = df['total_salida'].max()
+
+        for i, row in df.iterrows():
+            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
+                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8)
+            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
+                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8)
+
+        ax.set_xlabel("Fecha", fontsize=12)
+        ax.set_ylabel("Monto", fontsize=12)
+        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right')
+        ax.grid(axis='y', linestyle='--', alpha=0.6)
+        ax.legend()
+
+        st.pyplot(fig)
+    else:
+        st.info("No hay registros para mostrar.")
+
+    # ===============================
+    # 8. Regresar
+    # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
+
+    cursor.close()
+    conn.close()
