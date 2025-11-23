@@ -75,7 +75,7 @@ def pagina_grupos():
     )
 
     # Checkbox que aparece en tiempo real
-    es_admin = st.checkbox("Este miembro también será administrador")
+    es_admin = st.checkbox("Este miembro forma parte de la directiva")
 
     # Campos del admin dinámicos
     if es_admin:
