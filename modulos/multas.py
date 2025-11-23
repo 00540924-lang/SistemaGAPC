@@ -242,7 +242,12 @@ def editar_multa(multa):
             time.sleep(0.5)
             del st.session_state["editar_multa"]
             st.rerun()
-
+ # ------------------ BOTÓN REGRESAR ------------------
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
         finally:
             cursor.close()
             con.close()
