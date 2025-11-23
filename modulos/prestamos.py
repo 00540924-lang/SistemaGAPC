@@ -176,7 +176,13 @@ def mostrar_lista_prestamos(id_grupo):
     st.subheader("📋 Préstamos registrados")
     st.dataframe(df, use_container_width=True)
 
-    prestamo_opciones = {f"{row['Miembro']} - ${row['Monto']} (ID {row['ID']})": row["ID"] for _, row in df.iterrows()}
+    # MODIFICACIÓN: Mostrar nombre + monto total (monto + interés) sin "ID"
+    prestamo_opciones = {}
+    for _, row in df.iterrows():
+        monto_total = row['Monto'] + row['Interés Total']
+        texto_opcion = f"{row['Miembro']} - Total a pagar: ${monto_total:,.2f} (Capital: ${row['Monto']:,.2f} + Interés: ${row['Interés Total']:,.2f})"
+        prestamo_opciones[texto_opcion] = row["ID"]
+
     prestamo_sel = st.selectbox("Selecciona un préstamo para registrar pagos:", list(prestamo_opciones.keys()))
 
     if prestamo_sel:
