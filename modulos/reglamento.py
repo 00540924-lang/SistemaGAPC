@@ -19,9 +19,14 @@ def obtener_miembros_grupo(id_grupo):
         )
         cursor = conn.cursor()
         
-        # ⚠️ AJUSTA ESTA CONSULTA SEGÚN TU ESTRUCTURA DE BASE DE DATOS
-        # Ejemplo: si tienes una tabla 'Miembros' con columna 'nombre'
-        cursor.execute("SELECT nombre FROM Miembros WHERE id_grupo = %s ORDER BY nombre", (id_grupo,))
+        # CONSULTA AJUSTADA PARA TU ESTRUCTURA
+        cursor.execute("""
+            SELECT m.nombre 
+            FROM Miembros m
+            INNER JOIN Grupomiembros gm ON m.id = gm.id_miembro
+            WHERE gm.id_grupo = %s 
+            ORDER BY m.nombre
+        """, (id_grupo,))
         
         miembros = [fila[0] for fila in cursor.fetchall()]
         return miembros
@@ -147,6 +152,8 @@ def mostrar_reglamento():
         miembros = obtener_miembros_grupo(id_grupo)
         
         if miembros:
+            st.info(f"📋 Miembros disponibles: {len(miembros)}")
+            
             # Encontrar índices actuales para preseleccionar
             def encontrar_indice(valor_actual):
                 if valor_actual and valor_actual in miembros:
@@ -192,8 +199,10 @@ def mostrar_reglamento():
             
             # Validar que no se repitan miembros
             roles_seleccionados = [presidenta, secretaria, tesorera, responsable_llave]
-            if len(roles_seleccionados) != len(set(roles_seleccionados)):
-                st.error("❌ Un mismo miembro no puede tener múltiples roles en el comité.")
+            miembros_repetidos = set([x for x in roles_seleccionados if roles_seleccionados.count(x) > 1])
+            
+            if miembros_repetidos:
+                st.error(f"❌ Error: {', '.join(miembros_repetidos)} está asignado a múltiples roles.")
         
         else:
             st.warning("No hay miembros registrados en el grupo. Use campos de texto temporalmente.")
@@ -230,49 +239,53 @@ def mostrar_reglamento():
     # GUARDAR EN BD
     # ============================================================
     if submitted:
-        try:
-            if reglamento:
-                cursor.execute("""
-                    UPDATE Reglamento SET
-                        comunidad=%s, fecha_formacion=%s, dia_reunion=%s, hora_reunion=%s,
-                        lugar_reunion=%s, frecuencia_reunion=%s, presidenta=%s, secretaria=%s,
-                        tesorera=%s, responsable_llave=%s, multa_ausencia=%s, razones_sin_multa=%s,
-                        deposito_minimo=%s, interes_por_10=%s, max_prestamo=%s, max_plazo=%s,
-                        un_solo_prestamo=%s, evaluacion_monto_plazo=%s, fecha_inicio_ciclo=%s,
-                        fecha_fin_ciclo=%s, meta_social=%s, otras_reglas=%s
-                    WHERE id=%s
-                """, (
-                    comunidad, fecha_formacion, ",".join(dia_reunion), hora_reunion,
-                    lugar_reunion, frecuencia_reunion, presidenta, secretaria,
-                    tesorera, responsable_llave, multa_ausencia, razones_sin_multa,
-                    deposito_minimo, interes_por_10, max_prestamo, max_plazo,
-                    un_solo_prestamo, evaluacion_monto_plazo, fecha_inicio_ciclo,
-                    fecha_fin_ciclo, meta_social, otras_reglas, reglamento["id"]
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO Reglamento (
-                        id_grupo, comunidad, fecha_formacion, dia_reunion, hora_reunion,
+        # Validar miembros repetidos antes de guardar
+        if miembros and len(set([presidenta, secretaria, tesorera, responsable_llave])) != 4:
+            st.error("❌ No se puede guardar: hay miembros asignados a múltiples roles.")
+        else:
+            try:
+                if reglamento:
+                    cursor.execute("""
+                        UPDATE Reglamento SET
+                            comunidad=%s, fecha_formacion=%s, dia_reunion=%s, hora_reunion=%s,
+                            lugar_reunion=%s, frecuencia_reunion=%s, presidenta=%s, secretaria=%s,
+                            tesorera=%s, responsable_llave=%s, multa_ausencia=%s, razones_sin_multa=%s,
+                            deposito_minimo=%s, interes_por_10=%s, max_prestamo=%s, max_plazo=%s,
+                            un_solo_prestamo=%s, evaluacion_monto_plazo=%s, fecha_inicio_ciclo=%s,
+                            fecha_fin_ciclo=%s, meta_social=%s, otras_reglas=%s
+                        WHERE id=%s
+                    """, (
+                        comunidad, fecha_formacion, ",".join(dia_reunion), hora_reunion,
+                        lugar_reunion, frecuencia_reunion, presidenta, secretaria,
+                        tesorera, responsable_llave, multa_ausencia, razones_sin_multa,
+                        deposito_minimo, interes_por_10, max_prestamo, max_plazo,
+                        un_solo_prestamo, evaluacion_monto_plazo, fecha_inicio_ciclo,
+                        fecha_fin_ciclo, meta_social, otras_reglas, reglamento["id"]
+                    ))
+                else:
+                    cursor.execute("""
+                        INSERT INTO Reglamento (
+                            id_grupo, comunidad, fecha_formacion, dia_reunion, hora_reunion,
+                            lugar_reunion, frecuencia_reunion, presidenta, secretaria, tesorera,
+                            responsable_llave, multa_ausencia, razones_sin_multa, deposito_minimo,
+                            interes_por_10, max_prestamo, max_plazo, un_solo_prestamo,
+                            evaluacion_monto_plazo, fecha_inicio_ciclo, fecha_fin_ciclo, meta_social,
+                            otras_reglas
+                        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    """, (
+                        id_grupo, comunidad, fecha_formacion, ",".join(dia_reunion), hora_reunion,
                         lugar_reunion, frecuencia_reunion, presidenta, secretaria, tesorera,
                         responsable_llave, multa_ausencia, razones_sin_multa, deposito_minimo,
                         interes_por_10, max_prestamo, max_plazo, un_solo_prestamo,
                         evaluacion_monto_plazo, fecha_inicio_ciclo, fecha_fin_ciclo, meta_social,
                         otras_reglas
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (
-                    id_grupo, comunidad, fecha_formacion, ",".join(dia_reunion), hora_reunion,
-                    lugar_reunion, frecuencia_reunion, presidenta, secretaria, tesorera,
-                    responsable_llave, multa_ausencia, razones_sin_multa, deposito_minimo,
-                    interes_por_10, max_prestamo, max_plazo, un_solo_prestamo,
-                    evaluacion_monto_plazo, fecha_inicio_ciclo, fecha_fin_ciclo, meta_social,
-                    otras_reglas
-                ))
-            conn.commit()
-            st.success("Reglamento guardado correctamente 🎉")
-            st.rerun()
+                    ))
+                conn.commit()
+                st.success("Reglamento guardado correctamente 🎉")
+                st.rerun()
 
-        except Exception as e:
-            st.error(f"Error al guardar: {e}")
+            except Exception as e:
+                st.error(f"Error al guardar: {e}")
 
     # ============================================================
     # MOSTRAR REGLAMENTO DEBAJO DEL FORMULARIO
