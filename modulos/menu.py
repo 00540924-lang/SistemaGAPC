@@ -18,6 +18,7 @@ div.stButton {
     justify-content: center !important;
 }
 
+/* Botones de módulos grandes */
 div.stButton > button {
     width: 240px !important;
     height: 90px !important;
@@ -47,7 +48,23 @@ div.stButton > button:hover {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.30) !important;
 }
 
-/* Colores personalizados */
+/* Botón de cerrar sesión más pequeño */
+#logout_btn > button {
+    width: 160px !important;
+    height: 50px !important;
+    background-color: #424242 !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    transition: transform 0.2s ease !important;
+}
+#logout_btn > button:hover {
+    transform: scale(1.05) !important;
+    background-color: #000000 !important;
+}
+
+/* Colores personalizados para módulos */
 #proyectos_btn > button { background-color: #F4B400 !important; }
 #usuarios_btn > button { background-color: #8E24AA !important; }
 #grupos_btn > button { background-color: #E53935 !important; }
@@ -60,20 +77,6 @@ div.stButton > button:hover {
 #caja_btn > button { background-color: #00BFA5 !important; }
 #ahorro_final_btn > button { background-color: #FF9800 !important; }
 #reuniones_btn > button { background-color: #FF5252 !important; }
-
-/* Logout */
-#logout_btn > button {
-    width: 200px !important;
-    height: 60px !important;
-    background-color: #424242 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    transition: transform 0.2s ease !important;
-}
-#logout_btn > button:hover {
-    transform: scale(1.05) !important;
-    background-color: #000000 !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -164,12 +167,15 @@ div.stButton > button:hover {
             cont.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
-    #               BOTÓN CERRAR SESIÓN
+    #               BOTÓN CERRAR SESIÓN (MÁS PEQUEÑO)
     # -----------------------------------------------------
     st.write("---")
     logout_container = st.container()
     with logout_container:
+        logout_container.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
         logout_container.markdown("<div id='logout_btn'>", unsafe_allow_html=True)
         if st.button("🔒 Cerrar sesión", key="logout"):
             st.session_state.clear()
             st.rerun()
+        logout_container.markdown("</div>", unsafe_allow_html=True)
+        logout_container.markdown("</div>", unsafe_allow_html=True)
