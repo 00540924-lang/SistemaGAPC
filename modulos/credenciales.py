@@ -119,7 +119,7 @@ def obtener_estadisticas():
 def pagina_credenciales():
     # TÍTULO CENTRADO
     st.markdown(
-        "<h1 style='text-align: center;'>Registro de nuevas credenciales</h1>",
+        "<h1 style='text-align: center; color:#4C3A60;'>Registro de nuevas credenciales</h1>",
         unsafe_allow_html=True
     )
 
