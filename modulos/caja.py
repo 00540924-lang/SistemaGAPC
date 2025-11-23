@@ -63,10 +63,9 @@ def mostrar_caja(id_grupo):
     # ===============================
     st.subheader("🟩 Dinero que entra")
 
-    # 👉 Aquí el usuario NO puede editar el valor
     st.text_input("Multas pagadas (automáticas del día)", value=f"${multa_auto:.2f}", disabled=True)
 
-    multa = multa_auto  # para usar en los cálculos
+    multa = multa_auto
 
     ahorros = st.number_input("Ahorros", min_value=0.0, step=0.01)
     otras_actividades = st.number_input("Otras actividades", min_value=0.0, step=0.01)
@@ -97,10 +96,38 @@ def mostrar_caja(id_grupo):
     st.number_input("⚖️ Saldo del cierre", value=saldo_neto, disabled=True)
 
     # ===============================
-    # 6. Guardar registros
+    # 6. GUARDADO AUTOMÁTICO EN BD
     # ===============================
-    if st.button("💾 Guardar registro de caja"):
 
+    # Verificar si ya existe registro para la fecha
+    cursor.execute("SELECT id_caja FROM Caja WHERE id_grupo = %s AND fecha = %s",
+                   (id_grupo, fecha))
+    existe = cursor.fetchone()
+
+    if existe:
+        # UPDATE si ya hay registro
+        cursor.execute("""
+            UPDATE Caja SET 
+                multas = %s,
+                ahorros = %s,
+                otras_actividades = %s,
+                pago_prestamos = %s,
+                otros_ingresos = %s,
+                total_entrada = %s,
+                retiro_ahorros = %s,
+                desembolso = %s,
+                gastos_grupo = %s,
+                total_salida = %s,
+                saldo_cierre = %s
+            WHERE id_caja = %s
+        """, (
+            multa, ahorros, otras_actividades,
+            pagos_prestamos, otros_ingresos, total_entrada,
+            retiro_ahorros, desembolso, gastos_grupo, total_salida,
+            saldo_neto, existe["id_caja"]
+        ))
+    else:
+        # INSERT si no existe
         cursor.execute("""
             INSERT INTO Caja (
                 id_grupo, fecha, multas, ahorros, otras_actividades, 
@@ -117,8 +144,8 @@ def mostrar_caja(id_grupo):
             saldo_neto
         ))
 
-        conn.commit()
-        st.success("✅ Movimiento de caja guardado con éxito.")
+    conn.commit()
+    st.success("💾 Registro de Caja actualizado automáticamente ✔️")
 
     # ===============================
     # 7. Historial con gráfico y filtros
@@ -208,3 +235,4 @@ def mostrar_caja(id_grupo):
 
     cursor.close()
     conn.close()
+
