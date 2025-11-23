@@ -18,7 +18,25 @@ def prestamos_modulo():
 
     id_grupo = st.session_state["id_grupo"]
 
+    # TÍTULO
     st.markdown("<h1 style='text-align:center;'>💲 Registro de Préstamos</h1>", unsafe_allow_html=True)
+
+    # --------------------------------------
+    # Obtener nombre del grupo
+    # --------------------------------------
+    con = obtener_conexion()
+    cursor = con.cursor()
+    cursor.execute("SELECT nombre FROM Grupos WHERE id_grupo = %s", (id_grupo,))
+    grupo = cursor.fetchone()
+    con.close()
+
+    nombre_grupo = grupo[0] if grupo else "Grupo desconocido"
+
+    # Mostrar nombre debajo del título
+    st.markdown(
+        f"<h3 style='text-align:center; color:#555;'>Grupo: {nombre_grupo}</h3>",
+        unsafe_allow_html=True
+    )
 
     # --------------------------------------
     # Obtener valores del reglamento
