@@ -93,7 +93,6 @@ def obtener_estadisticas_personales(id_miembro, id_grupo):
         
         cursor.execute("""
             SELECT 
-                SUM(saldo_inicial) as total_saldo_inicial,
                 SUM(ahorros) as total_ahorros,
                 SUM(actividades) as total_actividades,
                 SUM(retiros) as total_retiros,
@@ -112,7 +111,7 @@ def obtener_estadisticas_personales(id_miembro, id_grupo):
         if estadisticas and miembro_info:
             estadisticas['nombre'] = miembro_info['Nombre']
             # Convertir None a 0
-            for key in ['total_saldo_inicial', 'total_ahorros', 'total_actividades', 'total_retiros', 'total_saldo_final']:
+            for key in ['total_ahorros', 'total_actividades', 'total_retiros', 'total_saldo_final']:
                 estadisticas[key] = estadisticas[key] or 0
             
         return estadisticas or {}
@@ -125,21 +124,21 @@ def obtener_estadisticas_personales(id_miembro, id_grupo):
             cursor.close()
             conn.close()
 
-def guardar_registro_ahorro(id_miembro, id_grupo, fecha_registro, saldo_inicial, ahorros, actividades, retiros):
+def guardar_registro_ahorro(id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros):
     """Guarda un nuevo registro de ahorro final"""
     conn = get_db_connection()
     if conn is None:
         return False, "Error de conexión a la base de datos"
     
     try:
-        saldo_final = calcular_saldo_final(saldo_inicial, ahorros, actividades, retiros)
+        saldo_final = calcular_saldo_final(ahorros, actividades, retiros)
         cursor = conn.cursor()
         
         sql = """INSERT INTO ahorro_final 
-                 (id_miembro, id_grupo, fecha_registro, saldo_inicial, ahorros, actividades, retiros, saldo_final) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                 (id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros, saldo_final) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s)"""
         
-        cursor.execute(sql, (id_miembro, id_grupo, fecha_registro, saldo_inicial, ahorros, actividades, retiros, saldo_final))
+        cursor.execute(sql, (id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros, saldo_final))
         conn.commit()
         
         return True, "Registro guardado exitosamente"
@@ -172,9 +171,9 @@ def borrar_registro_ahorro(id_ahorro):
             cursor.close()
             conn.close()
 
-def calcular_saldo_final(saldo_inicial, ahorros, actividades, retiros):
+def calcular_saldo_final(ahorros, actividades, retiros):
     """Calcula el saldo final automáticamente"""
-    return saldo_inicial + ahorros + actividades - retiros
+    return ahorros + actividades - retiros
 
 def mostrar_ahorro_final(id_grupo):
     """Función principal del módulo Ahorro Final"""
@@ -230,29 +229,26 @@ def mostrar_ahorro_final(id_grupo):
             fecha_registro = st.date_input("Fecha:", value=datetime.now())
         
         st.subheader("Detalles del Ahorro")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            saldo_inicial = st.number_input("Saldo Inicial ($):", min_value=0.0, step=0.01, value=0.0)
-        
-        with col2:
             ahorros = st.number_input("Ahorros ($):", min_value=0.0, step=0.01, value=0.0)
         
-        with col3:
+        with col2:
             actividades = st.number_input("Actividades ($):", min_value=0.0, step=0.01, value=0.0)
         
-        with col4:
+        with col3:
             retiros = st.number_input("Retiros ($):", min_value=0.0, step=0.01, value=0.0)
         
         # Calcular saldo final automáticamente
-        saldo_final = calcular_saldo_final(saldo_inicial, ahorros, actividades, retiros)
+        saldo_final = calcular_saldo_final(ahorros, actividades, retiros)
         st.info(f"**Saldo Final Calculado: ${saldo_final:,.2f}**")
         
         submitted = st.form_submit_button("💾 Guardar Registro")
         if submitted:
             success, message = guardar_registro_ahorro(
                 miembro_seleccionado, id_grupo, fecha_registro, 
-                saldo_inicial, ahorros, actividades, retiros
+                ahorros, actividades, retiros
             )
             if success:
                 st.success(message)
@@ -277,7 +273,6 @@ def mostrar_ahorro_final(id_grupo):
             datos_tabla.append({
                 "Fecha": registro['fecha_registro'],
                 "Miembro": registro['Nombre'],
-                "Saldo Inicial": f"${registro['saldo_inicial']:,.2f}",
                 "Ahorros": f"${registro['ahorros']:,.2f}",
                 "Actividades": f"${registro['actividades']:,.2f}",
                 "Retiros": f"${registro['retiros']:,.2f}",
@@ -292,7 +287,6 @@ def mostrar_ahorro_final(id_grupo):
             column_config={
                 "Fecha": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
                 "Miembro": "Miembro",
-                "Saldo Inicial": "Saldo Inicial",
                 "Ahorros": "Ahorros",
                 "Actividades": "Actividades", 
                 "Retiros": "Retiros",
@@ -384,11 +378,7 @@ def mostrar_ahorro_final(id_grupo):
                         st.metric("Saldo Final Personal", f"${estadisticas_personales['total_saldo_final']:,.2f}")
                     
                     # Información adicional
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.info(f"**Total Registros:** {estadisticas_personales['total_registros']}")
-                    with col2:
-                        st.info(f"**Saldo Inicial Acumulado:** ${estadisticas_personales['total_saldo_inicial']:,.2f}")
+                    st.info(f"**Total Registros:** {estadisticas_personales['total_registros']}")
                 else:
                     st.info(f"No hay registros para {opciones_miembros_estadisticas[miembro_estadisticas]}")
             
