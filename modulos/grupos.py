@@ -3,12 +3,15 @@ import time
 import re
 from modulos.config.conexion import obtener_conexion
 
+# -------------------- Función de validación de teléfono --------------------
 def validar_telefono(telefono):
     """
-    Retorna True si el teléfono es válido: solo números y un + opcional al inicio
+    Solo permite números y un '+' opcional al inicio.
+    Retorna True si es válido, False si contiene letras o caracteres inválidos.
     """
     return re.fullmatch(r'\+?\d+', telefono) is not None
 
+# -------------------- Función principal --------------------
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
@@ -95,13 +98,20 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
+    # ------------------- Botón registrar miembro -------------------
     if st.button("Registrar miembro"):
         mensaje = st.empty()
+
+        # Validaciones previas
         if not nombre_m.strip():
             mensaje.error("El nombre del miembro es obligatorio.")
             time.sleep(3)
             mensaje.empty()
-        elif not telefono.strip() or not validar_telefono(telefono):
+        elif not telefono.strip():
+            mensaje.error("El teléfono es obligatorio.")
+            time.sleep(3)
+            mensaje.empty()
+        elif not validar_telefono(telefono):
             mensaje.error("Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
             time.sleep(3)
             mensaje.empty()
@@ -187,4 +197,5 @@ def pagina_grupos():
         finally:
             cursor.close()
             conn.close()
+
 
