@@ -14,36 +14,32 @@ def obtener_datos_ahorro_automaticos(id_grupo, fecha):
     if not conn:
         return 0.0, 0.0, 0.0
     
-    cursor = None
     try:
-        cursor = conn.cursor(dictionary=True)
-        
-        # Obtener la suma de ahorros, actividades y retiros del módulo de ahorro
-        cursor.execute("""
-            SELECT 
-                COALESCE(SUM(ahorros), 0) as total_ahorros,
-                COALESCE(SUM(actividades), 0) as total_actividades,
-                COALESCE(SUM(retiros), 0) as total_retiros
-            FROM ahorro_final 
-            WHERE id_grupo = %s AND fecha_registro = %s
-        """, (id_grupo, fecha))
-        
-        resultado = cursor.fetchone()
-        
-        if resultado:
-            return (
-                float(resultado['total_ahorros']),
-                float(resultado['total_actividades']),
-                float(resultado['total_retiros'])
-            )
-        return 0.0, 0.0, 0.0
-        
+        with conn.cursor(dictionary=True) as cursor:
+            # Obtener la suma de ahorros, actividades y retiros del módulo de ahorro
+            cursor.execute("""
+                SELECT 
+                    COALESCE(SUM(ahorros), 0) as total_ahorros,
+                    COALESCE(SUM(actividades), 0) as total_actividades,
+                    COALESCE(SUM(retiros), 0) as total_retiros
+                FROM ahorro_final 
+                WHERE id_grupo = %s AND fecha_registro = %s
+            """, (id_grupo, fecha))
+            
+            resultado = cursor.fetchone()
+            
+            if resultado:
+                return (
+                    float(resultado['total_ahorros']),
+                    float(resultado['total_actividades']),
+                    float(resultado['total_retiros'])
+                )
+            return 0.0, 0.0, 0.0
+            
     except Exception as e:
         st.error(f"Error al obtener datos automáticos de ahorro: {e}")
         return 0.0, 0.0, 0.0
     finally:
-        if cursor:
-            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
@@ -53,145 +49,140 @@ def obtener_multas_automaticas(id_grupo, fecha):
     if not conn:
         return 0.0
     
-    cursor = None
     try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
-            FROM Multas MT
-            JOIN Miembros M ON MT.id_miembro = M.id_miembro
-            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-            WHERE GM.id_grupo = %s
-            AND MT.fecha = %s
-            AND MT.pagada = 1
-        """, (id_grupo, fecha))
+        with conn.cursor(dictionary=True) as cursor:
+            cursor.execute("""
+                SELECT COALESCE(SUM(monto_a_pagar), 0) AS total_multas
+                FROM Multas MT
+                JOIN Miembros M ON MT.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s
+                AND MT.fecha = %s
+                AND MT.pagada = 1
+            """, (id_grupo, fecha))
 
-        resultado_multa = cursor.fetchone()
-        return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
-        
+            resultado_multa = cursor.fetchone()
+            return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+            
     except Exception as e:
         st.error(f"Error al obtener multas automáticas: {e}")
         return 0.0
     finally:
-        if cursor:
-            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
-def verificar_registro_existente(id_grupo, fecha):
-    """Verifica si ya existe un registro de caja para esta fecha y grupo"""
-    conn = obtener_conexion()
-    if not conn:
-        return None
-    
-    cursor = None
-    try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT id_caja FROM Caja 
-            WHERE id_grupo = %s AND fecha = %s
-        """, (id_grupo, fecha))
-        
-        resultado = cursor.fetchone()
-        return resultado['id_caja'] if resultado else None
-        
-    except Exception as e:
-        st.error(f"Error al verificar registro existente: {e}")
-        return None
-    finally:
-        if cursor:
-            cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
-
-def actualizar_registro_caja(id_caja, datos):
-    """Actualiza un registro existente de caja"""
+def verificar_y_actualizar_registro_caja(id_grupo, fecha, datos):
+    """Verifica si existe registro y lo actualiza o crea uno nuevo"""
     conn = obtener_conexion()
     if not conn:
         return False, "Error de conexión"
     
-    cursor = None
     try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE Caja SET
-                multas = %s,
-                ahorros = %s,
-                otras_actividades = %s,
-                pago_prestamos = %s,
-                otros_ingresos = %s,
-                total_entrada = %s,
-                retiro_ahorros = %s,
-                desembolso = %s,
-                gastos_grupo = %s,
-                total_salida = %s,
-                saldo_cierre = %s
-            WHERE id_caja = %s
-        """, (
-            datos['multas'],
-            datos['ahorros'],
-            datos['otras_actividades'],
-            datos['pago_prestamos'],
-            datos['otros_ingresos'],
-            datos['total_entrada'],
-            datos['retiro_ahorros'],
-            datos['desembolso'],
-            datos['gastos_grupo'],
-            datos['total_salida'],
-            datos['saldo_cierre'],
-            id_caja
-        ))
-        conn.commit()
-        return True, "Registro actualizado correctamente"
-        
+        with conn.cursor(dictionary=True) as cursor:
+            # Verificar si ya existe un registro
+            cursor.execute("""
+                SELECT id_caja FROM Caja 
+                WHERE id_grupo = %s AND fecha = %s
+            """, (id_grupo, fecha))
+            
+            resultado = cursor.fetchone()
+            
+            if resultado:
+                # Actualizar registro existente
+                cursor.execute("""
+                    UPDATE Caja SET
+                        multas = %s,
+                        ahorros = %s,
+                        otras_actividades = %s,
+                        pago_prestamos = %s,
+                        otros_ingresos = %s,
+                        total_entrada = %s,
+                        retiro_ahorros = %s,
+                        desembolso = %s,
+                        gastos_grupo = %s,
+                        total_salida = %s,
+                        saldo_cierre = %s
+                    WHERE id_caja = %s
+                """, (
+                    datos['multas'],
+                    datos['ahorros'],
+                    datos['otras_actividades'],
+                    datos['pago_prestamos'],
+                    datos['otros_ingresos'],
+                    datos['total_entrada'],
+                    datos['retiro_ahorros'],
+                    datos['desembolso'],
+                    datos['gastos_grupo'],
+                    datos['total_salida'],
+                    datos['saldo_cierre'],
+                    resultado['id_caja']
+                ))
+                conn.commit()
+                return True, f"Registro actualizado correctamente (ID: {resultado['id_caja']})"
+            else:
+                # Crear nuevo registro
+                cursor.execute("""
+                    INSERT INTO Caja (
+                        id_grupo, fecha, multas, ahorros, otras_actividades, 
+                        pago_prestamos, otros_ingresos, total_entrada,
+                        retiro_ahorros, desembolso, gastos_grupo, total_salida,
+                        saldo_cierre
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (
+                    datos['id_grupo'],
+                    datos['fecha'],
+                    datos['multas'],
+                    datos['ahorros'],
+                    datos['otras_actividades'],
+                    datos['pago_prestamos'],
+                    datos['otros_ingresos'],
+                    datos['total_entrada'],
+                    datos['retiro_ahorros'],
+                    datos['desembolso'],
+                    datos['gastos_grupo'],
+                    datos['total_salida'],
+                    datos['saldo_cierre']
+                ))
+                conn.commit()
+                return True, "Nuevo registro creado correctamente"
+                
     except Exception as e:
-        return False, f"Error al actualizar registro: {e}"
+        conn.rollback()
+        return False, f"Error en la base de datos: {e}"
     finally:
-        if cursor:
-            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
-def crear_registro_caja(datos):
-    """Crea un nuevo registro de caja"""
+def obtener_historial_caja(id_grupo, fecha_inicio=None, fecha_fin=None):
+    """Obtiene el historial de caja con filtros opcionales"""
     conn = obtener_conexion()
     if not conn:
-        return False, "Error de conexión"
+        return []
     
-    cursor = None
     try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO Caja (
-                id_grupo, fecha, multas, ahorros, otras_actividades, 
-                pago_prestamos, otros_ingresos, total_entrada,
-                retiro_ahorros, desembolso, gastos_grupo, total_salida,
-                saldo_cierre
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            datos['id_grupo'],
-            datos['fecha'],
-            datos['multas'],
-            datos['ahorros'],
-            datos['otras_actividades'],
-            datos['pago_prestamos'],
-            datos['otros_ingresos'],
-            datos['total_entrada'],
-            datos['retiro_ahorros'],
-            datos['desembolso'],
-            datos['gastos_grupo'],
-            datos['total_salida'],
-            datos['saldo_cierre']
-        ))
-        conn.commit()
-        return True, "Registro creado correctamente"
-        
+        with conn.cursor(dictionary=True) as cursor:
+            query = "SELECT fecha, total_entrada, total_salida FROM Caja WHERE id_grupo = %s"
+            params = [id_grupo]
+
+            if fecha_inicio and fecha_fin:
+                query += " AND fecha BETWEEN %s AND %s"
+                params.extend([fecha_inicio, fecha_fin])
+            elif fecha_inicio:
+                query += " AND fecha >= %s"
+                params.append(fecha_inicio)
+            elif fecha_fin:
+                query += " AND fecha <= %s"
+                params.append(fecha_fin)
+
+            query += " ORDER BY fecha DESC"
+            cursor.execute(query, tuple(params))
+            return cursor.fetchall()
+            
     except Exception as e:
-        return False, f"Error al crear registro: {e}"
+        st.error(f"Error al obtener historial: {e}")
+        return []
     finally:
-        if cursor:
-            cursor.close()
         if conn and conn.is_connected():
             conn.close()
 
@@ -218,26 +209,18 @@ def mostrar_caja(id_grupo):
     st.title("💰 Formulario de Caja")
 
     # ===============================
-    # 1. Conexión BD (solo para el historial)
-    # ===============================
-    conn = obtener_conexion()
-    if not conn:
-        st.error("❌ Error al conectar a la base de datos.")
-        return
-
-    # ===============================
-    # 2. Fecha
+    # 1. Fecha
     # ===============================
     fecha = st.date_input("📅 Fecha de registro", date.today())
     
     # ===============================
-    # 3. OBTENER DATOS AUTOMÁTICOS (pero no mostrarlos)
+    # 2. OBTENER DATOS AUTOMÁTICOS
     # ===============================
     ahorros_auto, actividades_auto, retiros_auto = obtener_datos_ahorro_automaticos(id_grupo, fecha)
     multa_auto = obtener_multas_automaticas(id_grupo, fecha)
 
     # ===============================
-    # 4. DINERO QUE ENTRA - CON MÉTRICAS GRANDES
+    # 3. DINERO QUE ENTRA - CON MÉTRICAS GRANDES
     # ===============================
     st.subheader("🟩 Dinero que entra")
     
@@ -307,7 +290,7 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 5. DINERO QUE SALE - CON MÉTRICAS GRANDES
+    # 4. DINERO QUE SALE - CON MÉTRICAS GRANDES
     # ===============================
     st.subheader("🟥 Dinero que sale")
     
@@ -351,7 +334,7 @@ def mostrar_caja(id_grupo):
     st.write("---")
 
     # ===============================
-    # 6. SALDO NETO - CON MÉTRICA GRANDE
+    # 5. SALDO NETO - CON MÉTRICA GRANDE
     # ===============================
     st.subheader("⚖️ Saldo del cierre")
     
@@ -366,12 +349,9 @@ def mostrar_caja(id_grupo):
         )
 
     # ===============================
-    # 7. GUARDADO INTELIGENTE (ACTUALIZAR O CREAR)
+    # 6. GUARDADO INTELIGENTE (ACTUALIZAR O CREAR)
     # ===============================
     if total_entrada > 0 or total_salida > 0:
-        # Verificar si ya existe un registro para esta fecha
-        id_caja_existente = verificar_registro_existente(id_grupo, fecha)
-        
         # Preparar los datos para guardar
         datos_caja = {
             'id_grupo': id_grupo,
@@ -389,23 +369,14 @@ def mostrar_caja(id_grupo):
             'saldo_cierre': saldo_neto
         }
         
-        if id_caja_existente:
-            # Actualizar registro existente
-            success, message = actualizar_registro_caja(id_caja_existente, datos_caja)
-            if success:
-                st.success(f"✅ Registro de caja actualizado correctamente (ID: {id_caja_existente})")
-            else:
-                st.error(f"❌ Error al actualizar: {message}")
+        success, message = verificar_y_actualizar_registro_caja(id_grupo, fecha, datos_caja)
+        if success:
+            st.success(f"✅ {message}")
         else:
-            # Crear nuevo registro
-            success, message = crear_registro_caja(datos_caja)
-            if success:
-                st.success("✅ Nuevo registro de caja creado correctamente")
-            else:
-                st.error(f"❌ Error al crear: {message}")
+            st.error(f"❌ {message}")
 
     # ===============================
-    # 8. Historial con gráfico y filtros
+    # 7. Historial con gráfico y filtros
     # ===============================
     st.write("---")
     st.subheader("📊 Historial de Caja")
@@ -423,93 +394,64 @@ def mostrar_caja(id_grupo):
         fecha_fin = None
         st.session_state["limpiar_filtros"] = False
 
-    cursor = None
-    try:
-        cursor = conn.cursor(dictionary=True)
-        query = "SELECT fecha, total_entrada, total_salida FROM Caja WHERE id_grupo = %s"
-        params = [id_grupo]
+    # Obtener historial
+    registros = obtener_historial_caja(id_grupo, fecha_inicio, fecha_fin)
 
-        if fecha_inicio and fecha_fin:
-            query += " AND fecha BETWEEN %s AND %s"
-            params.extend([fecha_inicio, fecha_fin])
-        elif fecha_inicio:
-            query += " AND fecha >= %s"
-            params.append(fecha_inicio)
-        elif fecha_fin:
-            query += " AND fecha <= %s"
-            params.append(fecha_fin)
+    if registros:
+        df = pd.DataFrame(registros)
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df = df.sort_values('fecha').reset_index(drop=True)
 
-        query += " ORDER BY fecha DESC"
-        cursor.execute(query, tuple(params))
-        registros = cursor.fetchall()
+        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
+        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
-        if registros:
-            df = pd.DataFrame(registros)
-            df['fecha'] = pd.to_datetime(df['fecha'])
-            df = df.sort_values('fecha').reset_index(drop=True)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        width = 0.35
+        x = range(len(df))
 
-            df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
-            df['total_salida'] = df['total_salida'].fillna(0).astype(float)
+        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
+        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
 
-            fig, ax = plt.subplots(figsize=(10, 5))
-            width = 0.35
-            x = range(len(df))
+        max_entrada = df['total_entrada'].max()
+        max_salida = df['total_salida'].max()
 
-            ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
-            ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
+        for i, row in df.iterrows():
+            entrada_val = float(row['total_entrada'])
+            salida_val = float(row['total_salida'])
+            ax.text(i - width/2, entrada_val + max_entrada*0.01,
+                    f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+            ax.text(i + width/2, salida_val + max_salida*0.01,
+                    f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
-            max_entrada = df['total_entrada'].max()
-            max_salida = df['total_salida'].max()
+        ax.set_xlabel("Fecha", fontsize=12)
+        ax.set_ylabel("Monto", fontsize=12)
+        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
+        ax.grid(axis='y', linestyle='--', alpha=0.6)
+        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.legend()
 
-            for i, row in df.iterrows():
-                entrada_val = float(row['total_entrada'])
-                salida_val = float(row['total_salida'])
-                ax.text(i - width/2, entrada_val + max_entrada*0.01,
-                        f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
-                ax.text(i + width/2, salida_val + max_salida*0.01,
-                        f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
-
-            ax.set_xlabel("Fecha", fontsize=12)
-            ax.set_ylabel("Monto", fontsize=12)
-            ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-            ax.set_xticks(x)
-            ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
-            ax.grid(axis='y', linestyle='--', alpha=0.6)
-            ax.set_axisbelow(True)
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.legend()
-
-            saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
-            st.pyplot(fig)
-            st.markdown(
-                f"""
-                <div style="text-align:left; font-size:16px; line-height:1.6;">
-                    <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
-                    <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
-                    <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:,.2f}</strong></div>
-                </div>
-                """, unsafe_allow_html=True
-            )
-        else:
-            st.info("No hay registros para mostrar.")
-
-    except Exception as e:
-        st.error(f"Error al obtener historial: {e}")
-    finally:
-        if cursor:
-            cursor.close()
+        saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
+        st.pyplot(fig)
+        st.markdown(
+            f"""
+            <div style="text-align:left; font-size:16px; line-height:1.6;">
+                <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
+                <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
+                <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:,.2f}</strong></div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+    else:
+        st.info("No hay registros para mostrar.")
 
     # ===============================
-    # 9. Botón regresar
+    # 8. Botón regresar
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
-
-    # ===============================
-    # Cerrar conexiones
-    # ===============================
-    if conn and conn.is_connected():
-        conn.close()
