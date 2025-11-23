@@ -148,7 +148,7 @@ def pagina_credenciales():
     st.write("---")
     
     # SECCIÓN DE LISTA DE USUARIOS
-    st.subheader("👥 Lista de Usuarios con Acceso")
+    st.subheader("👥 Lista de usuarios con acceso")
     
     # FILTRO POR ROL
     col1, col2 = st.columns([1, 3])
