@@ -98,7 +98,6 @@ def mostrar_caja(id_grupo):
     # 6. Guardado automático
     # ===============================
     if multa > 0 or ahorros > 0 or otras_actividades > 0 or pagos_prestamos > 0 or otros_ingresos > 0 or total_salida > 0:
-
         cursor.execute("""
             INSERT INTO Caja (
                 id_grupo, fecha, multas, ahorros, otras_actividades, 
@@ -114,7 +113,6 @@ def mostrar_caja(id_grupo):
             retiro_ahorros, desembolso, gastos_grupo, total_salida,
             saldo_neto
         ))
-
         conn.commit()
         st.success("✅ Registro de caja guardado automáticamente.")
 
@@ -196,7 +194,7 @@ def mostrar_caja(id_grupo):
         st.info("No hay registros para mostrar.")
 
     # ===============================
-    # 8. Regresar
+    # 8. Botón regresar
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
