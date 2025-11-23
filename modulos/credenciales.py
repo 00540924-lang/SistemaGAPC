@@ -117,7 +117,11 @@ def obtener_estadisticas():
 # MÓDULO DE CREDENCIALES
 # ==========================
 def pagina_credenciales():
-    st.title("Registro de nuevas credenciales")
+    # TÍTULO CENTRADO
+    st.markdown(
+        "<h1 style='text-align: center;'>Registro de nuevas credenciales</h1>",
+        unsafe_allow_html=True
+    )
 
     # BOTÓN PARA VOLVER AL MENÚ
     if st.button("⬅️ Regresar al menú"):
