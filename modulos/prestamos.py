@@ -110,29 +110,26 @@ def prestamos_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # Calcular el total (monto + interés)
-            # Si el interés es por cada $10, calculamos el interés total
+            # Calcular el interés total
             interes_total = (monto / 10) * interes_por_10
-            total_prestamo = monto + interes_total
 
-            # INSERT CORREGIDO con los nombres exactos de las columnas
+            # INSERT CORREGIDO con los nombres correctos
             cursor.execute("""
-                INSERT INTO prestamos (id_miembro, _proposito, monto, fecha_desembolso, fecha_vencimiento, estado, _interes, _total)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, fecha_vencimiento, estado, interes_total)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 miembros_dict[miembro_seleccionado],
                 proposito,
                 monto,
                 fecha_desembolso,
                 fecha_vencimiento,
-                estado.lower(),  # Convertir a minúsculas para coincidir con "activo"
-                interes_por_10,
-                total_prestamo
+                estado.lower(),
+                interes_total
             ))
 
             con.commit()
             st.success("✅ Préstamo registrado correctamente")
-            st.info(f"💰 Total del préstamo: ${total_prestamo:,.2f} (Monto: ${monto:,.2f} + Interés: ${interes_total:,.2f})")
+            st.info(f"💰 Interés total calculado: ${interes_total:,.2f}")
             time.sleep(1.5)
             st.rerun()
 
@@ -156,8 +153,8 @@ def mostrar_lista_prestamos(id_grupo):
     cursor = con.cursor()
 
     cursor.execute("""
-        SELECT P.id_prestamo, M.nombre, P._proposito, P.monto,
-               P.fecha_desembolso, P.fecha_vencimiento, P.estado, P._interes, P._total
+        SELECT P.id_prestamo, M.nombre, P.proposito, P.monto,
+               P.fecha_desembolso, P.fecha_vencimiento, P.estado, P.interes_total
         FROM prestamos P
         JOIN Miembros M ON M.id_miembro = P.id_miembro
         JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
@@ -173,7 +170,7 @@ def mostrar_lista_prestamos(id_grupo):
         return
 
     df = pd.DataFrame(prestamos, columns=[
-        "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", "Fecha Vencimiento", "Estado", "Interés %", "Total"
+        "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", "Fecha Vencimiento", "Estado", "Interés Total"
     ])
 
     st.subheader("📋 Préstamos registrados")
