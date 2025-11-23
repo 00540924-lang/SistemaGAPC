@@ -117,81 +117,101 @@ def mostrar_caja(id_grupo):
         st.success("✅ Registro de caja guardado automáticamente.")
 
     # ===============================
-    # 7. Historial con gráfico y filtros
-    # ===============================
-    st.write("---")
-    st.subheader("📊 Historial de Caja")
-    st.info("Filtre por fecha o deje vacío para ver todos los registros.")
+# 7. Historial con gráfico y filtros
+# ===============================
+st.write("---")
+st.subheader("📊 Historial de Caja")
+st.info("Filtre por fecha o deje vacío para ver todos los registros.")
 
-    col1, col2, col3 = st.columns([1,1,1])
-    fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
-    fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
+# Columnas para filtros y botón limpiar
+col1, col2, col3 = st.columns([1,1,1])
+fecha_inicio = col1.date_input("📅 Fecha inicio (opcional)", key="filtro_inicio")
+fecha_fin = col2.date_input("📅 Fecha fin (opcional)", key="filtro_fin")
 
-    if col3.button("🧹 Limpiar filtros"):
-        st.session_state["limpiar_filtros"] = True
+# Botón para limpiar filtros usando flag
+if col3.button("🧹 Limpiar filtros"):
+    st.session_state["limpiar_filtros"] = True
 
-    if st.session_state.get("limpiar_filtros", False):
-        fecha_inicio = None
-        fecha_fin = None
-        st.session_state["limpiar_filtros"] = False
+# Aplicar filtro vacío si se presionó limpiar
+if st.session_state.get("limpiar_filtros", False):
+    fecha_inicio = None
+    fecha_fin = None
+    st.session_state["limpiar_filtros"] = False
 
-    query = """
-        SELECT fecha, total_entrada, total_salida
-        FROM Caja
-        WHERE id_grupo = %s
-    """
-    params = [id_grupo]
+query = """
+    SELECT fecha, total_entrada, total_salida
+    FROM Caja
+    WHERE id_grupo = %s
+"""
+params = [id_grupo]
 
-    if fecha_inicio and fecha_fin:
-        query += " AND fecha BETWEEN %s AND %s"
-        params.extend([fecha_inicio, fecha_fin])
-    elif fecha_inicio:
-        query += " AND fecha >= %s"
-        params.append(fecha_inicio)
-    elif fecha_fin:
-        query += " AND fecha <= %s"
-        params.append(fecha_fin)
+if fecha_inicio and fecha_fin:
+    query += " AND fecha BETWEEN %s AND %s"
+    params.extend([fecha_inicio, fecha_fin])
+elif fecha_inicio:
+    query += " AND fecha >= %s"
+    params.append(fecha_inicio)
+elif fecha_fin:
+    query += " AND fecha <= %s"
+    params.append(fecha_fin)
 
-    query += " ORDER BY fecha DESC"
+query += " ORDER BY fecha DESC"
 
-    cursor.execute(query, tuple(params))
-    registros = cursor.fetchall()
+cursor.execute(query, tuple(params))
+registros = cursor.fetchall()
 
-    if registros:
-        df = pd.DataFrame(registros)
-        df['fecha'] = pd.to_datetime(df['fecha'])
-        df = df.sort_values('fecha').reset_index(drop=True)
+if registros:
+    df = pd.DataFrame(registros)
+    df['fecha'] = pd.to_datetime(df['fecha'])
+    df = df.sort_values('fecha').reset_index(drop=True)
 
-        df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
-        df['total_salida'] = df['total_salida'].fillna(0).astype(float)
+    # Reemplazar None o NaN por 0 y convertir a float
+    df['total_entrada'] = df['total_entrada'].fillna(0).astype(float)
+    df['total_salida'] = df['total_salida'].fillna(0).astype(float)
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-        width = 0.35
-        x = range(len(df))
+    fig, ax = plt.subplots(figsize=(10, 5))
+    width = 0.35
+    x = range(len(df))
 
-        ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
-        ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
+    ax.bar([i - width/2 for i in x], df['total_entrada'], width=width, color='#4CAF50', label='Entradas')
+    ax.bar([i + width/2 for i in x], df['total_salida'], width=width, color='#F44336', label='Salidas')
 
-        max_entrada = df['total_entrada'].max()
-        max_salida = df['total_salida'].max()
+    max_entrada = df['total_entrada'].max()
+    max_salida = df['total_salida'].max()
 
-        for i, row in df.iterrows():
-            ax.text(i - width/2, row['total_entrada'] + max_entrada*0.01,
-                    f"{row['total_entrada']:.2f}", ha='center', va='bottom', fontsize=8)
-            ax.text(i + width/2, row['total_salida'] + max_salida*0.01,
-                    f"{row['total_salida']:.2f}", ha='center', va='bottom', fontsize=8)
+    for i, row in df.iterrows():
+        entrada_val = float(row['total_entrada'])
+        salida_val = float(row['total_salida'])
+        ax.text(i - width/2, entrada_val + max_entrada*0.01,
+                f"{entrada_val:.2f}", ha='center', va='bottom', fontsize=8, color='#2E7D32')
+        ax.text(i + width/2, salida_val + max_salida*0.01,
+                f"{salida_val:.2f}", ha='center', va='bottom', fontsize=8, color='#B71C1C')
 
-        ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Monto", fontsize=12)
-        ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
-        ax.set_xticks(list(x))
-        ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right')
-        ax.grid(axis='y', linestyle='--', alpha=0.6)
-        ax.legend()
+    ax.set_xlabel("Fecha", fontsize=12)
+    ax.set_ylabel("Monto", fontsize=12)
+    ax.set_title("Historial de Caja: Entradas y Salidas", fontsize=14, weight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels([d.strftime('%Y-%m-%d') for d in df['fecha']], rotation=45, ha='right', fontsize=9)
+    ax.grid(axis='y', linestyle='--', alpha=0.6)
+    ax.set_axisbelow(True)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.legend()
 
-        st.pyplot(fig)
-    else:
-        st.info("No hay registros para mostrar.")
+    saldo_final = df['total_entrada'].sum() - df['total_salida'].sum()
+    st.pyplot(fig)
+    st.markdown(
+        f"""
+        <div style="text-align:left; font-size:16px; line-height:1.6;">
+            <div style="color:#4CAF50;"><strong>Entrada total:</strong> ${df['total_entrada'].sum():.2f}</div>
+            <div style="color:#F44336;"><strong>Salida total:</strong> ${df['total_salida'].sum():.2f}</div>
+            <div style="color:#0000FF; font-size:18px;"><strong>💰 Saldo final: ${saldo_final:.2f}</strong></div>
+        </div>
+        """, unsafe_allow_html=True
+    )
+else:
+    st.info("No hay registros para mostrar.")
+
 
     # ===============================
     # 8. Botón regresar
