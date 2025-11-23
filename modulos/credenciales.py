@@ -202,7 +202,6 @@ def pagina_credenciales():
                             st.session_state[f"confirmar_eliminar_{usuario}"] = False
                             st.rerun()
                 
-                st.write("---")
     else:
         st.info("No hay usuarios registrados con los filtros seleccionados.")
     
