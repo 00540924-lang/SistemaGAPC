@@ -214,7 +214,7 @@ def mostrar_formulario_pagos(id_prestamo):
 
         numero_pago = st.number_input("Número de pago", min_value=1, step=1)
         fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
-        capital = st.number_input("Capital", min_value=0.01, step=0.01)
+        capital = st.number_input("Cantidad a pagar", min_value=0.01, step=0.01)
 
         estado_pago = st.selectbox("Estado", ["Pendiente", "Pagado"])
 
