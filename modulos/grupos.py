@@ -1,14 +1,7 @@
 import streamlit as st
 import time
-import re
 from modulos.config.conexion import obtener_conexion
 
-# -------------------- Funciones de validación --------------------
-def validar_telefono(telefono):
-    """Solo permite números y un '+' opcional al inicio."""
-    return re.fullmatch(r'\+?\d+', telefono) is not None
-
-# -------------------- Función principal --------------------
 def pagina_grupos():
     st.title("Gestión de Grupos")
 
@@ -48,10 +41,8 @@ def pagina_grupos():
                 time.sleep(3)
                 mensaje.empty()
             finally:
-                if 'cursor' in locals():
-                    cursor.close()
-                if 'conn' in locals():
-                    conn.close()
+                cursor.close()
+                conn.close()
 
     st.write("---")
 
@@ -61,14 +52,9 @@ def pagina_grupos():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_grupo, nombre_grupo FROM Grupos")
         grupos = cursor.fetchall()
-    except Exception as e:
-        st.error(f"Error al cargar grupos: {e}")
-        grupos = []
     finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals():
-            conn.close()
+        cursor.close()
+        conn.close()
 
     if not grupos:
         st.info("No hay grupos registrados aún.")
@@ -77,107 +63,10 @@ def pagina_grupos():
     # ================= FORMULARIO NUEVO MIEMBRO =================
     st.subheader("➕ Registrar nuevo miembro")
 
+    # Campos normales fuera de form
     nombre_m = st.text_input("Nombre completo")
     dui = st.text_input("DUI")
-
-    # ------------------ SOLUCIÓN DEFINITIVA PARA TELÉFONO ------------------
-    st.markdown("""
-    <style>
-    .telefono-input {
-        font-size: 16px;
-        padding: 8px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Inicializar estado
-    if "telefono_seguro" not in st.session_state:
-        st.session_state.telefono_seguro = ""
-
-    # Componente personalizado con JavaScript
-    st.markdown("**Teléfono ***")
-    
-    # Input con JavaScript que bloquea caracteres no numéricos
-    telefono_html = f"""
-    <input type="text" 
-           id="telefonoInput" 
-           class="telefono-input"
-           value="{st.session_state.telefono_seguro}" 
-           placeholder="Solo números y + al inicio"
-           onkeydown="return validarTecla(event)"
-           oninput="filtrarTelefono(this)"
-           style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-    
-    <script>
-    function validarTecla(event) {{
-        const tecla = event.key;
-        const valorActual = event.target.value;
-        
-        // Permitir teclas de control (backspace, delete, tab, etc.)
-        if (event.ctrlKey || event.altKey || tecla === 'Backspace' || tecla === 'Delete' || 
-            tecla === 'Tab' || tecla === 'Escape' || tecla === 'Enter') {{
-            return true;
-        }}
-        
-        // Permitir '+' solo al inicio
-        if (tecla === '+' && valorActual === '') {{
-            return true;
-        }}
-        
-        // Permitir solo números
-        if (!/^[0-9]$/.test(tecla)) {{
-            event.preventDefault();
-            return false;
-        }}
-        
-        return true;
-    }}
-    
-    function filtrarTelefono(input) {{
-        let valor = input.value;
-        
-        // Si empieza con +, permitir solo números después
-        if (valor.startsWith('+')) {{
-            input.value = '+' + valor.substring(1).replace(/[^0-9]/g, '');
-        }} else {{
-            // Si no empieza con +, permitir solo números
-            input.value = valor.replace(/[^0-9]/g, '');
-        }}
-        
-        // Actualizar el estado de Streamlit
-        window.parent.postMessage({{
-            type: 'streamlit:setComponentValue',
-            value: input.value
-        }}, '*');
-    }}
-    
-    // Actualizar el input al cargar la página
-    document.addEventListener('DOMContentLoaded', function() {{
-        const input = document.getElementById('telefonoInput');
-        if (input) {{
-            filtrarTelefono(input);
-        }}
-    }});
-    </script>
-    """
-    
-    st.components.v1.html(telefono_html, height=80)
-
-    # Input oculto para capturar el valor del JavaScript
-    telefono_value = st.text_input(
-        "Teléfono (valor real)",
-        value=st.session_state.telefono_seguro,
-        key="telefono_hidden",
-        label_visibility="collapsed"
-    )
-
-    # Actualizar el estado cuando cambia el valor
-    if telefono_value != st.session_state.telefono_seguro:
-        st.session_state.telefono_seguro = telefono_value
-
-    # Mostrar el valor actual
-    if st.session_state.telefono_seguro:
-        st.caption(f"📞 Teléfono ingresado: {st.session_state.telefono_seguro}")
+    telefono = st.text_input("Teléfono")
 
     grupo_asignado = st.selectbox(
         "Asignar al grupo",
@@ -185,35 +74,30 @@ def pagina_grupos():
         format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
     )
 
+    # Checkbox que aparece en tiempo real
     es_admin = st.checkbox("Este miembro forma parte de la directiva")
 
+    # Campos del admin dinámicos
     if es_admin:
         usuario_admin = st.text_input("Usuario")
         contraseña_admin = st.text_input("Contraseña", type="password")
-        rol_admin = st.selectbox("Rol", options=["Miembro"], index=0)
+        rol_admin = st.selectbox(
+            "Rol del administrador",
+            options=["Institucional", "Promotor", "Miembro"],
+            "Rol",
+            options=["Miembro"],
+            index=0
+        )
     else:
         usuario_admin = None
         contraseña_admin = None
         rol_admin = None
 
-    # ------------------- Botón registrar miembro -------------------
+    # Botón para registrar miembro (único submit)
     if st.button("Registrar miembro"):
         mensaje = st.empty()
-
-        # Usar SIEMPRE la versión segura del teléfono
-        telefono_final = st.session_state.telefono_seguro
-        
-        # Validaciones estrictas antes del INSERT
         if not nombre_m.strip():
-            mensaje.error("❌ El nombre del miembro es obligatorio.")
-            time.sleep(3)
-            mensaje.empty()
-        elif not telefono_final.strip():
-            mensaje.error("❌ El teléfono es obligatorio.")
-            time.sleep(3)
-            mensaje.empty()
-        elif not validar_telefono(telefono_final):
-            mensaje.error("❌ Teléfono inválido. Solo se permiten números y un '+' opcional al inicio.")
+            mensaje.error("El nombre del miembro es obligatorio.")
             time.sleep(3)
             mensaje.empty()
         else:
@@ -221,15 +105,15 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # INSERT usando la versión segura del teléfono
+                # Insertar miembro
                 cursor.execute(
-                    "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
-                    (nombre_m, dui, telefono_final)
+                    "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
+                    (nombre_m, dui, telefono)
                 )
                 conn.commit()
                 miembro_id = cursor.lastrowid
 
-                # Relación con grupo
+                # Crear relación con grupo
                 cursor.execute(
                     "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
                     (grupo_asignado, miembro_id)
@@ -254,25 +138,19 @@ def pagina_grupos():
                         )
                         conn.commit()
 
-                mensaje.success(f"✅ {nombre_m} registrado correctamente en el grupo.")
+                mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
                 time.sleep(3)
                 mensaje.empty()
-                
-                # Limpiar campos después de guardar exitosamente
-                st.session_state.telefono_seguro = ""
-                st.rerun()
 
             except Exception as e:
-                if 'conn' in locals():
-                    conn.rollback()
-                mensaje.error(f"❌ Error al registrar miembro: {e}")
+                conn.rollback()
+                mensaje.error(f"Error al registrar miembro: {e}")
                 time.sleep(3)
                 mensaje.empty()
             finally:
-                if 'cursor' in locals():
-                    cursor.close()
-                if 'conn' in locals():
-                    conn.close()
+                cursor.close()
+                conn.close()
+
 
     st.write("---")
 
@@ -302,14 +180,6 @@ def pagina_grupos():
             mensaje.success("Grupo y miembros asociados eliminados correctamente.")
             time.sleep(3)
             mensaje.empty()
-        except Exception as e:
-            if 'conn' in locals():
-                conn.rollback()
-            mensaje.error(f"Error al eliminar grupo: {e}")
-            time.sleep(3)
-            mensaje.empty()
         finally:
-            if 'cursor' in locals():
-                cursor.close()
-            if 'conn' in locals():
-                conn.close()
+            cursor.close()
+            conn.close()
