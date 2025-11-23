@@ -138,55 +138,32 @@ def mostrar_tabla_y_acciones(id_grupo):
         con.close()
 
 # ================================
-# ELIMINAR MIEMBRO
-# ================================
-def eliminar_miembro(id_miembro, id_grupo):
-    try:
-        con = obtener_conexion()
-        cursor = con.cursor()
-        cursor.execute(
-            "DELETE FROM Grupomiembros WHERE id_grupo = %s AND id_miembro = %s",
-            (id_grupo, id_miembro)
-        )
-        con.commit()
-        cursor.execute(
-            "DELETE FROM Miembros WHERE id_miembro = %s",
+        # Seleccionar miembro para editar/eliminar
+        # ================================
+        miembro_dict = {f"{row['Nombre']} ({row['DUI']})": row for idx, row in df.iterrows()}
+        seleccionado = st.selectbox("Selecciona un miembro para Editar/Eliminar", options=list(miembro_dict.keys()))
+
+        if seleccionado:
+            miembro = miembro_dict[seleccionado]
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Editar Miembro"):
+                    editar_miembro(miembro)
+            with col2:
+                if st.button("Eliminar Miembro"):
+                    eliminar_miembro(miembro["ID"], id_grupo)
+                    st.success(f"Miembro '{miembro['Nombre']}' eliminado ✔️")
+                    time.sleep(1)
+                    st.experimental_rerun()
+
+    finally:
+        cursor.close()
+@@ -134,7 +118,6 @@ def eliminar_miembro(id_miembro, id_grupo):
             (id_miembro,)
         )
         con.commit()
+        st.success("Miembro eliminado ✔️")
     finally:
         cursor.close()
         con.close()
-
-
-# ================================
-# EDITAR MIEMBRO
-# ================================
-def editar_miembro(row):
-    st.markdown(f"<h3>✏️ Editando miembro: {row['Nombre']}</h3>", unsafe_allow_html=True)
-
-    with st.form("form_editar"):
-        nombre = st.text_input("Nombre completo", value=row['Nombre'])
-        dui = st.text_input("DUI", value=row['DUI'])
-        telefono = st.text_input("Teléfono", value=row['Teléfono'])
-        actualizar = st.form_submit_button("Actualizar")
-
-    if actualizar:
-        try:
-            con = obtener_conexion()
-            cursor = con.cursor()
-            cursor.execute(
-                "UPDATE Miembros SET Nombre=%s, DUI=%s, Telefono=%s WHERE id_miembro=%s",
-                (nombre, dui, telefono, row['ID'])
-            )
-            con.commit()
-
-            st.success("Miembro actualizado correctamente ✔️")
-            time.sleep(0.5)
-            # 🔥 salir del modo edición
-            del st.session_state["editar_miembro"]
-            st.rerun()
-
-        finally:
-            cursor.close()
-            con.close()
