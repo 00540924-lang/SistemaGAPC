@@ -232,7 +232,7 @@ def mostrar_caja(id_grupo):
         st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
         return
 
-    st.title("💰 Formulario de Caja")
+    st.title("💰 Movimientos de Caja")
 
     # ===============================
     # 1. Fecha
