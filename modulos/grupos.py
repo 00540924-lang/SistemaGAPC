@@ -101,13 +101,14 @@ def pagina_grupos():
         # Filtrar solo números y +
         telefono_filtrado = filtrar_telefono(texto_actual)
         
-        # Si hay diferencia, actualizar el estado y mostrar advertencia
+        # Si hay diferencia, actualizar el estado
         if texto_actual != telefono_filtrado:
             st.session_state.telefono_input = telefono_filtrado
             st.session_state.telefono_limpio = telefono_filtrado
             # Mostrar advertencia temporal
-            st.warning("❌ Se han eliminado caracteres no válidos. Solo se permiten números y el símbolo + al inicio.")
+            warning_msg = st.warning("❌ Se han eliminado caracteres no válidos. Solo se permiten números y el símbolo + al inicio.")
             time.sleep(2)
+            warning_msg.empty()
         else:
             st.session_state.telefono_limpio = telefono_filtrado
 
@@ -120,7 +121,7 @@ def pagina_grupos():
         placeholder="Ej: +50312345678 o 12345678"
     )
 
-    # Mostrar el valor actual filtrado (para debug)
+    # Mostrar el valor actual filtrado
     if st.session_state.telefono_limpio:
         st.caption(f"📞 Teléfono validado: {st.session_state.telefono_limpio}")
 
