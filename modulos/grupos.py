@@ -218,10 +218,16 @@ def pagina_grupos():
 
     # ================= ELIMINAR GRUPO =================
     st.subheader("🗑️ Eliminar un grupo completo")
-    st.warning("⚠️ ADVERTENCIA: Esta acción es irreversible. Se eliminarán:")
-    st.warning("• El grupo seleccionado")
-    st.warning("• Las relaciones del grupo con miembros")
-    st.warning("• Solo se eliminarán miembros que NO tengan registros en otras tablas (multas, préstamos, etc.)")
+    st.error("⚠️ ELIMINACIÓN COMPLETA - ADVERTENCIA CRÍTICA")
+    st.error("Esta acción eliminará PERMANENTEMENTE:")
+    st.error("• El grupo completo")
+    st.error("• Todos los miembros del grupo")
+    st.error("• Todas las multas de los miembros")
+    st.error("• Todos los préstamos de los miembros")
+    st.error("• Todos los ahorros de los miembros")
+    st.error("• Todos los pagos de préstamos")
+    st.error("• Todos los registros relacionados")
+    st.error("🚨 ESTA ACCIÓN NO SE PUEDE DESHACER")
 
     grupo_eliminar = st.selectbox(
         "Selecciona el grupo a eliminar",
@@ -236,26 +242,28 @@ def pagina_grupos():
             conn = obtener_conexion()
             cursor = conn.cursor()
             
+            # Obtener información del grupo
+            grupo_nombre = next(g['nombre_grupo'] for g in grupos if g['id_grupo'] == grupo_eliminar)
+            
             # Contar miembros en el grupo
             cursor.execute("SELECT COUNT(*) FROM Grupomiembros WHERE id_grupo = %s", (grupo_eliminar,))
             total_miembros = cursor.fetchone()[0]
             
-            # Contar miembros que solo están en este grupo
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM Grupomiembros GM 
-                WHERE GM.id_grupo = %s 
-                AND GM.id_miembro NOT IN (
-                    SELECT id_miembro 
-                    FROM Grupomiembros 
-                    WHERE id_grupo != %s
-                )
-            """, (grupo_eliminar, grupo_eliminar))
-            miembros_exclusivos = cursor.fetchone()[0]
+            # Contar registros relacionados
+            cursor.execute("SELECT COUNT(*) FROM Multas WHERE id_miembro IN (SELECT id_miembro FROM Grupomiembros WHERE id_grupo = %s)", (grupo_eliminar,))
+            total_multas = cursor.fetchone()[0]
             
-            st.info(f"📊 Grupo seleccionado: {next(g['nombre_grupo'] for g in grupos if g['id_grupo'] == grupo_eliminar)}")
-            st.info(f"👥 Total de miembros en el grupo: {total_miembros}")
-            st.info(f"🎯 Miembros que solo están en este grupo: {miembros_exclusivos}")
+            cursor.execute("SELECT COUNT(*) FROM prestamos WHERE id_miembro IN (SELECT id_miembro FROM Grupomiembros WHERE id_grupo = %s)", (grupo_eliminar,))
+            total_prestamos = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM ahorro_final WHERE id_miembro IN (SELECT id_miembro FROM Grupomiembros WHERE id_grupo = %s)", (grupo_eliminar,))
+            total_ahorros = cursor.fetchone()[0]
+            
+            st.info(f"📊 Grupo seleccionado: {grupo_nombre}")
+            st.info(f"👥 Miembros a eliminar: {total_miembros}")
+            st.info(f"💰 Multas a eliminar: {total_multas}")
+            st.info(f"💸 Préstamos a eliminar: {total_prestamos}")
+            st.info(f"🏦 Ahorros a eliminar: {total_ahorros}")
             
         except Exception as e:
             st.error(f"Error al obtener información del grupo: {e}")
@@ -265,83 +273,97 @@ def pagina_grupos():
             if conn and conn.is_connected():
                 conn.close()
 
-    if st.button("Eliminar grupo seleccionado", type="primary"):
+    if st.button("🚨 ELIMINAR COMPLETAMENTE", type="primary"):
         mensaje = st.empty()
-        conn = None
-        cursor = None
         
-        # Confirmación adicional
-        if not st.session_state.get('confirmar_eliminacion', False):
-            st.session_state.confirmar_eliminacion = True
-            st.warning("¿Estás seguro de que quieres eliminar este grupo? Esta acción no se puede deshacer.")
-            if st.button("✅ Sí, eliminar definitivamente"):
-                eliminar_grupo_definitivo(grupo_eliminar, mensaje)
-        else:
-            eliminar_grupo_definitivo(grupo_eliminar, mensaje)
+        # Confirmación extrema
+        st.error("¿ESTÁS ABSOLUTAMENTE SEGURO?")
+        st.error("Esta acción eliminará TODOS los datos permanentemente.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ SÍ, ELIMINAR TODO", type="primary"):
+                eliminar_grupo_completo(grupo_eliminar, mensaje)
+        with col2:
+            if st.button("❌ Cancelar", type="secondary"):
+                mensaje.info("Eliminación cancelada")
+                time.sleep(2)
+                st.rerun()
 
-def eliminar_grupo_definitivo(grupo_id, mensaje):
-    """Función para eliminar el grupo de forma segura"""
+def eliminar_grupo_completo(grupo_id, mensaje):
+    """Función para eliminar COMPLETAMENTE el grupo y todo lo relacionado"""
     conn = None
     cursor = None
     try:
         conn = obtener_conexion()
         cursor = conn.cursor()
         
-        # PRIMERO: Identificar miembros que SOLO pertenecen a este grupo y NO tienen registros en otras tablas
-        cursor.execute("""
-            SELECT GM.id_miembro 
-            FROM Grupomiembros GM 
-            WHERE GM.id_grupo = %s 
-            AND GM.id_miembro NOT IN (
-                SELECT id_miembro 
-                FROM Grupomiembros 
-                WHERE id_grupo != %s
-            )
-            AND GM.id_miembro NOT IN (
-                SELECT DISTINCT id_miembro FROM Multas WHERE id_miembro IS NOT NULL
-                UNION
-                SELECT DISTINCT id_miembro FROM prestamos WHERE id_miembro IS NOT NULL
-                UNION
-                SELECT DISTINCT id_miembro FROM ahorro_final WHERE id_miembro IS NOT NULL
-                UNION
-                SELECT DISTINCT id_miembro FROM prestamo_pagos WHERE id_miembro IS NOT NULL
-            )
-        """, (grupo_id, grupo_id))
+        # 1. PRIMERO: Obtener todos los miembros del grupo
+        cursor.execute("SELECT id_miembro FROM Grupomiembros WHERE id_grupo = %s", (grupo_id,))
+        miembros_ids = [row[0] for row in cursor.fetchall()]
         
-        miembros_seguros_eliminar = [row[0] for row in cursor.fetchall()]
+        if miembros_ids:
+            placeholders = ','.join(['%s'] * len(miembros_ids))
+            
+            # 2. ELIMINAR REGISTROS EN TABLAS RELACIONADAS (en orden inverso de dependencias)
+            
+            # Primero eliminar pagos de préstamos
+            cursor.execute(f"""
+                DELETE FROM prestamo_pagos 
+                WHERE id_prestamo IN (
+                    SELECT id_prestamo FROM prestamos 
+                    WHERE id_miembro IN ({placeholders})
+                )
+            """, miembros_ids)
+            
+            # Eliminar préstamos
+            cursor.execute(f"DELETE FROM prestamos WHERE id_miembro IN ({placeholders})", miembros_ids)
+            
+            # Eliminar multas
+            cursor.execute(f"DELETE FROM Multas WHERE id_miembro IN ({placeholders})", miembros_ids)
+            
+            # Eliminar ahorros
+            cursor.execute(f"DELETE FROM ahorro_final WHERE id_miembro IN ({placeholders})", miembros_ids)
+            
+            # Eliminar registros de caja relacionados con el grupo
+            cursor.execute("DELETE FROM Caja WHERE id_grupo = %s", (grupo_id,))
+            
+            # 3. ELIMINAR RELACIONES EN GRUPOMIEMBROS
+            cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_id,))
+            
+            # 4. ELIMINAR MIEMBROS
+            # Primero actualizar referencias a administradores (si existen)
+            cursor.execute(f"""
+                UPDATE Miembros 
+                SET id_administrador = NULL 
+                WHERE id_miembro IN ({placeholders}) 
+                AND id_administrador IS NOT NULL
+            """, miembros_ids)
+            
+            # Ahora eliminar los miembros
+            cursor.execute(f"DELETE FROM Miembros WHERE id_miembro IN ({placeholders})", miembros_ids)
         
-        # SEGUNDO: Eliminar relaciones en Grupomiembros
-        cursor.execute("DELETE FROM Grupomiembros WHERE id_grupo = %s", (grupo_id,))
-        
-        # TERCERO: Eliminar solo miembros que son seguros de eliminar
-        miembros_eliminados = 0
-        if miembros_seguros_eliminar:
-            placeholders = ','.join(['%s'] * len(miembros_seguros_eliminar))
-            cursor.execute(f"DELETE FROM Miembros WHERE id_miembro IN ({placeholders})", miembros_seguros_eliminar)
-            miembros_eliminados = len(miembros_seguros_eliminar)
-        
-        # CUARTO: Finalmente eliminar el grupo
+        # 5. FINALMENTE ELIMINAR EL GRUPO
         cursor.execute("DELETE FROM Grupos WHERE id_grupo = %s", (grupo_id,))
         
         conn.commit()
         
-        # Mensaje de resultado
-        if miembros_eliminados > 0:
-            mensaje.success(f"✅ Grupo eliminado correctamente. Se eliminaron {miembros_eliminados} miembros que solo pertenecían a este grupo.")
-        else:
-            mensaje.success("✅ Grupo eliminado correctamente. Los miembros se mantuvieron porque tienen registros en otras tablas o pertenecen a otros grupos.")
+        mensaje.success("✅ ELIMINACIÓN COMPLETA EXITOSA")
+        mensaje.success("• Grupo eliminado")
+        mensaje.success("• Miembros eliminados")
+        mensaje.success("• Multas eliminadas")
+        mensaje.success("• Préstamos eliminados")
+        mensaje.success("• Ahorros eliminados")
+        mensaje.success("• Todos los registros relacionados eliminados")
         
-        # Limpiar confirmación
-        st.session_state.confirmar_eliminacion = False
-        time.sleep(3)
+        time.sleep(4)
         st.rerun()
         
     except Exception as e:
         if conn:
             conn.rollback()
-        mensaje.error(f"❌ Error al eliminar grupo: {str(e)}")
-        st.error("💡 No se pudo eliminar el grupo porque los miembros tienen registros relacionados en otras tablas (multas, préstamos, etc.).")
-        st.session_state.confirmar_eliminacion = False
+        mensaje.error(f"❌ Error durante la eliminación: {str(e)}")
+        st.error("💡 Si el error persiste, verifica que no haya restricciones de clave foránea.")
         time.sleep(5)
     finally:
         if cursor:
