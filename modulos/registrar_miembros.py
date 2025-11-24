@@ -19,6 +19,15 @@ def registrar_miembros():
         st.session_state.telefono_edit_valido = True
     if 'telefono_edit_value' not in st.session_state:
         st.session_state.telefono_edit_value = ""
+    # NUEVOS ESTADOS PARA DUI
+    if 'dui_valido' not in st.session_state:
+        st.session_state.dui_valido = True
+    if 'dui_value' not in st.session_state:
+        st.session_state.dui_value = ""
+    if 'dui_edit_valido' not in st.session_state:
+        st.session_state.dui_edit_valido = True
+    if 'dui_edit_value' not in st.session_state:
+        st.session_state.dui_edit_value = ""
 
     # ================================
     # VALIDAR SESIÓN Y GRUPO
@@ -42,9 +51,16 @@ def registrar_miembros():
     if "editar_miembro" not in st.session_state:
         with st.form("form_miembro"):
             nombre = st.text_input("Nombre completo")
-            dui = st.text_input("DUI")
             
-            # CAMPO DE TELÉFONO CON VALIDACIÓN (SIN on_change)
+            # CAMPO DE DUI CON VALIDACIÓN
+            dui = st.text_input(
+                "DUI",
+                value=st.session_state.dui_value,
+                key="dui_input",
+                help="Formato: 12345678-9 (solo números y un guion)"
+            )
+            
+            # CAMPO DE TELÉFONO CON VALIDACIÓN
             telefono = st.text_input(
                 "Teléfono",
                 value=st.session_state.telefono_value,
@@ -54,7 +70,17 @@ def registrar_miembros():
             
             enviar = st.form_submit_button("Registrar")
 
-        # VALIDACIÓN DESPUÉS DEL FORMULARIO
+        # VALIDACIÓN DUI DESPUÉS DEL FORMULARIO
+        if dui:  # Solo validar si hay contenido
+            if not re.match(r'^[0-9-]*$', dui):
+                st.session_state.dui_valido = False
+                st.error("❌ Solo se permiten números y un guion en el campo DUI")
+            else:
+                st.session_state.dui_valido = True
+                # Mantener solo números y un guion, pero permitir el formato completo
+                st.session_state.dui_value = dui
+
+        # VALIDACIÓN TELÉFONO DESPUÉS DEL FORMULARIO
         if telefono:  # Solo validar si hay contenido
             if not re.match(r'^[0-9]*$', telefono):
                 st.session_state.telefono_valido = False
@@ -65,20 +91,30 @@ def registrar_miembros():
 
         if enviar:
             # VALIDACIÓN FINAL ANTES DE GUARDAR
+            errores = []
             if not st.session_state.telefono_valido:
-                st.error("Por favor corrija el campo de teléfono antes de registrar")
+                errores.append("teléfono")
+            if not st.session_state.dui_valido:
+                errores.append("DUI")
+            
+            if errores:
+                st.error(f"Por favor corrija los siguientes campos: {', '.join(errores)}")
             elif not telefono.strip():
                 st.error("⚠️ El campo teléfono es requerido")
+            elif not dui.strip():
+                st.error("⚠️ El campo DUI es requerido")
             else:
-                # Usar el valor limpio del teléfono
+                # Usar los valores limpios
                 telefono_limpio = re.sub(r'[^0-9]', '', telefono)
+                # Para DUI, mantener el formato original pero validar que solo tenga números y máximo un guion
+                dui_limpio = dui.strip()
                 
                 try:
                     con = obtener_conexion()
                     cursor = con.cursor()
                     cursor.execute(
                         "INSERT INTO Miembros (Nombre, DUI, Telefono) VALUES (%s, %s, %s)",
-                        (nombre, dui, telefono_limpio)
+                        (nombre, dui_limpio, telefono_limpio)
                     )
                     con.commit()
                     id_miembro = cursor.lastrowid
@@ -89,9 +125,11 @@ def registrar_miembros():
                     )
                     con.commit()
 
-                    # LIMPIAR EL ESTADO DEL TELÉFONO DESPUÉS DE REGISTRAR
+                    # LIMPIAR LOS ESTADOS DESPUÉS DE REGISTRAR
                     st.session_state.telefono_value = ""
                     st.session_state.telefono_valido = True
+                    st.session_state.dui_value = ""
+                    st.session_state.dui_valido = True
 
                     st.success("Miembro registrado correctamente ✔️")
                     time.sleep(0.5)
@@ -107,6 +145,8 @@ def registrar_miembros():
         # Limpiar estados al regresar
         st.session_state.telefono_value = ""
         st.session_state.telefono_valido = True
+        st.session_state.dui_value = ""
+        st.session_state.dui_valido = True
         st.session_state.page = "menu"
         st.rerun()
     st.write("---")
@@ -182,6 +222,8 @@ def mostrar_tabla_y_acciones(id_grupo):
                     # Inicializar valores para edición
                     st.session_state.telefono_edit_value = miembro['Teléfono']
                     st.session_state.telefono_edit_valido = True
+                    st.session_state.dui_edit_value = miembro['DUI']
+                    st.session_state.dui_edit_valido = True
                     st.rerun()  # 🔥 activa modo edición
 
             with col2:
@@ -242,9 +284,16 @@ def editar_miembro(row):
 
     with st.form("form_editar"):
         nombre = st.text_input("Nombre completo", value=row['Nombre'])
-        dui = st.text_input("DUI", value=row['DUI'])
         
-        # CAMPO DE TELÉFONO CON VALIDACIÓN (SIN on_change)
+        # CAMPO DE DUI CON VALIDACIÓN (EDICIÓN)
+        dui = st.text_input(
+            "DUI",
+            value=st.session_state.dui_edit_value,
+            key="dui_edit_input",
+            help="Formato: 12345678-9 (solo números y un guion)"
+        )
+        
+        # CAMPO DE TELÉFONO CON VALIDACIÓN (EDICIÓN)
         telefono = st.text_input(
             "Teléfono", 
             value=st.session_state.telefono_edit_value,
@@ -254,7 +303,16 @@ def editar_miembro(row):
         
         actualizar = st.form_submit_button("Actualizar")
 
-    # VALIDACIÓN DESPUÉS DEL FORMULARIO (EDICIÓN)
+    # VALIDACIÓN DUI DESPUÉS DEL FORMULARIO (EDICIÓN)
+    if dui:  # Solo validar si hay contenido
+        if not re.match(r'^[0-9-]*$', dui):
+            st.session_state.dui_edit_valido = False
+            st.error("❌ Solo se permiten números y un guion en el campo DUI")
+        else:
+            st.session_state.dui_edit_valido = True
+            st.session_state.dui_edit_value = dui
+
+    # VALIDACIÓN TELÉFONO DESPUÉS DEL FORMULARIO (EDICIÓN)
     if telefono:  # Solo validar si hay contenido
         if not re.match(r'^[0-9]*$', telefono):
             st.session_state.telefono_edit_valido = False
@@ -265,20 +323,29 @@ def editar_miembro(row):
 
     if actualizar:
         # VALIDACIÓN FINAL ANTES DE ACTUALIZAR
+        errores = []
         if not st.session_state.telefono_edit_valido:
-            st.error("Por favor corrija el campo de teléfono antes de actualizar")
+            errores.append("teléfono")
+        if not st.session_state.dui_edit_valido:
+            errores.append("DUI")
+        
+        if errores:
+            st.error(f"Por favor corrija los siguientes campos: {', '.join(errores)}")
         elif not telefono.strip():
             st.error("⚠️ El campo teléfono es requerido")
+        elif not dui.strip():
+            st.error("⚠️ El campo DUI es requerido")
         else:
-            # Usar el valor limpio del teléfono
+            # Usar los valores limpios
             telefono_limpio = re.sub(r'[^0-9]', '', telefono)
+            dui_limpio = dui.strip()
             
             try:
                 con = obtener_conexion()
                 cursor = con.cursor()
                 cursor.execute(
                     "UPDATE Miembros SET Nombre=%s, DUI=%s, Telefono=%s WHERE id_miembro=%s",
-                    (nombre, dui, telefono_limpio, row['ID'])
+                    (nombre, dui_limpio, telefono_limpio, row['ID'])
                 )
                 con.commit()
 
@@ -289,6 +356,8 @@ def editar_miembro(row):
                 del st.session_state["editar_miembro"]
                 st.session_state.telefono_edit_value = ""
                 st.session_state.telefono_edit_valido = True
+                st.session_state.dui_edit_value = ""
+                st.session_state.dui_edit_valido = True
 
                 st.rerun()
 
