@@ -164,15 +164,6 @@ def prestamos_modulo():
         interes_total = (monto * interes_por_10) / 100
         monto_total = monto + interes_total
 
-        # Mostrar resumen del préstamo
-        st.markdown("**Resumen del Préstamo:**")
-        col_res1, col_res2 = st.columns(2)
-        with col_res1:
-            st.info(f"💰 **Capital:** ${monto:,.2f}")
-            st.info(f"📈 **Interés ({interes_por_10}%):** ${interes_total:,.2f}")
-        with col_res2:
-            st.success(f"💵 **Total a pagar:** ${monto_total:,.2f}")
-
         enviar = st.form_submit_button("💾 Guardar Préstamo")
 
     # BOTÓN REGRESAR - FUERA DEL FORMULARIO
