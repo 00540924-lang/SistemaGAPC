@@ -328,7 +328,7 @@ def mostrar_ahorro_final(id_grupo):
     st.write("---")
     
     # SECCIÓN 3: REGISTRO DE ACTIVIDADES (GRUPO COMPLETO)
-    st.subheader("🎯 Registrar ingreso por actividad del grupo")
+    st.subheader("🎯 Registrar ingreso por actividad")
     with st.form("form_actividad", clear_on_submit=True):
         col1, col2 = st.columns(2)
         
