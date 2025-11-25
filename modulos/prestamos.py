@@ -467,7 +467,6 @@ def mostrar_formulario_pagos(id_prestamo):
                 st.info(f"""
                 **Desglose del pago:**
                 - 💰 Capital abonado: ${capital_abonado:,.2f}
-                - 📈 Interés abonado: ${interes_abonado:,.2f}
                 - 🏦 Nuevo saldo pendiente: **${saldo_pendiente - float(monto_pago):,.2f}**
                 """)
                 
