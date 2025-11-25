@@ -323,7 +323,7 @@ def mostrar_lista_prestamos(id_grupo):
 
 
 # =====================================================
-#   FORMULARIO MEJORADO DE PAGOS - UNIFICADO
+#   FORMULARIO MEJORADO DE PAGOS - UNIFICADO (CORREGIDO)
 # =====================================================
 def mostrar_formulario_pagos(id_prestamo):
     try:
@@ -347,11 +347,15 @@ def mostrar_formulario_pagos(id_prestamo):
             FROM prestamo_pagos 
             WHERE id_prestamo = %s
         """, (id_prestamo,))
-        total_pagado = cursor.fetchone()[0]
-        
+        total_pagado_result = cursor.fetchone()[0]
         con.close()
 
-        monto_original, interes_total, estado = prestamo_info
+        # CONVERTIR TODOS LOS VALORES A FLOAT PARA EVITAR ERRORES DE TIPO
+        monto_original = float(prestamo_info[0]) if prestamo_info[0] is not None else 0.0
+        interes_total = float(prestamo_info[1]) if prestamo_info[1] is not None else 0.0
+        estado = prestamo_info[2]
+        total_pagado = float(total_pagado_result) if total_pagado_result is not None else 0.0
+
         monto_total_original = monto_original + interes_total
         saldo_pendiente = monto_total_original - total_pagado
 
@@ -408,7 +412,7 @@ def mostrar_formulario_pagos(id_prestamo):
                 cursor = con.cursor()
 
                 # Verificar que no se pague más de lo debido
-                if monto_pago > saldo_pendiente:
+                if float(monto_pago) > saldo_pendiente:
                     st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
                     return
 
@@ -416,14 +420,14 @@ def mostrar_formulario_pagos(id_prestamo):
                 # Calcular cuánto capital queda por pagar
                 capital_pendiente = monto_original - total_pagado
                 
-                if monto_pago <= capital_pendiente:
+                if float(monto_pago) <= capital_pendiente:
                     # Todo el pago va al capital
-                    capital_abonado = monto_pago
+                    capital_abonado = float(monto_pago)
                     interes_abonado = 0.00
                 else:
                     # Se paga todo el capital pendiente y el resto va al interés
                     capital_abonado = capital_pendiente
-                    interes_abonado = monto_pago - capital_pendiente
+                    interes_abonado = float(monto_pago) - capital_pendiente
 
                 # Registrar el pago con estado automáticamente como "pagado"
                 cursor.execute("""
@@ -439,7 +443,7 @@ def mostrar_formulario_pagos(id_prestamo):
                 ))
 
                 # Calcular nuevo total pagado
-                nuevo_total_pagado = total_pagado + monto_pago
+                nuevo_total_pagado = total_pagado + float(monto_pago)
                 
                 # Verificar si el préstamo queda completamente pagado
                 if nuevo_total_pagado >= monto_total_original:
@@ -464,10 +468,10 @@ def mostrar_formulario_pagos(id_prestamo):
                 **Desglose del pago:**
                 - 💰 Capital abonado: ${capital_abonado:,.2f}
                 - 📈 Interés abonado: ${interes_abonado:,.2f}
-                - 🏦 Nuevo saldo pendiente: **${saldo_pendiente - monto_pago:,.2f}**
+                - 🏦 Nuevo saldo pendiente: **${saldo_pendiente - float(monto_pago):,.2f}**
                 """)
                 
-                if (saldo_pendiente - monto_pago) <= 0:
+                if (saldo_pendiente - float(monto_pago)) <= 0:
                     st.balloons()
                     st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
                 
