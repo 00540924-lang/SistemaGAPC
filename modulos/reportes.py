@@ -131,152 +131,169 @@ def obtener_todos_los_grupos():
         st.error(f"Error al obtener grupos: {e}")
         return []
 
-def mostrar_reporte_promotor(id_grupo, fecha_inicio, fecha_fin):
-    """Muestra el reporte para un promotor (solo su grupo)"""
-    st.subheader(f"📊 Reporte del Grupo: {obtener_nombre_grupo(id_grupo)}")
+def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
+    """Muestra el reporte para un promotor (puede seleccionar grupo)"""
+    st.subheader("👨‍💼 Reporte del Promotor")
     
-    # Obtener estadísticas
-    estadisticas = obtener_estadisticas_por_grupo(id_grupo, fecha_inicio, fecha_fin)
+    # Obtener todos los grupos para que el promotor seleccione
+    grupos = obtener_todos_los_grupos()
     
-    if not estadisticas:
-        st.warning("No se encontraron datos para el período seleccionado.")
+    if not grupos:
+        st.warning("No se encontraron grupos en el sistema.")
         return
     
-    # Mostrar métricas principales
-    col1, col2, col3 = st.columns(3)
+    # Crear lista de grupos para selección
+    opciones_grupos = {f"{nombre} (ID: {id_grupo})": id_grupo for id_grupo, nombre in grupos}
     
-    with col1:
-        st.metric(
-            "💰 Total Ingresos", 
-            f"${estadisticas['ingresos']['total']:,.2f}",
-            delta=f"${estadisticas['ingresos']['total']:,.2f}"
-        )
+    # Selectbox para elegir grupo
+    grupo_seleccionado = st.selectbox(
+        "Seleccione un grupo para ver reporte:",
+        options=list(opciones_grupos.keys())
+    )
     
-    with col2:
-        st.metric(
-            "💸 Total Egresos", 
-            f"${estadisticas['egresos']['total']:,.2f}",
-            delta=f"-${estadisticas['egresos']['total']:,.2f}",
-            delta_color="inverse"
-        )
-    
-    with col3:
-        color_saldo = "normal" if estadisticas['saldo_neto'] >= 0 else "inverse"
-        st.metric(
-            "🏦 Saldo Neto", 
-            f"${estadisticas['saldo_neto']:,.2f}",
-            delta=f"{estadisticas['saldo_neto']:,.2f}",
-            delta_color=color_saldo
-        )
-    
-    st.write("---")
-    
-    # Mostrar desglose detallado
-    col_ingresos, col_egresos = st.columns(2)
-    
-    with col_ingresos:
-        st.markdown("### 🟩 Desglose de Ingresos")
+    if grupo_seleccionado:
+        id_grupo_seleccionado = opciones_grupos[grupo_seleccionado]
         
-        datos_ingresos = {
-            'Concepto': ['Multas', 'Ahorros', 'Actividades', 'Pagos de Préstamos'],
-            'Monto': [
-                estadisticas['ingresos']['multas'],
-                estadisticas['ingresos']['ahorros'],
-                estadisticas['ingresos']['actividades'],
-                estadisticas['ingresos']['pagos_prestamos']
-            ]
-        }
+        # Obtener estadísticas del grupo seleccionado
+        estadisticas = obtener_estadisticas_por_grupo(id_grupo_seleccionado, fecha_inicio, fecha_fin)
         
-        df_ingresos = pd.DataFrame(datos_ingresos)
-        df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
-        st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
+        if not estadisticas:
+            st.warning("No se encontraron datos para el período seleccionado.")
+            return
         
-        # Gráfico de torta para ingresos
-        if estadisticas['ingresos']['total'] > 0:
-            fig, ax = plt.subplots(figsize=(8, 6))
-            conceptos = ['Multas', 'Ahorros', 'Actividades', 'Pagos Préstamos']
-            montos = [
-                estadisticas['ingresos']['multas'],
-                estadisticas['ingresos']['ahorros'],
-                estadisticas['ingresos']['actividades'],
-                estadisticas['ingresos']['pagos_prestamos']
-            ]
+        # Mostrar métricas principales
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(
+                "💰 Total Ingresos", 
+                f"${estadisticas['ingresos']['total']:,.2f}",
+                delta=f"${estadisticas['ingresos']['total']:,.2f}"
+            )
+        
+        with col2:
+            st.metric(
+                "💸 Total Egresos", 
+                f"${estadisticas['egresos']['total']:,.2f}",
+                delta=f"-${estadisticas['egresos']['total']:,.2f}",
+                delta_color="inverse"
+            )
+        
+        with col3:
+            color_saldo = "normal" if estadisticas['saldo_neto'] >= 0 else "inverse"
+            st.metric(
+                "🏦 Saldo Neto", 
+                f"${estadisticas['saldo_neto']:,.2f}",
+                delta=f"{estadisticas['saldo_neto']:,.2f}",
+                delta_color=color_saldo
+            )
+        
+        st.write("---")
+        
+        # Mostrar desglose detallado (el mismo código que antes)
+        col_ingresos, col_egresos = st.columns(2)
+        
+        with col_ingresos:
+            st.markdown("### 🟩 Desglose de Ingresos")
             
-            # Filtrar conceptos con montos mayores a 0
-            conceptos_filtrados = []
-            montos_filtrados = []
-            for concepto, monto in zip(conceptos, montos):
-                if monto > 0:
-                    conceptos_filtrados.append(concepto)
-                    montos_filtrados.append(monto)
+            datos_ingresos = {
+                'Concepto': ['Multas', 'Ahorros', 'Actividades', 'Pagos de Préstamos'],
+                'Monto': [
+                    estadisticas['ingresos']['multas'],
+                    estadisticas['ingresos']['ahorros'],
+                    estadisticas['ingresos']['actividades'],
+                    estadisticas['ingresos']['pagos_prestamos']
+                ]
+            }
             
-            if montos_filtrados:
-                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
-                wedges, texts, autotexts = ax.pie(
-                    montos_filtrados, 
-                    labels=conceptos_filtrados, 
-                    autopct='%1.1f%%',
-                    colors=colors[:len(montos_filtrados)],
-                    startangle=90
-                )
-                
-                # Mejorar la apariencia de los textos
-                for autotext in autotexts:
-                    autotext.set_color('white')
-                    autotext.set_fontweight('bold')
-                
-                ax.set_title('Distribución de Ingresos', fontweight='bold', pad=20)
-                st.pyplot(fig)
-    
-    with col_egresos:
-        st.markdown("### 🟥 Desglose de Egresos")
-        
-        datos_egresos = {
-            'Concepto': ['Retiros de Ahorros', 'Desembolsos de Préstamos'],
-            'Monto': [
-                estadisticas['egresos']['retiros'],
-                estadisticas['egresos']['desembolsos']
-            ]
-        }
-        
-        df_egresos = pd.DataFrame(datos_egresos)
-        df_egresos['Monto'] = df_egresos['Monto'].apply(lambda x: f"${x:,.2f}")
-        st.dataframe(df_egresos, use_container_width=True, hide_index=True)
-        
-        # Gráfico de torta para egresos
-        if estadisticas['egresos']['total'] > 0:
-            fig, ax = plt.subplots(figsize=(8, 6))
-            conceptos = ['Retiros', 'Desembolsos']
-            montos = [
-                estadisticas['egresos']['retiros'],
-                estadisticas['egresos']['desembolsos']
-            ]
+            df_ingresos = pd.DataFrame(datos_ingresos)
+            df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
+            st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
             
-            # Filtrar conceptos con montos mayores a 0
-            conceptos_filtrados = []
-            montos_filtrados = []
-            for concepto, monto in zip(conceptos, montos):
-                if monto > 0:
-                    conceptos_filtrados.append(concepto)
-                    montos_filtrados.append(monto)
+            # Gráfico de torta para ingresos (código igual al anterior)
+            if estadisticas['ingresos']['total'] > 0:
+                fig, ax = plt.subplots(figsize=(8, 6))
+                conceptos = ['Multas', 'Ahorros', 'Actividades', 'Pagos Préstamos']
+                montos = [
+                    estadisticas['ingresos']['multas'],
+                    estadisticas['ingresos']['ahorros'],
+                    estadisticas['ingresos']['actividades'],
+                    estadisticas['ingresos']['pagos_prestamos']
+                ]
+                
+                # Filtrar conceptos con montos mayores a 0
+                conceptos_filtrados = []
+                montos_filtrados = []
+                for concepto, monto in zip(conceptos, montos):
+                    if monto > 0:
+                        conceptos_filtrados.append(concepto)
+                        montos_filtrados.append(monto)
+                
+                if montos_filtrados:
+                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+                    wedges, texts, autotexts = ax.pie(
+                        montos_filtrados, 
+                        labels=conceptos_filtrados, 
+                        autopct='%1.1f%%',
+                        colors=colors[:len(montos_filtrados)],
+                        startangle=90
+                    )
+                    
+                    for autotext in autotexts:
+                        autotext.set_color('white')
+                        autotext.set_fontweight('bold')
+                    
+                    ax.set_title('Distribución de Ingresos', fontweight='bold', pad=20)
+                    st.pyplot(fig)
+        
+        with col_egresos:
+            st.markdown("### 🟥 Desglose de Egresos")
             
-            if montos_filtrados:
-                colors = ['#FFA726', '#AB47BC']
-                wedges, texts, autotexts = ax.pie(
-                    montos_filtrados, 
-                    labels=conceptos_filtrados, 
-                    autopct='%1.1f%%',
-                    colors=colors[:len(montos_filtrados)],
-                    startangle=90
-                )
+            datos_egresos = {
+                'Concepto': ['Retiros de Ahorros', 'Desembolsos de Préstamos'],
+                'Monto': [
+                    estadisticas['egresos']['retiros'],
+                    estadisticas['egresos']['desembolsos']
+                ]
+            }
+            
+            df_egresos = pd.DataFrame(datos_egresos)
+            df_egresos['Monto'] = df_egresos['Monto'].apply(lambda x: f"${x:,.2f}")
+            st.dataframe(df_egresos, use_container_width=True, hide_index=True)
+            
+            # Gráfico de torta para egresos (código igual al anterior)
+            if estadisticas['egresos']['total'] > 0:
+                fig, ax = plt.subplots(figsize=(8, 6))
+                conceptos = ['Retiros', 'Desembolsos']
+                montos = [
+                    estadisticas['egresos']['retiros'],
+                    estadisticas['egresos']['desembolsos']
+                ]
                 
-                # Mejorar la apariencia de los textos
-                for autotext in autotexts:
-                    autotext.set_color('white')
-                    autotext.set_fontweight('bold')
+                # Filtrar conceptos con montos mayores a 0
+                conceptos_filtrados = []
+                montos_filtrados = []
+                for concepto, monto in zip(conceptos, montos):
+                    if monto > 0:
+                        conceptos_filtrados.append(concepto)
+                        montos_filtrados.append(monto)
                 
-                ax.set_title('Distribución de Egresos', fontweight='bold', pad=20)
-                st.pyplot(fig)
+                if montos_filtrados:
+                    colors = ['#FFA726', '#AB47BC']
+                    wedges, texts, autotexts = ax.pie(
+                        montos_filtrados, 
+                        labels=conceptos_filtrados, 
+                        autopct='%1.1f%%',
+                        colors=colors[:len(montos_filtrados)],
+                        startangle=90
+                    )
+                    
+                    for autotext in autotexts:
+                        autotext.set_color('white')
+                        autotext.set_fontweight('bold')
+                    
+                    ax.set_title('Distribución de Egresos', fontweight='bold', pad=20)
+                    st.pyplot(fig)
 
 def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     """Muestra el reporte para usuario institucional (todos los grupos)"""
@@ -394,11 +411,13 @@ def vista_reportes():
     usuario = st.session_state.get("usuario", "").lower()
     id_grupo = st.session_state.get("id_grupo")
 
+    # ✅ CORREGIDO: Promotores e institucionales no necesitan grupo asignado
     if rol not in ["promotor", "institucional"] and usuario != "dark":
         st.error("❌ No tiene permisos para acceder a este módulo.")
         return
 
-    if rol == "promotor" and not id_grupo:
+    # ✅ CORREGIDO: Solo miembros necesitan grupo asignado
+    if rol == "miembro" and not id_grupo:
         st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
         return
 
@@ -436,8 +455,8 @@ def vista_reportes():
     # 2. MOSTRAR REPORTES SEGÚN ROL
     # ===============================
     if rol == "promotor":
-        # Promotor: solo ve su grupo asignado
-        mostrar_reporte_promotor(id_grupo, fecha_inicio, fecha_fin)
+        # ✅ CORREGIDO: Promotor ve todos los grupos que supervisa
+        mostrar_reporte_institucional(fecha_inicio, fecha_fin)
         
     elif rol == "institucional" or usuario == "dark":
         # Institucional: ve todos los grupos
