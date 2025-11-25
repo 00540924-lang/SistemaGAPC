@@ -189,14 +189,14 @@ def mostrar_lista_prestamos(id_grupo):
                     COALESCE(SUM(capital), 0) as total_pagado,
                     COUNT(id_pago) as numero_pagos
                 FROM prestamo_pagos 
-                WHERE id_prestamo = %s
+                WHERE id_prestamo = %s AND estado = 'pagado'
             """, (id_prestamo,))
             
             info_pagos = cursor.fetchone()
             total_pagado = info_pagos[0] if info_pagos else 0
             numero_pagos = info_pagos[1] if info_pagos else 0
             
-            # Calcular saldo pendiente
+            # Calcular saldo pendiente CORRECTAMENTE
             monto_total = prestamo[3] + prestamo[7]  # monto + interes_total
             saldo_pendiente = monto_total - total_pagado
             
@@ -247,7 +247,16 @@ def mostrar_lista_prestamos(id_grupo):
         
         prestamo_opciones = {}
         for row in prestamos_con_info:
-            texto_opcion = f"{row[1]} - ${row[9]:,.2f} pendientes (Pagado: ${row[7]:,.2f}) - {row[2]}"
+            # VERIFICAR QUE LOS CÁLCULOS ESTÉN CORRECTOS
+            monto_prestamo = row[3]
+            interes_total = row[7]
+            total_pagado = row[8]
+            saldo_pendiente = row[10]  # posición corregida
+            
+            # Debug: mostrar cálculos
+            # st.write(f"Debug - ID: {row[0]}, Monto: {monto_prestamo}, Interés: {interes_total}, Total: {monto_prestamo + interes_total}, Pagado: {total_pagado}, Saldo: {saldo_pendiente}")
+            
+            texto_opcion = f"{row[1]} - ${saldo_pendiente:,.2f} pendientes (Pagado: ${total_pagado:,.2f}) - {row[2]}"
             prestamo_opciones[texto_opcion] = row[0]
 
         if prestamo_opciones:
@@ -262,8 +271,6 @@ def mostrar_lista_prestamos(id_grupo):
 
     except Exception as e:
         st.error(f"❌ Error al cargar la lista de préstamos: {str(e)}")
-
-
 # =====================================================
 #   FORMULARIO MEJORADO DE PAGOS - CORREGIDO
 # =====================================================
@@ -341,48 +348,58 @@ def mostrar_formulario_pagos(id_prestamo):
 
             guardar = st.form_submit_button("💾 Registrar Pago")
 
-        if guardar:
-            try:
-                con = obtener_conexion()
-                cursor = con.cursor()
+        # En la función mostrar_formulario_pagos, dentro del if guardar:
+if guardar:
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
 
-                # Verificar que no se pague más de lo debido
-                if capital > saldo_pendiente:
-                    st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
-                    return
+        # Verificar que no se pague más de lo debido
+        if capital > saldo_pendiente:
+            st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
+            return
 
-                # Registrar el pago con los nombres exactos de tus columnas
-                cursor.execute("""
-                    INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (
-                    id_prestamo,
-                    numero_pago,
-                    fecha_pago,
-                    capital,
-                    interes_pago,
-                    estado_pago.lower()
-                ))
+        # Registrar el pago con los nombres exactos de tus columnas
+        cursor.execute("""
+            INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            id_prestamo,
+            numero_pago,
+            fecha_pago,
+            capital,
+            interes_pago,
+            estado_pago.lower()  # Asegurar que sea 'pagado' o 'pendiente'
+        ))
 
-                # Verificar si el préstamo queda completamente pagado
-                nuevo_total_pagado = total_pagado + capital
-                if nuevo_total_pagado >= monto_total_original:
-                    cursor.execute("""
-                        UPDATE prestamos 
-                        SET estado = 'finalizado'
-                        WHERE id_prestamo = %s
-                    """, (id_prestamo,))
+        # Calcular nuevo total pagado
+        nuevo_total_pagado = total_pagado + capital
+        
+        # Verificar si el préstamo queda completamente pagado
+        if nuevo_total_pagado >= monto_total_original:
+            cursor.execute("""
+                UPDATE prestamos 
+                SET estado = 'finalizado'
+                WHERE id_prestamo = %s
+            """, (id_prestamo,))
+        else:
+            # Si no está completamente pagado, mantener como activo
+            cursor.execute("""
+                UPDATE prestamos 
+                SET estado = 'activo'
+                WHERE id_prestamo = %s
+            """, (id_prestamo,))
 
-                con.commit()
-                st.success(f"✅ Pago registrado correctamente")
-                st.info(f"💰 Nuevo saldo pendiente: ${saldo_pendiente - capital:,.2f}")
-                
-                if (saldo_pendiente - capital) <= 0:
-                    st.balloons()
-                    st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
-                
-                time.sleep(2)
-                st.rerun()
+        con.commit()
+        st.success(f"✅ Pago registrado correctamente")
+        st.info(f"💰 Nuevo saldo pendiente: ${saldo_pendiente - capital:,.2f}")
+        
+        if (saldo_pendiente - capital) <= 0:
+            st.balloons()
+            st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
+        
+        time.sleep(2)
+        st.rerun()
 
             except Exception as e:
                 st.error(f"❌ Error al registrar pago: {str(e)}")
