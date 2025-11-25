@@ -47,7 +47,7 @@ def prestamos_modulo():
         return
 
     # --------------------------------------
-    # Obtener valores del reglamento
+    # Obtener valores del reglamento - CORREGIDO
     # --------------------------------------
     try:
         con = obtener_conexion()
@@ -69,6 +69,7 @@ def prestamos_modulo():
             monto_maximo_texto = str(reglamento[1]) if reglamento[1] is not None else "No definido"
             plazo_maximo_texto = str(reglamento[2]) if reglamento[2] is not None else "No definido"
             
+            st.info(f"📊 Reglamento cargado: Interés {interes_por_10}% por cada $10")
         else:
             st.warning("⚠️ No se encontró reglamento para este grupo. Se usarán valores por defecto.")
             interes_por_10 = 0.0
