@@ -228,7 +228,7 @@ def mostrar_ahorro_final(id_grupo):
     # Título principal con nombre del grupo
     st.markdown(f"""
     <div style='text-align: center;'>
-        <h1>💰 Módulo de ahorro</h1>
+        <h1>💰 Ahorros</h1>
         <h3 style='color: #4C3A60; margin-top: -10px;'>Grupo: {nombre_grupo}</h3>
     </div>
     """, unsafe_allow_html=True)
@@ -255,7 +255,7 @@ def mostrar_ahorro_final(id_grupo):
     registros = obtener_registros_ahorro_final(id_grupo)
     
     # SECCIÓN 1: REGISTRO DE AHORROS POR PERSONA
-    st.subheader("💰 Registrar Ahorro por Persona")
+    st.subheader("Registrar ahorro")
     with st.form("form_ahorro", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         
@@ -292,7 +292,7 @@ def mostrar_ahorro_final(id_grupo):
     st.write("---")
     
     # SECCIÓN 2: REGISTRO DE RETIROS POR PERSONA
-    st.subheader("💸 Registrar Retiro por Persona")
+    st.subheader("💸 Registrar retiro")
     with st.form("form_retiro", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         
