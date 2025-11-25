@@ -98,8 +98,6 @@ def prestamos_modulo():
         with col3:
             st.metric("💵 Total a Pagar", f"${monto_total:,.2f}")
 
-        estado = st.selectbox("Estado inicial", ["Activo", "Pendiente"])
-
         enviar = st.form_submit_button("💾 Guardar Préstamo")
 
     # BOTÓN REGRESAR - FUERA DEL FORMULARIO
@@ -114,7 +112,7 @@ def prestamos_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # INSERT del préstamo
+            # INSERT del préstamo - automáticamente como "activo"
             cursor.execute("""
                 INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, 
                                      fecha_vencimiento, estado, interes_total)
@@ -125,7 +123,7 @@ def prestamos_modulo():
                 monto,
                 fecha_desembolso,
                 fecha_vencimiento,
-                estado.lower(),
+                "activo",  # Estado fijo como "activo"
                 interes_total
             ))
 
