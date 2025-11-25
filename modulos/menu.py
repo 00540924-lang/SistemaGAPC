@@ -131,8 +131,6 @@ div.stButton > button:hover {
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
         ("💰 Caja", "caja", "caja_btn"),
-        # ✅ NUEVO MÓDULO DE REPORTES FINANCIEROS
-        ("📈 Reportes Financieros", "reportes_financieros", "reportes_financieros_btn"),
     ]
 
     # -----------------------------------------------------
@@ -142,12 +140,8 @@ div.stButton > button:hover {
         modulos = modulos_base
     elif rol_l == "institucional":
         modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final"]]
-        # Agregar reportes financieros para institucional
-        modulos.append(("📈 Reportes Financieros", "reportes_financieros", "reportes_financieros_btn"))
     elif rol_l == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes"]]
-        # Agregar reportes financieros para promotor
-        modulos.append(("📈 Reportes Financieros", "reportes_financieros", "reportes_financieros_btn"))
     elif rol_l == "miembro":
         modulos = [m for m in modulos_base if m[1] in ["reglamento", "caja", "multas", "prestamos", "ahorro_final", "reuniones","ahorro_final","registrar_miembros"]]
     else:
