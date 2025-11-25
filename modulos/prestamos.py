@@ -306,7 +306,7 @@ def mostrar_lista_prestamos(id_grupo):
             saldo_pendiente = row[10]
             
             texto_opcion = f"{row[1]} - ${saldo_pendiente:,.2f} pendientes (Pagado: ${total_pagado:,.2f}) - {row[2]}"
-            
+            prestamo_opciones[texto_opcion] = row[0]
 
         if prestamo_opciones:
             prestamo_sel = st.selectbox("Selecciona un préstamo:", list(prestamo_opciones.keys()))
@@ -467,6 +467,7 @@ def mostrar_formulario_pagos(id_prestamo):
                 st.info(f"""
                 **Desglose del pago:**
                 - 💰 Capital abonado: ${capital_abonado:,.2f}
+                - 📈 Interés abonado: ${interes_abonado:,.2f}
                 - 🏦 Nuevo saldo pendiente: **${saldo_pendiente - float(monto_pago):,.2f}**
                 """)
                 
