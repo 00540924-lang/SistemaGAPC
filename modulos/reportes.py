@@ -444,29 +444,28 @@ def crear_grafico_tendencias_distritos(estadisticas_distritos):
     return fig
 
 def crear_grafico_ranking_grupos(ranking_grupos):
-    """Crea gráfico de barras para ranking de grupos por ingresos"""
+    """Crea gráfico de barras VERTICALES para ranking de grupos por ingresos"""
     
     if not ranking_grupos:
         return None
     
-    # Limitar a top 15 grupos para mejor visualización
-    top_grupos = ranking_grupos[:15]
+    # Limitar a top 10 grupos para mejor visualización
+    top_grupos = ranking_grupos[:10]
     
     # Preparar datos
     nombres_grupos = [grupo['nombre_grupo'] for grupo in top_grupos]
     ingresos_totales = [grupo['ingresos_total'] for grupo in top_grupos]
     distritos = [grupo['distrito'] for grupo in top_grupos]
     
-    # Crear gráfico de barras
+    # Crear gráfico de barras VERTICALES
     fig = px.bar(
-        x=ingresos_totales,
-        y=nombres_grupos,
-        orientation='h',
+        x=nombres_grupos,
+        y=ingresos_totales,
         title='🏆 Ranking de Grupos por Ingresos',
-        labels={'x': 'Ingresos Totales ($)', 'y': 'Grupos'},
+        labels={'x': 'Grupos', 'y': 'Ingresos Totales ($)'},
         color=ingresos_totales,
         color_continuous_scale='Viridis',
-        hover_data={'distrito': distritos}
+        hover_data={'Distrito': distritos}
     )
     
     fig.update_layout(
@@ -474,15 +473,15 @@ def crear_grafico_ranking_grupos(ranking_grupos):
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#4C3A60'),
-        yaxis=dict(categoryorder='total ascending'),
+        xaxis=dict(tickangle=45, tickmode='array'),
         coloraxis_showscale=False
     )
     
     # Agregar valores en las barras
     fig.update_traces(
-        texttemplate='$%{x:,.0f}',
+        texttemplate='$%{y:,.0f}',
         textposition='outside',
-        hovertemplate='<b>%{y}</b><br>Ingresos: $%{x:,.2f}<br>Distrito: %{customdata[0]}<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Ingresos: $%{y:,.2f}<br>Distrito: %{customdata[0]}<extra></extra>'
     )
     
     return fig
@@ -550,61 +549,97 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
         # Obtener estadísticas del grupo seleccionado
         estadisticas = obtener_estadisticas_por_grupo(id_grupo_seleccionado, fecha_inicio, fecha_fin)
         
-        if not estadisticas:
+        # Obtener ranking de grupos por ingresos
+        ranking_grupos = obtener_ranking_grupos_por_ingresos(fecha_inicio, fecha_fin)
+        
+        if not estadisticas and not ranking_grupos:
             st.warning("No se encontraron datos para el período seleccionado.")
             return
         
-        # Mostrar KPIs
-        mostrar_kpis_promotor(estadisticas, grupo_seleccionado)
+        # Mostrar KPIs si hay estadísticas del grupo seleccionado
+        if estadisticas:
+            mostrar_kpis_promotor(estadisticas, grupo_seleccionado)
         
         st.markdown("---")
         
         # Pestañas para diferentes visualizaciones
-        tab1, tab2 = st.tabs(["📈 Análisis Detallado", "📋 Reporte Completo"])
+        tab1, tab2, tab3 = st.tabs(["📈 Análisis del Grupo", "🏆 Ranking General", "📋 Reporte Completo"])
         
         with tab1:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Gráfico de distribución
-                fig_distribucion = crear_grafico_distribucion(estadisticas, es_distrito=False)
-                st.plotly_chart(fig_distribucion, use_container_width=True)
-            
-            with col2:
-                # Mostrar desglose detallado
-                st.markdown("#### 🟩 Desglose de Ingresos")
+            if estadisticas:
+                col1, col2 = st.columns(2)
                 
-                datos_ingresos = {
-                    'Concepto': ['Ahorros', 'Actividades', 'Multas', 'Pagos Préstamos'],
-                    'Monto': [
-                        estadisticas['ingresos']['ahorros'],
-                        estadisticas['ingresos']['actividades'],
-                        estadisticas['ingresos']['multas'],
-                        estadisticas['ingresos']['pagos_prestamos']
-                    ]
-                }
+                with col1:
+                    # Gráfico de distribución
+                    fig_distribucion = crear_grafico_distribucion(estadisticas, es_distrito=False)
+                    st.plotly_chart(fig_distribucion, use_container_width=True)
                 
-                df_ingresos = pd.DataFrame(datos_ingresos)
-                df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
-                st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
+                with col2:
+                    # Mostrar desglose detallado
+                    st.markdown("#### 🟩 Desglose de Ingresos")
+                    
+                    datos_ingresos = {
+                        'Concepto': ['Ahorros', 'Actividades', 'Multas', 'Pagos Préstamos'],
+                        'Monto': [
+                            estadisticas['ingresos']['ahorros'],
+                            estadisticas['ingresos']['actividades'],
+                            estadisticas['ingresos']['multas'],
+                            estadisticas['ingresos']['pagos_prestamos']
+                        ]
+                    }
+                    
+                    df_ingresos = pd.DataFrame(datos_ingresos)
+                    df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
+                    st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
+            else:
+                st.info("📊 No hay datos del grupo seleccionado para mostrar.")
         
         with tab2:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("#### 🟩 Entradas de Dinero")
-                st.write(f"**Ahorros:** ${estadisticas['ingresos']['ahorros']:,.2f}")
-                st.write(f"**Actividades:** ${estadisticas['ingresos']['actividades']:,.2f}")
-                st.write(f"**Multas:** ${estadisticas['ingresos']['multas']:,.2f}")
-                st.write(f"**Pagos Préstamos:** ${estadisticas['ingresos']['pagos_prestamos']:,.2f}")
-                st.markdown(f"**💰 Total Ingresos:** ${estadisticas['ingresos']['total']:,.2f}")
-            
-            with col2:
-                st.markdown("#### 🟥 Salidas de Dinero")
-                st.write(f"**Retiros:** ${estadisticas['egresos']['retiros']:,.2f}")
-                st.write(f"**Desembolsos:** ${estadisticas['egresos']['desembolsos']:,.2f}")
-                st.markdown(f"**💸 Total Egresos:** ${estadisticas['egresos']['total']:,.2f}")
-                st.markdown(f"**🏦 Saldo Neto:** ${estadisticas['saldo_neto']:,.2f}")
+            if ranking_grupos:
+                # Gráfico de ranking
+                fig_ranking = crear_grafico_ranking_grupos(ranking_grupos)
+                if fig_ranking:
+                    st.plotly_chart(fig_ranking, use_container_width=True)
+                
+                # Tabla de ranking completa
+                with st.expander("📋 Ver ranking completo de grupos"):
+                    df_ranking = pd.DataFrame(ranking_grupos)
+                    df_ranking['Posición'] = range(1, len(df_ranking) + 1)
+                    
+                    # Reordenar columnas
+                    columnas = ['Posición', 'nombre_grupo', 'distrito', 'ingresos_total', 'ahorros_actividades', 'multas', 'pagos_prestamos']
+                    df_display = df_ranking[columnas].copy()
+                    df_display.columns = ['Posición', 'Grupo', 'Distrito', 'Ingresos Total', 'Ahorros/Actividades', 'Multas', 'Pagos Préstamos']
+                    
+                    # Formatear números
+                    columnas_monetarias = ['Ingresos Total', 'Ahorros/Actividades', 'Multas', 'Pagos Préstamos']
+                    for col in columnas_monetarias:
+                        df_display[col] = df_display[col].apply(lambda x: f"${x:,.2f}")
+                    
+                    st.dataframe(df_display, use_container_width=True, hide_index=True)
+            else:
+                st.info("🏆 No hay datos de grupos para mostrar el ranking.")
+        
+        with tab3:
+            if estadisticas:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("#### 🟩 Entradas de Dinero")
+                    st.write(f"**Ahorros:** ${estadisticas['ingresos']['ahorros']:,.2f}")
+                    st.write(f"**Actividades:** ${estadisticas['ingresos']['actividades']:,.2f}")
+                    st.write(f"**Multas:** ${estadisticas['ingresos']['multas']:,.2f}")
+                    st.write(f"**Pagos Préstamos:** ${estadisticas['ingresos']['pagos_prestamos']:,.2f}")
+                    st.markdown(f"**💰 Total Ingresos:** ${estadisticas['ingresos']['total']:,.2f}")
+                
+                with col2:
+                    st.markdown("#### 🟥 Salidas de Dinero")
+                    st.write(f"**Retiros:** ${estadisticas['egresos']['retiros']:,.2f}")
+                    st.write(f"**Desembolsos:** ${estadisticas['egresos']['desembolsos']:,.2f}")
+                    st.markdown(f"**💸 Total Egresos:** ${estadisticas['egresos']['total']:,.2f}")
+                    st.markdown(f"**🏦 Saldo Neto:** ${estadisticas['saldo_neto']:,.2f}")
+            else:
+                st.info("📋 No hay datos del grupo seleccionado para mostrar el reporte completo.")
 
 def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     """Muestra el reporte para usuario institucional con diseño mejorado"""
@@ -612,95 +647,61 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     # Obtener estadísticas por distrito
     estadisticas_distritos = obtener_estadisticas_por_distrito(fecha_inicio, fecha_fin)
     
-    # Obtener ranking de grupos por ingresos
-    ranking_grupos = obtener_ranking_grupos_por_ingresos(fecha_inicio, fecha_fin)
-    
-    if not estadisticas_distritos and not ranking_grupos:
+    if not estadisticas_distritos:
         st.warning("No se encontraron datos para el período seleccionado.")
         return
     
     # Mostrar KPIs
-    if estadisticas_distritos:
-        mostrar_kpis_institucional(estadisticas_distritos)
+    mostrar_kpis_institucional(estadisticas_distritos)
     
     st.markdown("---")
     
     # Pestañas para diferentes visualizaciones
-    tab1, tab2, tab3 = st.tabs(["📈 Tendencias por Distrito", "🏆 Ranking de Grupos", "📋 Resumen Detallado"])
+    tab1, tab2 = st.tabs(["📈 Tendencias por Distrito", "📋 Resumen Detallado"])
     
     with tab1:
-        if estadisticas_distritos:
-            # Gráfico de tendencias
-            fig_tendencias = crear_grafico_tendencias_distritos(estadisticas_distritos)
-            st.plotly_chart(fig_tendencias, use_container_width=True)
-            
-            # Gráfico de distribución
-            col1, col2 = st.columns(2)
-            with col1:
-                fig_distribucion = crear_grafico_distribucion(estadisticas_distritos, es_distrito=True)
-                st.plotly_chart(fig_distribucion, use_container_width=True)
-        else:
-            st.info("📊 No hay datos de distritos para mostrar.")
+        # Gráfico de tendencias
+        fig_tendencias = crear_grafico_tendencias_distritos(estadisticas_distritos)
+        st.plotly_chart(fig_tendencias, use_container_width=True)
+        
+        # Gráfico de distribución
+        col1, col2 = st.columns(2)
+        with col1:
+            fig_distribucion = crear_grafico_distribucion(estadisticas_distritos, es_distrito=True)
+            st.plotly_chart(fig_distribucion, use_container_width=True)
     
     with tab2:
-        if ranking_grupos:
-            # Gráfico de ranking
-            fig_ranking = crear_grafico_ranking_grupos(ranking_grupos)
-            if fig_ranking:
-                st.plotly_chart(fig_ranking, use_container_width=True)
-            
-            # Tabla de ranking completa
-            with st.expander("📋 Ver ranking completo de grupos"):
-                df_ranking = pd.DataFrame(ranking_grupos)
-                df_ranking['Posición'] = range(1, len(df_ranking) + 1)
-                
-                # Reordenar columnas
-                columnas = ['Posición', 'nombre_grupo', 'distrito', 'ingresos_total', 'ahorros_actividades', 'multas', 'pagos_prestamos']
-                df_display = df_ranking[columnas].copy()
-                df_display.columns = ['Posición', 'Grupo', 'Distrito', 'Ingresos Total', 'Ahorros/Actividades', 'Multas', 'Pagos Préstamos']
-                
-                # Formatear números
-                columnas_monetarias = ['Ingresos Total', 'Ahorros/Actividades', 'Multas', 'Pagos Préstamos']
-                for col in columnas_monetarias:
-                    df_display[col] = df_display[col].apply(lambda x: f"${x:,.2f}")
-                
-                st.dataframe(df_display, use_container_width=True, hide_index=True)
-        else:
-            st.info("🏆 No hay datos de grupos para mostrar el ranking.")
-    
-    with tab3:
-        if estadisticas_distritos:
-            # Crear DataFrame consolidado por distrito
-            datos_consolidados = []
+        # Crear DataFrame consolidado por distrito
+        datos_consolidados = []
+        for stats in estadisticas_distritos:
+            datos_consolidados.append({
+                'Distrito': stats['distrito'],
+                'Ingresos': stats['ingresos']['total'],
+                'Egresos': stats['egresos']['total'],
+                'Saldo Neto': stats['saldo_neto']
+            })
+        
+        df_consolidado = pd.DataFrame(datos_consolidados)
+        
+        # Formatear columnas monetarias
+        df_display = df_consolidado.copy()
+        df_display['Ingresos'] = df_display['Ingresos'].apply(lambda x: f"${x:,.2f}")
+        df_display['Egresos'] = df_display['Egresos'].apply(lambda x: f"${x:,.2f}")
+        df_display['Saldo Neto'] = df_display['Saldo Neto'].apply(lambda x: f"${x:,.2f}")
+        
+        st.dataframe(df_display, use_container_width=True)
+        
+        # Mostrar totales generales
+        st.markdown("---")
+        st.markdown("### 📊 Resumen General por Distrito")
+        
+        col1, col2 = st.columns(2)
+        with col1:
             for stats in estadisticas_distritos:
-                datos_consolidados.append({
-                    'Distrito': stats['distrito'],
-                    'Ingresos': stats['ingresos']['total'],
-                    'Egresos': stats['egresos']['total'],
-                    'Saldo Neto': stats['saldo_neto']
-                })
-            
-            df_consolidado = pd.DataFrame(datos_consolidados)
-            
-            # Formatear columnas monetarias
-            df_display = df_consolidado.copy()
-            df_display['Ingresos'] = df_display['Ingresos'].apply(lambda x: f"${x:,.2f}")
-            df_display['Egresos'] = df_display['Egresos'].apply(lambda x: f"${x:,.2f}")
-            df_display['Saldo Neto'] = df_display['Saldo Neto'].apply(lambda x: f"${x:,.2f}")
-            
-            st.dataframe(df_display, use_container_width=True)
-            
-            # Mostrar totales generales
-            st.markdown("---")
-            st.markdown("### 📊 Resumen General por Distrito")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                for stats in estadisticas_distritos:
-                    with st.expander(f"📁 {stats['distrito']}"):
-                        st.write(f"**Ingresos:** ${stats['ingresos']['total']:,.2f}")
-                        st.write(f"**Egresos:** ${stats['egresos']['total']:,.2f}")
-                        st.write(f"**Saldo Neto:** ${stats['saldo_neto']:,.2f}")
+                with st.expander(f"📁 {stats['distrito']}"):
+                    st.write(f"**Ingresos:** ${stats['ingresos']['total']:,.2f}")
+                    st.write(f"**Egresos:** ${stats['egresos']['total']:,.2f}")
+                    st.write(f"**Saldo Neto:** ${stats['saldo_neto']:,.2f}")
 
 def vista_reportes():
     """
@@ -763,7 +764,7 @@ def vista_reportes():
     # 2. MOSTRAR REPORTES SEGÚN ROL
     # ===============================
     if rol == "promotor":
-        # Promotor: puede seleccionar grupo individual
+        # Promotor: puede seleccionar grupo individual y ver ranking
         mostrar_reporte_promotor(fecha_inicio, fecha_fin)
         
     elif rol == "institucional" or usuario == "dark":
