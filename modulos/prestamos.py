@@ -389,7 +389,11 @@ def mostrar_formulario_pagos(id_prestamo):
             proximo_pago = cursor.fetchone()[0]
             con.close()
 
-            numero_pago = st.number_input("Número de pago", min_value=1, value=proximo_pago, step=1)
+            # CORREGIDO: Campo de solo lectura para el número de pago
+            st.text_input("Número de pago", value=proximo_pago, disabled=True, key=f"num_pago_{id_prestamo}")
+            # Mantener el valor en una variable para usarlo en el INSERT
+            numero_pago = proximo_pago
+            
             fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
             
             # CAMPO UNIFICADO - SOLO MONTO
