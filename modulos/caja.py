@@ -91,16 +91,16 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         
-        # Obtener PAGOS de préstamos (dinero que ENTRA a la caja)
+        # CORREGIDO: Sumar capital + interés para los pagos
         cursor.execute("""
-            SELECT COALESCE(SUM(PP.capital), 0) as total_pagos
+            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
             FROM prestamo_pagos PP
             JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
             JOIN Miembros M ON P.id_miembro = M.id_miembro
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s 
             AND PP.fecha BETWEEN %s AND %s
-            AND PP.estado = 'Pagado'
+            AND PP.estado = 'pagado'
         """, (id_grupo, fecha_inicio, fecha_fin))
         
         resultado_pagos = cursor.fetchone()
@@ -114,7 +114,7 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s 
             AND P.fecha_desembolso BETWEEN %s AND %s
-            AND P.estado IN ('Activo', 'Pendiente')
+            AND P.estado IN ('activo', 'pendiente')
         """, (id_grupo, fecha_inicio, fecha_fin))
         
         resultado_desembolsos = cursor.fetchone()
@@ -211,14 +211,14 @@ def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
                 ), 0) as retiros,
                 
                 COALESCE((
-                    SELECT SUM(PP.capital)
+                    SELECT SUM(PP.capital + PP.interes)
                     FROM prestamo_pagos PP
                     JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
                     JOIN Miembros M ON P.id_miembro = M.id_miembro
                     JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
                     WHERE GM.id_grupo = %s 
                     AND PP.fecha = dias.fecha
-                    AND PP.estado = 'Pagado'
+                    AND PP.estado = 'pagado'
                 ), 0) as pago_prestamos,
                 
                 COALESCE((
@@ -228,7 +228,7 @@ def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
                     JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
                     WHERE GM.id_grupo = %s 
                     AND P.fecha_desembolso = dias.fecha
-                    AND P.estado IN ('Activo', 'Pendiente')
+                    AND P.estado IN ('activo', 'pendiente')
                 ), 0) as desembolso
                 
             FROM (
