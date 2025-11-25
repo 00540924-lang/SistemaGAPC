@@ -374,113 +374,106 @@ def mostrar_estadisticas(id_grupo):
         )
 
     # ===============================
-# 2. KPI PRINCIPALES - CORREGIDOS
-# ===============================
-st.subheader("📈 Métricas Principales")
-
-# Obtener estadísticas
-id_miembro_filtro = None if miembro_filtro == "Todos" else miembro_filtro
-stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
-
-if stats:
-    # KPIs en 4 columnas - CORREGIDOS
-    col1, col2, col3, col4 = st.columns(4)
+    # 2. KPI PRINCIPALES - CORREGIDOS
+    # ===============================
+    st.subheader("📈 Métricas Principales")
     
-    with col1:
-        st.metric(
-            "💰 Saldo Total", 
-            f"${stats.get('saldo_neto', 0):,.2f}",
-            help="Saldo neto del grupo (entradas - salidas)"
-        )
+    # Obtener estadísticas
+    id_miembro_filtro = None if miembro_filtro == "Todos" else miembro_filtro
+    stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
     
-    with col2:
-        # CORRECCIÓN: Mostrar correctamente los ahorros acumulados
-        ahorros_acumulados = stats.get('total_ahorros', 0)
-        st.metric(
-            "🏦 Ahorros Acumulados", 
-            f"${ahorros_acumulados:,.2f}",
-            help="Total de ahorros realizados por los miembros"
-        )
-    
-    with col3:
-        # CORRECCIÓN: Actividades mostrando monto correcto
-        actividades = stats.get('total_actividades', 0)
-        st.metric(
-            "⚡ Actividades", 
-            f"${actividades:,.2f}",
-            help="Ingresos por actividades grupales"
-        )
-    
-    with col4:
-        # CORRECCIÓN: Miembros activos
-        conn = obtener_conexion()
-        total_miembros_real = 0
-        if conn:
-            try:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT COUNT(*) 
-                    FROM Grupomiembros 
-                    WHERE id_grupo = %s
-                """, (id_grupo,))
-                total_miembros_real = cursor.fetchone()[0]
-                cursor.close()
-            except:
+    if stats:
+        # KPIs en 4 columnas
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "💰 Saldo Total", 
+                f"${stats.get('saldo_neto', 0):,.2f}",
+                help="Saldo neto del grupo (entradas - salidas)"
+            )
+        
+        with col2:
+            st.metric(
+                "🏦 Ahorros Acumulados", 
+                f"${stats.get('total_ahorros', 0):,.2f}",
+                help="Total de ahorros realizados por los miembros"
+            )
+        
+        with col3:
+            st.metric(
+                "⚡ Actividades", 
+                f"${stats.get('total_actividades', 0):,.2f}",
+                help="Ingresos por actividades grupales"
+            )
+        
+        with col4:
+            # CORRECCIÓN: Obtener el número real de miembros del grupo
+            conn = obtener_conexion()
+            total_miembros_real = 0
+            if conn:
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT COUNT(*) 
+                        FROM Grupomiembros 
+                        WHERE id_grupo = %s
+                    """, (id_grupo,))
+                    total_miembros_real = cursor.fetchone()[0]
+                    cursor.close()
+                except:
+                    total_miembros_real = stats.get('total_miembros', 0)
+                finally:
+                    if conn.is_connected():
+                        conn.close()
+            else:
                 total_miembros_real = stats.get('total_miembros', 0)
-            finally:
-                if conn.is_connected():
-                    conn.close()
-        else:
-            total_miembros_real = stats.get('total_miembros', 0)
-        
-        st.metric(
-            "👥 Miembros Activos", 
-            f"{total_miembros_real}",
-            help="Número total de miembros en el grupo"
-        )
+            
+            st.metric(
+                "👥 Miembros Activos", 
+                f"{total_miembros_real}",
+                help="Número total de miembros en el grupo"
+            )
 
-    # Segunda fila de KPIs - CORREGIDA
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric(
-            "📊 Registros de Ahorro", 
-            f"{stats.get('total_registros_ahorro', 0)}",
-            help="Total de operaciones de ahorro registradas"
-        )
-    
-    with col2:
-        porcentaje_multas = stats.get('porcentaje_multas_pagadas', 0)
-        st.metric(
-            "🎯 Multas Pagadas", 
-            f"{porcentaje_multas:.1f}%",
-            help=f"{stats.get('multas_pagadas', 0)} de {stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)} multas"
-        )
-    
-    with col3:
-        # CORRECCIÓN DEFINITIVA: Préstamos pagados
-        porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
-        num_pagados = stats.get('num_prestamos_pagados', 0)
-        num_activos = stats.get('num_prestamos_activos', 0)
-        total_prestamos = stats.get('total_prestamos', 0)
+        # Segunda fila de KPIs - CORREGIDA
+        col1, col2, col3, col4 = st.columns(4)
         
-        # Si todos los préstamos están pagados, mostrar 100%
-        if total_prestamos > 0 and num_pagados == total_prestamos:
-            porcentaje_prestamos = 100.0
+        with col1:
+            st.metric(
+                "📊 Registros de Ahorro", 
+                f"{stats.get('total_registros_ahorro', 0)}",
+                help="Total de operaciones de ahorro registradas"
+            )
         
-        st.metric(
-            "✅ Préstamos Pagados", 
-            f"{porcentaje_prestamos:.1f}%",
-            help=f"{num_pagados} de {total_prestamos} préstamos"
-        )
-    
-    with col4:
-        total_egresos = stats.get('total_egresos', 0)
-        st.metric(
-            "📉 Total Egresos", 
-            f"${total_egresos:,.2f}",
-            help="Total de retiros y préstamos activos"
-        )
+        with col2:
+            porcentaje_multas = stats.get('porcentaje_multas_pagadas', 0)
+            st.metric(
+                "🎯 Multas Pagadas", 
+                f"{porcentaje_multas:.1f}%",
+                help=f"{stats.get('multas_pagadas', 0)} de {stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)} multas"
+            )
+        
+        with col3:
+            # CORRECCIÓN: Forzar 100% si todos los préstamos están pagados
+            porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
+            # Si hay préstamos pagados y no hay préstamos activos, mostrar 100%
+            if stats.get('prestamos_pagados', 0) > 0 and stats.get('prestamos_activos', 0) == 0:
+                porcentaje_prestamos = 100.0
+                
+            st.metric(
+                "✅ Préstamos Pagados", 
+                f"{porcentaje_prestamos:.1f}%",
+                help=f"{stats.get('num_prestamos_pagados', 0)} de {stats.get('total_prestamos_registrados', 0)} préstamos"
+            )
+        
+        with col4:
+            # NUEVA MÉTRICA: Total Egresos
+            total_egresos = stats.get('total_egresos', 0)
+            st.metric(
+                "📉 Total Egresos", 
+                f"${total_egresos:,.2f}",
+                help="Total de retiros y préstamos activos"
+            )
 
     # ===============================
     # 3. GRÁFICOS Y VISUALIZACIONES
