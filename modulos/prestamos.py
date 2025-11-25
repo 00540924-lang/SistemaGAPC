@@ -137,7 +137,7 @@ def prestamos_modulo():
         col1, col2, col3 = st.columns(3)
         with col1:
             st.number_input(
-                "Interés (%)",
+                "Interés sobre el monto total (%)",
                 value=interes_por_10,
                 step=0.01,
                 disabled=True,
