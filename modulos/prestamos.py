@@ -325,8 +325,7 @@ def mostrar_formulario_pagos(id_prestamo):
                 help="El monto que pagues se abonará directamente al total que debes"
             )
 
-            estado_pago = st.selectbox("Estado del pago", ["Pagado", "Pendiente"])
-
+            # ELIMINADO: Selector de estado del pago - siempre será "pagado"
             guardar = st.form_submit_button("💾 Registrar Pago")
 
         if guardar:
@@ -352,7 +351,7 @@ def mostrar_formulario_pagos(id_prestamo):
                     capital_abonado = capital_pendiente
                     interes_abonado = monto_pago - capital_pendiente
 
-                # Registrar el pago con distribución automática
+                # Registrar el pago con estado automáticamente como "pagado"
                 cursor.execute("""
                     INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
                     VALUES (%s, %s, %s, %s, %s, %s)
@@ -362,7 +361,7 @@ def mostrar_formulario_pagos(id_prestamo):
                     fecha_pago,
                     capital_abonado,
                     interes_abonado,
-                    estado_pago.lower()
+                    "pagado"  # ESTADO FIJO COMO "pagado"
                 ))
 
                 # Calcular nuevo total pagado
