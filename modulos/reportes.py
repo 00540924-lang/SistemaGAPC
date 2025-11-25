@@ -383,7 +383,7 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     plt.tight_layout()
     st.pyplot(fig)
 
-def reportes_modulo():
+def vista_reportes():
     """
     Módulo de Reportes - Estadísticas financieras por grupo
     """
