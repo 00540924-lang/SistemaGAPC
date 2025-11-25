@@ -42,8 +42,8 @@ def registrar_miembros():
     # ================================
     # TÍTULOS CENTRADOS
     # ================================
-    st.markdown(f"<h2 style='text-align:center; color:#4C3A60;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align:center; color:#4C3A60;'>🧍 Registro de Miembros</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center; color:#4C3A60;'>📌 Grupo: {nombre_grupo}</h2>", unsafe_allow_html=True)
 
     # ================================
     # FORMULARIO NUEVO MIEMBRO SOLO SI NO ESTAMOS EDITANDO
