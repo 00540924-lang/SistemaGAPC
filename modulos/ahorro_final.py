@@ -336,14 +336,11 @@ def mostrar_ahorro_final(id_grupo):
         elif submitted_actividad:
             st.warning("Por favor ingresa un monto de actividad mayor a 0")
     
-    # BOTÓN REGRESAR AL MENÚ PRINCIPAL
+    # BOTÓN REGRESAR - COMO ESTABA ORIGINALMENTE QUE SÍ FUNCIONABA
     st.write("")
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        if st.button("⬅️ Regresar al Menú", type="primary"):
-            st.session_state.page = "menu"
-            st.rerun()
-    
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
     st.write("---")
     
     # Mostrar registros existentes en TABLA
