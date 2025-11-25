@@ -145,6 +145,21 @@ elif pagina == "reuniones":
             from modulos.reuniones import mostrar_reuniones
             mostrar_reuniones(id_grupo)
 
+# ---- ESTADÍSTICAS (solo Miembro) ----
+elif pagina == "estadisticas":
+    rol = st.session_state.get("rol")
+    id_grupo = st.session_state.get("id_grupo")
+    rol_normalizado = rol.strip().lower() if rol else None
+
+    if rol_normalizado != "miembro":
+        st.error("❌ Solo los miembros pueden acceder a este módulo.")
+    else:
+        if not id_grupo:
+            st.error("⚠ No se encontró el grupo del usuario. Contacte al administrador.")
+        else:
+            from modulos.estadisticas import mostrar_estadisticas
+            mostrar_estadisticas(id_grupo)
+
 # ---- ERROR SI NO EXISTE ----
 else:
     st.error("❌ Página no encontrada.")
