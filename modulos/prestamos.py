@@ -204,26 +204,6 @@ def mostrar_lista_prestamos(id_grupo):
 
         con.close()
 
-        # Mostrar resumen general
-        st.subheader("📊 Resumen de Préstamos")
-        
-        total_prestamos = len(prestamos_con_info)
-        prestamos_activos = sum(1 for p in prestamos_con_info if p[6] == 'activo')
-        total_prestado = sum(p[3] for p in prestamos_con_info)
-        total_pendiente = sum(p[9] for p in prestamos_con_info)
-        total_pagado = sum(p[7] for p in prestamos_con_info)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("📋 Total Préstamos", total_prestamos)
-        with col2:
-            st.metric("🔄 Activos", prestamos_activos)
-        with col3:
-            st.metric("💰 Total Prestado", f"${total_prestado:,.2f}")
-        with col4:
-            st.metric("💵 Pendiente", f"${total_pendiente:,.2f}")
-
-        st.write("---")
 
         # Tabla detallada de préstamos
         st.subheader("📋 Detalle de Préstamos")
