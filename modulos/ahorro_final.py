@@ -433,7 +433,9 @@ def mostrar_ahorro_final(id_grupo):
                         tipo_registro = "Actividad Grupal" if registro['actividades'] > 0 and registro['ahorros'] == 0 and registro['retiros'] == 0 else registro['Nombre']
                         st.write(f"- **{tipo_registro}** - {registro['fecha_registro']} - Ahorros: ${registro['ahorros']:,.2f} - Actividades: ${registro['actividades']:,.2f} - Retiros: ${registro['retiros']:,.2f}")
             
-            col1, col2 = st.columns([1, 4])
+            # Contenedor para el botón y mensajes de confirmación
+            col1, col2 = st.columns([1, 3])
+            
             with col1:
                 # Botón para borrar múltiples registros con confirmación
                 if st.button("🗑️ Eliminar Registros Seleccionados", type="secondary", disabled=not registros_seleccionados):
@@ -447,11 +449,12 @@ def mostrar_ahorro_final(id_grupo):
                             st.error(message)
                     else:
                         st.session_state.confirmar_borrado_multiple = True
-                        st.warning(f"⚠️ ¿Estás seguro de borrar {len(registros_seleccionados)} registro(s)? Haz clic nuevamente en 'Eliminar Registros Seleccionados' para confirmar.")
+                        st.rerun()
             
             with col2:
-                if st.session_state.get("confirmar_borrado_multiple", False):
-                    st.error(f"**Confirmación pendiente:** Se eliminarán {len(registros_seleccionados)} registro(s). Haz clic nuevamente en 'Eliminar Registros Seleccionados' para confirmar.")
+                # Mostrar mensajes de confirmación en línea horizontal
+                if st.session_state.get("confirmar_borrado_multiple", False) and registros_seleccionados:
+                    st.error(f"⚠️ **Confirmación requerida:** ¿Estás seguro de borrar {len(registros_seleccionados)} registro(s)? Haz clic nuevamente en 'Eliminar Registros Seleccionados' para confirmar.")
         
         # ESTADÍSTICAS
         st.subheader("📈 Estadísticas")
