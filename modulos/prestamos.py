@@ -248,7 +248,7 @@ def mostrar_lista_prestamos(id_grupo):
 
 
 # =====================================================
-#   FORMULARIO MEJORADO DE PAGOS - CORREGIDO
+#   FORMULARIO MEJORADO DE PAGOS - UNIFICADO
 # =====================================================
 def mostrar_formulario_pagos(id_prestamo):
     try:
@@ -313,12 +313,17 @@ def mostrar_formulario_pagos(id_prestamo):
             numero_pago = st.number_input("Número de pago", min_value=1, value=proximo_pago, step=1)
             fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
             
-            # Mostrar monto máximo que se puede pagar
+            # CAMPO UNIFICADO - SOLO MONTO
             st.write(f"**Monto máximo disponible para pago: ${saldo_pendiente:,.2f}**")
-            capital = st.number_input("Monto del pago (capital)", min_value=0.01, max_value=float(saldo_pendiente), step=0.01)
             
-            # Campo para interés si es necesario
-            interes_pago = st.number_input("Interés pagado (opcional)", min_value=0.00, value=0.00, step=0.01)
+            # ÚNICO CAMPO DE MONTO - lo que se pague se abona al total
+            monto_pago = st.number_input(
+                "Monto del pago", 
+                min_value=0.01, 
+                max_value=float(saldo_pendiente), 
+                step=0.01,
+                help="El monto que pagues se abonará directamente al total que debes"
+            )
 
             estado_pago = st.selectbox("Estado del pago", ["Pagado", "Pendiente"])
 
@@ -330,11 +335,24 @@ def mostrar_formulario_pagos(id_prestamo):
                 cursor = con.cursor()
 
                 # Verificar que no se pague más de lo debido
-                if capital > saldo_pendiente:
+                if monto_pago > saldo_pendiente:
                     st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
                     return
 
-                # Registrar el pago con los nombres exactos de tus columnas
+                # DISTRIBUCIÓN AUTOMÁTICA: Primero se abona al capital, luego al interés
+                # Calcular cuánto capital queda por pagar
+                capital_pendiente = monto_original - total_pagado
+                
+                if monto_pago <= capital_pendiente:
+                    # Todo el pago va al capital
+                    capital_abonado = monto_pago
+                    interes_abonado = 0.00
+                else:
+                    # Se paga todo el capital pendiente y el resto va al interés
+                    capital_abonado = capital_pendiente
+                    interes_abonado = monto_pago - capital_pendiente
+
+                # Registrar el pago con distribución automática
                 cursor.execute("""
                     INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
                     VALUES (%s, %s, %s, %s, %s, %s)
@@ -342,13 +360,13 @@ def mostrar_formulario_pagos(id_prestamo):
                     id_prestamo,
                     numero_pago,
                     fecha_pago,
-                    capital,
-                    interes_pago,
+                    capital_abonado,
+                    interes_abonado,
                     estado_pago.lower()
                 ))
 
                 # Calcular nuevo total pagado
-                nuevo_total_pagado = total_pagado + capital
+                nuevo_total_pagado = total_pagado + monto_pago
                 
                 # Verificar si el préstamo queda completamente pagado
                 if nuevo_total_pagado >= monto_total_original:
@@ -367,9 +385,16 @@ def mostrar_formulario_pagos(id_prestamo):
 
                 con.commit()
                 st.success(f"✅ Pago registrado correctamente")
-                st.info(f"💰 Nuevo saldo pendiente: ${saldo_pendiente - capital:,.2f}")
                 
-                if (saldo_pendiente - capital) <= 0:
+                # Mostrar desglose del pago
+                st.info(f"""
+                **Desglose del pago:**
+                - 💰 Capital abonado: ${capital_abonado:,.2f}
+                - 📈 Interés abonado: ${interes_abonado:,.2f}
+                - 🏦 Nuevo saldo pendiente: **${saldo_pendiente - monto_pago:,.2f}**
+                """)
+                
+                if (saldo_pendiente - monto_pago) <= 0:
                     st.balloons()
                     st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
                 
