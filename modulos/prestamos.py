@@ -245,7 +245,7 @@ def mostrar_lista_prestamos(id_grupo):
             JOIN Miembros M ON M.id_miembro = P.id_miembro
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s
-            ORDER BY P.estado, P.id_prestamo DESC
+            ORDER BY P.id_prestamo DESC, P.estado
         """, (id_grupo,))
 
         prestamos_basicos = cursor.fetchall()
