@@ -171,6 +171,31 @@ def borrar_registro_ahorro(id_ahorro):
             cursor.close()
             conn.close()
 
+def borrar_multiples_registros(ids_ahorro):
+    """Borra múltiples registros de ahorro final"""
+    conn = get_db_connection()
+    if conn is None:
+        return False, "Error de conexión a la base de datos"
+    
+    try:
+        cursor = conn.cursor()
+        
+        # Crear placeholders para la consulta IN
+        placeholders = ', '.join(['%s'] * len(ids_ahorro))
+        query = f"DELETE FROM ahorro_final WHERE id_ahorro IN ({placeholders})"
+        
+        cursor.execute(query, tuple(ids_ahorro))
+        conn.commit()
+        
+        return True, f"{cursor.rowcount} registros borrados exitosamente"
+        
+    except mysql.connector.Error as e:
+        return False, f"Error al borrar los registros: {e}"
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def calcular_saldo_final(ahorros, actividades, retiros):
     """Calcula el saldo final automáticamente"""
     return ahorros + actividades - retiros
@@ -379,41 +404,54 @@ def mostrar_ahorro_final(id_grupo):
             hide_index=True
         )
         
-        # SECCIÓN PARA BORRAR REGISTROS
+        # SECCIÓN PARA BORRAR REGISTROS - VERSIÓN MEJORADA CON SELECCIÓN MÚLTIPLE
         st.subheader("🗑️ Gestión de Registros")
         
-        # Selector para elegir qué registro borrar
+        # Crear opciones para el multiselect
         opciones_borrar = {}
         for r in registros:
             tipo_registro = "Actividad Grupal" if r['actividades'] > 0 and r['ahorros'] == 0 and r['retiros'] == 0 else r['Nombre']
             opciones_borrar[r['id_ahorro']] = f"{tipo_registro} - {r['fecha_registro']} - ${r['saldo_final']:,.2f}"
         
         if opciones_borrar:
-            registro_a_borrar = st.selectbox(
-                "Seleccionar registro para borrar:",
+            # Multiselect para seleccionar múltiples registros
+            registros_seleccionados = st.multiselect(
+                "Seleccionar registros para borrar:",
                 options=list(opciones_borrar.keys()),
-                format_func=lambda x: opciones_borrar[x]
+                format_func=lambda x: opciones_borrar[x],
+                placeholder="Selecciona uno o más registros..."
             )
+            
+            # Mostrar información de los registros seleccionados
+            if registros_seleccionados:
+                st.info(f"📋 **Registros seleccionados para eliminar:** {len(registros_seleccionados)}")
+                
+                # Mostrar detalles de los registros seleccionados
+                with st.expander("Ver detalles de registros seleccionados"):
+                    for id_registro in registros_seleccionados:
+                        registro = next(r for r in registros if r['id_ahorro'] == id_registro)
+                        tipo_registro = "Actividad Grupal" if registro['actividades'] > 0 and registro['ahorros'] == 0 and registro['retiros'] == 0 else registro['Nombre']
+                        st.write(f"- **{tipo_registro}** - {registro['fecha_registro']} - Ahorros: ${registro['ahorros']:,.2f} - Actividades: ${registro['actividades']:,.2f} - Retiros: ${registro['retiros']:,.2f}")
             
             col1, col2 = st.columns([1, 4])
             with col1:
-                # Botón para borrar con confirmación
-                if st.button("Borrar Registro", type="secondary"):
-                    if st.session_state.get("confirmar_borrado", False):
-                        success, message = borrar_registro_ahorro(registro_a_borrar)
+                # Botón para borrar múltiples registros con confirmación
+                if st.button("🗑️ Eliminar Registros Seleccionados", type="secondary", disabled=not registros_seleccionados):
+                    if st.session_state.get("confirmar_borrado_multiple", False):
+                        success, message = borrar_multiples_registros(registros_seleccionados)
                         if success:
                             st.success(message)
-                            st.session_state.confirmar_borrado = False
+                            st.session_state.confirmar_borrado_multiple = False
                             st.rerun()
                         else:
                             st.error(message)
                     else:
-                        st.session_state.confirmar_borrado = True
-                        st.warning("⚠️ ¿Estás seguro de borrar este registro? Haz clic nuevamente en 'Borrar Registro' para confirmar.")
+                        st.session_state.confirmar_borrado_multiple = True
+                        st.warning(f"⚠️ ¿Estás seguro de borrar {len(registros_seleccionados)} registro(s)? Haz clic nuevamente en 'Eliminar Registros Seleccionados' para confirmar.")
             
             with col2:
-                if st.session_state.get("confirmar_borrado", False):
-                    st.error("**Confirmación pendiente:** Haz clic nuevamente en 'Borrar Registro' para confirmar la eliminación.")
+                if st.session_state.get("confirmar_borrado_multiple", False):
+                    st.error(f"**Confirmación pendiente:** Se eliminarán {len(registros_seleccionados)} registro(s). Haz clic nuevamente en 'Eliminar Registros Seleccionados' para confirmar.")
         
         # ESTADÍSTICAS
         st.subheader("📈 Estadísticas")
