@@ -73,8 +73,146 @@ def pagina_grupos():
         return
 
     # ================= FORMULARIO NUEVO MIEMBRO =================
-    # ... (el resto del código de miembros se mantiene igual)
-    # ... (omitiendo esta parte para enfocarnos en la eliminación)
+    st.subheader("➕ Registrar nuevo miembro")
+
+    # Campos normales fuera de form
+    nombre_m = st.text_input("Nombre completo")
+    dui = st.text_input("DUI")
+    
+    # CAMPO DE TELÉFONO CON VALIDACIÓN
+    telefono = st.text_input(
+        "Teléfono",
+        value=st.session_state.telefono_value,
+        key="telefono_input",
+        help="Ingrese solo números"
+    )
+
+    grupo_asignado = st.selectbox(
+        "Asignar al grupo",
+        options=[g["id_grupo"] for g in grupos],
+        format_func=lambda x: next(g["nombre_grupo"] for g in grupos if g["id_grupo"] == x)
+    )
+
+    # Checkbox que aparece en tiempo real
+    es_admin = st.checkbox("Este miembro forma parte de la directiva")
+
+    # Campos del admin dinámicos
+    if es_admin:
+        usuario_admin = st.text_input("Usuario")
+        contraseña_admin = st.text_input("Contraseña", type="password")
+        rol_admin = st.selectbox(
+            "Rol del administrador",
+            options=["Miembro"],
+            index=0
+        )
+    else:
+        usuario_admin = None
+        contraseña_admin = None
+        rol_admin = None
+
+    # VARIABLE PARA CONTROLAR MENSAJES DE ERROR
+    mostrar_error_telefono = False
+    mensaje_telefono = ""
+
+    # VALIDACIÓN DEL TELÉFONO (se ejecuta siempre)
+    if telefono:  # Solo validar si hay contenido
+        if not re.match(r'^[0-9]*$', telefono):
+            st.session_state.telefono_valido = False
+            mostrar_error_telefono = True
+            mensaje_telefono = "❌ Solo se permiten números en el campo de teléfono"
+        else:
+            st.session_state.telefono_valido = True
+            st.session_state.telefono_value = re.sub(r'[^0-9]', '', telefono)
+
+    # Botón para registrar miembro (único submit)
+    if st.button("Registrar miembro"):
+        mensaje = st.empty()
+        
+        # Reiniciar flags de error
+        error_nombre = False
+        error_telefono = False
+        error_admin = False
+        
+        mensajes_error = []
+        
+        # VALIDACIONES ANTES DE GUARDAR
+        if not nombre_m.strip():
+            error_nombre = True
+            mensajes_error.append("El nombre del miembro es obligatorio.")
+        
+        if not st.session_state.telefono_valido:
+            error_telefono = True
+            mensajes_error.append("Solo se permiten números en el campo de teléfono")
+        
+        if es_admin and (not usuario_admin or not contraseña_admin):
+            error_admin = True
+            mensajes_error.append("Debe ingresar usuario y contraseña para administrador.")
+        
+        # Si hay errores, mostrarlos todos juntos
+        if mensajes_error:
+            mensaje_error_final = "❌ " + " | ".join(mensajes_error)
+            mensaje.error(mensaje_error_final)
+            time.sleep(3)
+            mensaje.empty()
+        else:
+            try:
+                conn = obtener_conexion()
+                cursor = conn.cursor(dictionary=True)
+
+                # Usar el valor limpio del teléfono
+                telefono_limpio = re.sub(r'[^0-9]', '', telefono) if telefono else ""
+
+                # Insertar miembro
+                cursor.execute(
+                    "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
+                    (nombre_m, dui, telefono_limpio)
+                )
+                conn.commit()
+                miembro_id = cursor.lastrowid
+
+                # Crear relación con grupo
+                cursor.execute(
+                    "INSERT INTO Grupomiembros (id_grupo, id_miembro) VALUES (%s, %s)",
+                    (grupo_asignado, miembro_id)
+                )
+                conn.commit()
+
+                # Si es administrador
+                if es_admin:
+                    cursor.execute(
+                        "INSERT INTO Administradores (Usuario, Contraseña, Rol) VALUES (%s, %s, %s)",
+                        (usuario_admin, contraseña_admin, rol_admin)
+                    )
+                    conn.commit()
+                    id_adm = cursor.lastrowid
+
+                    cursor.execute(
+                        "UPDATE Miembros SET id_administrador=%s WHERE id_miembro=%s",
+                        (id_adm, miembro_id)
+                    )
+                    conn.commit()
+
+                mensaje.success(f"{nombre_m} registrado correctamente en el grupo.")
+                
+                # LIMPIAR ESTADOS DESPUÉS DE REGISTRAR EXITOSAMENTE
+                st.session_state.telefono_value = ""
+                st.session_state.telefono_valido = True
+                
+                time.sleep(3)
+                mensaje.empty()
+
+            except Exception as e:
+                conn.rollback()
+                mensaje.error(f"Error al registrar miembro: {e}")
+                time.sleep(3)
+                mensaje.empty()
+            finally:
+                cursor.close()
+                conn.close()
+
+    # MOSTRAR MENSAJE DE ERROR DEL TELÉFONO (si aplica)
+    if mostrar_error_telefono:
+        st.error(mensaje_telefono)
 
     st.write("---")
 
