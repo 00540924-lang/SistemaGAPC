@@ -218,16 +218,22 @@ def pagina_grupos():
 
     # ================= ELIMINAR GRUPO =================
     st.subheader("🗑️ Eliminar un grupo completo")
-    st.error("⚠️ ELIMINACIÓN COMPLETA - ADVERTENCIA CRÍTICA")
-    st.error("Esta acción eliminará PERMANENTEMENTE:")
-    st.error("• El grupo completo")
-    st.error("• Todos los miembros del grupo")
-    st.error("• Todas las multas de los miembros")
-    st.error("• Todos los préstamos de los miembros")
-    st.error("• Todos los ahorros de los miembros")
-    st.error("• Todos los pagos de préstamos")
-    st.error("• Todos los registros relacionados")
-    st.error("🚨 ESTA ACCIÓN NO SE PUEDE DESHACER")
+    
+    # ADVERTENCIA EN UN SOLO BLOQUE
+    st.error("""
+    ⚠️ **ELIMINACIÓN COMPLETA - ADVERTENCIA CRÍTICA**
+
+    **Esta acción eliminará PERMANENTEMENTE:**
+    - El grupo completo  
+    - Todos los miembros del grupo  
+    - Todas las multas de los miembros  
+    - Todos los préstamos de los miembros  
+    - Todos los ahorros de los miembros  
+    - Todos los pagos de préstamos  
+    - Todos los registros relacionados  
+
+    **🚨 ESTA ACCIÓN NO SE PUEDE DESHACER**
+    """)
 
     grupo_eliminar = st.selectbox(
         "Selecciona el grupo a eliminar",
