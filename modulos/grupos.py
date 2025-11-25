@@ -13,6 +13,11 @@ def pagina_grupos():
         st.session_state.telefono_valido = True
     if 'telefono_value' not in st.session_state:
         st.session_state.telefono_value = ""
+    # NUEVOS ESTADOS PARA DUI
+    if 'dui_valido' not in st.session_state:
+        st.session_state.dui_valido = True
+    if 'dui_value' not in st.session_state:
+        st.session_state.dui_value = ""
 
     # ------------------ BOTÓN REGRESAR ------------------
     st.write("")
@@ -20,6 +25,8 @@ def pagina_grupos():
         # Limpiar estados al regresar
         st.session_state.telefono_value = ""
         st.session_state.telefono_valido = True
+        st.session_state.dui_value = ""
+        st.session_state.dui_valido = True
         st.session_state.page = "menu"
         st.rerun()
     st.write("---")
@@ -77,7 +84,14 @@ def pagina_grupos():
 
     # Campos normales fuera de form
     nombre_m = st.text_input("Nombre completo")
-    dui = st.text_input("DUI")
+    
+    # CAMPO DE DUI CON VALIDACIÓN
+    dui = st.text_input(
+        "DUI",
+        value=st.session_state.dui_value,
+        key="dui_input",
+        help="Formato: 12345678-9 (solo números y un guion)"
+    )
     
     # CAMPO DE TELÉFONO CON VALIDACIÓN
     telefono = st.text_input(
@@ -110,9 +124,11 @@ def pagina_grupos():
         contraseña_admin = None
         rol_admin = None
 
-    # VARIABLE PARA CONTROLAR MENSAJES DE ERROR
+    # VARIABLES PARA CONTROLAR MENSAJES DE ERROR
     mostrar_error_telefono = False
+    mostrar_error_dui = False
     mensaje_telefono = ""
+    mensaje_dui = ""
 
     # VALIDACIÓN DEL TELÉFONO (se ejecuta siempre)
     if telefono:  # Solo validar si hay contenido
@@ -124,6 +140,16 @@ def pagina_grupos():
             st.session_state.telefono_valido = True
             st.session_state.telefono_value = re.sub(r'[^0-9]', '', telefono)
 
+    # VALIDACIÓN DEL DUI (se ejecuta siempre)
+    if dui:  # Solo validar si hay contenido
+        if not re.match(r'^[0-9-]*$', dui):
+            st.session_state.dui_valido = False
+            mostrar_error_dui = True
+            mensaje_dui = "❌ Solo se permiten números y un guion en el campo DUI"
+        else:
+            st.session_state.dui_valido = True
+            st.session_state.dui_value = dui
+
     # Botón para registrar miembro (único submit)
     if st.button("Registrar miembro"):
         mensaje = st.empty()
@@ -131,6 +157,7 @@ def pagina_grupos():
         # Reiniciar flags de error
         error_nombre = False
         error_telefono = False
+        error_dui = False
         error_admin = False
         
         mensajes_error = []
@@ -143,6 +170,10 @@ def pagina_grupos():
         if not st.session_state.telefono_valido:
             error_telefono = True
             mensajes_error.append("Solo se permiten números en el campo de teléfono")
+        
+        if not st.session_state.dui_valido:
+            error_dui = True
+            mensajes_error.append("Solo se permiten números y un guion en el campo DUI")
         
         if es_admin and (not usuario_admin or not contraseña_admin):
             error_admin = True
@@ -159,13 +190,14 @@ def pagina_grupos():
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
 
-                # Usar el valor limpio del teléfono
+                # Usar los valores limpios
                 telefono_limpio = re.sub(r'[^0-9]', '', telefono) if telefono else ""
+                dui_limpio = dui.strip()
 
                 # Insertar miembro
                 cursor.execute(
                     "INSERT INTO Miembros (nombre, dui, telefono) VALUES (%s, %s, %s)",
-                    (nombre_m, dui, telefono_limpio)
+                    (nombre_m, dui_limpio, telefono_limpio)
                 )
                 conn.commit()
                 miembro_id = cursor.lastrowid
@@ -197,6 +229,8 @@ def pagina_grupos():
                 # LIMPIAR ESTADOS DESPUÉS DE REGISTRAR EXITOSAMENTE
                 st.session_state.telefono_value = ""
                 st.session_state.telefono_valido = True
+                st.session_state.dui_value = ""
+                st.session_state.dui_valido = True
                 
                 time.sleep(3)
                 mensaje.empty()
@@ -210,9 +244,12 @@ def pagina_grupos():
                 cursor.close()
                 conn.close()
 
-    # MOSTRAR MENSAJE DE ERROR DEL TELÉFONO (si aplica)
+    # MOSTRAR MENSAJES DE ERROR (si aplican)
     if mostrar_error_telefono:
         st.error(mensaje_telefono)
+    
+    if mostrar_error_dui:
+        st.error(mensaje_dui)
 
     st.write("---")
 
