@@ -226,7 +226,7 @@ def pagina_credenciales():
         )
     else:  # Promotor
         st.markdown(
-            "<h1 style='text-align: center; color:#4C3A60;'>Gestión de Credenciales de Miembros</h1>",
+            "<h1 style='text-align: center; color:#4C3A60;'>Gestión de credenciales de miembros</h1>",
             unsafe_allow_html=True
         )
 
