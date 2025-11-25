@@ -9,7 +9,7 @@ import time
 # =====================================================
 def prestamos_modulo():
     # --------------------------------------
-    # Validar sesión y grupo - CORREGIDO
+    # Validar sesión y grupo
     # --------------------------------------
     if "id_grupo" not in st.session_state or st.session_state.get("id_grupo") is None:
         st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
@@ -62,20 +62,24 @@ def prestamos_modulo():
         con.close()
 
         if reglamento:
+            # Solo el interés se convierte a número para cálculos
             interes_por_10 = float(reglamento[0]) if reglamento[0] is not None else 0.0
-            monto_maximo = float(reglamento[1]) if reglamento[1] is not None else 0.0
-            plazo_maximo = int(reglamento[2]) if reglamento[2] is not None else 0
+            
+            # Monto y plazo se mantienen como texto (sin conversión)
+            monto_maximo_texto = str(reglamento[1]) if reglamento[1] is not None else "No definido"
+            plazo_maximo_texto = str(reglamento[2]) if reglamento[2] is not None else "No definido"
+            
         else:
             st.warning("⚠️ No se encontró reglamento para este grupo. Se usarán valores por defecto.")
             interes_por_10 = 0.0
-            monto_maximo = 0.0
-            plazo_maximo = 0
+            monto_maximo_texto = "No definido"
+            plazo_maximo_texto = "No definido"
             
     except Exception as e:
         st.error(f"❌ Error al obtener reglamento: {str(e)}")
         interes_por_10 = 0.0
-        monto_maximo = 0.0
-        plazo_maximo = 0
+        monto_maximo_texto = "No definido"
+        plazo_maximo_texto = "No definido"
 
     # --------------------------------------
     # Obtener miembros del grupo
@@ -108,7 +112,7 @@ def prestamos_modulo():
         return
 
     # =====================================================
-    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON LÍMITES
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO
     # =====================================================
     with st.form("form_nuevo_prestamo"):
         st.subheader("📄 Nuevo Préstamo")
@@ -116,32 +120,16 @@ def prestamos_modulo():
         miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
         proposito = st.text_input("Propósito del préstamo")
         
-        # MONTO CON LÍMITE MÁXIMO
+        # MONTO SIN LÍMITE AUTOMÁTICO (solo informativo)
         monto = st.number_input(
             "Monto del préstamo", 
             min_value=0.01, 
-            max_value=float(monto_maximo) if monto_maximo > 0 else None,
             step=0.01,
-            help=f"Monto máximo permitido: ${monto_maximo:,.2f}" if monto_maximo > 0 else "Sin límite establecido"
+            help=f"Monto máximo según reglamento: {monto_maximo_texto}"
         )
         
         fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
-        
-        # FECHA DE VENCIMIENTO CON LÍMITE DE PLAZO MÁXIMO
-        if plazo_maximo > 0:
-            fecha_maxima = fecha_desembolso + datetime.timedelta(days=plazo_maximo)
-            fecha_vencimiento = st.date_input(
-                "Fecha de vencimiento", 
-                min_value=fecha_desembolso,
-                max_value=fecha_maxima,
-                value=fecha_maxima
-            )
-            st.info(f"📅 Plazo máximo: {plazo_maximo} días (Vence: {fecha_maxima.strftime('%d/%m/%Y')})")
-        else:
-            fecha_vencimiento = st.date_input(
-                "Fecha de vencimiento", 
-                min_value=fecha_desembolso
-            )
+        fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
 
         # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA
         st.markdown("**Configuración del Reglamento:**")
@@ -155,23 +143,34 @@ def prestamos_modulo():
                 key="interes_reglamento"
             )
         with col2:
-            st.number_input(
+            # Mostrar monto máximo como texto
+            st.text_input(
                 "Monto máximo permitido",
-                value=monto_maximo,
+                value=monto_maximo_texto,
                 disabled=True,
                 key="monto_maximo_reglamento"
             )
         with col3:
-            st.number_input(
-                "Plazo máximo (días)",
-                value=plazo_maximo,
+            # Mostrar plazo máximo como texto
+            st.text_input(
+                "Plazo máximo",
+                value=plazo_maximo_texto,
                 disabled=True,
                 key="plazo_maximo_reglamento"
             )
 
-        # Calcular interés automáticamente
+        # Calcular interés automáticamente (solo usa el interés)
         interes_total = (monto / 10) * interes_por_10
         monto_total = monto + interes_total
+
+        # Mostrar resumen del préstamo
+        st.markdown("**Resumen del Préstamo:**")
+        col_res1, col_res2 = st.columns(2)
+        with col_res1:
+            st.info(f"💰 **Capital:** ${monto:,.2f}")
+            st.info(f"📈 **Interés:** ${interes_total:,.2f}")
+        with col_res2:
+            st.success(f"💵 **Total a pagar:** ${monto_total:,.2f}")
 
         enviar = st.form_submit_button("💾 Guardar Préstamo")
 
@@ -183,16 +182,16 @@ def prestamos_modulo():
     st.write("---")
 
     if enviar:
-        # VALIDACIONES ADICIONALES
-        if monto_maximo > 0 and monto > monto_maximo:
-            st.error(f"❌ El monto no puede exceder el límite máximo de ${monto_maximo:,.2f}")
-            return
-            
-        if plazo_maximo > 0:
-            dias_prestamo = (fecha_vencimiento - fecha_desembolso).days
-            if dias_prestamo > plazo_maximo:
-                st.error(f"❌ El plazo no puede exceder {plazo_maximo} días")
-                return
+        # VALIDACIONES MANUALES (opcional)
+        try:
+            # Si el monto máximo es numérico, validar
+            if monto_maximo_texto.replace('.', '').replace(',', '').isdigit():
+                monto_maximo_num = float(monto_maximo_texto)
+                if monto > monto_maximo_num:
+                    st.error(f"❌ El monto no puede exceder el límite máximo de {monto_maximo_texto}")
+                    return
+        except:
+            pass  # Si no es numérico, no validar
         
         try:
             con = obtener_conexion()
