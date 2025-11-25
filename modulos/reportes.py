@@ -3,6 +3,7 @@ import pandas as pd
 from modulos.config.conexion import obtener_conexion
 from datetime import date, datetime, timedelta
 import matplotlib.pyplot as plt
+import numpy as np
 
 def obtener_estadisticas_por_grupo(id_grupo, fecha_inicio, fecha_fin):
     """
@@ -131,6 +132,95 @@ def obtener_todos_los_grupos():
         st.error(f"Error al obtener grupos: {e}")
         return []
 
+def obtener_datos_historicos_por_grupo(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene datos históricos para el gráfico de tendencias"""
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Consulta para obtener datos mensuales
+        cursor.execute("""
+            SELECT 
+                DATE_FORMAT(fecha, '%Y-%m') as mes,
+                COALESCE(SUM(monto), 0) as ingresos,
+                COALESCE(SUM(egresos), 0) as egresos
+            FROM (
+                -- Ingresos por multas
+                SELECT 
+                    MT.fecha as fecha,
+                    MT.monto_a_pagar as monto,
+                    0 as egresos
+                FROM Multas MT
+                JOIN Miembros M ON MT.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s
+                AND MT.fecha BETWEEN %s AND %s
+                AND MT.pagada = 1
+                
+                UNION ALL
+                
+                -- Ingresos por ahorros y actividades
+                SELECT 
+                    fecha_registro as fecha,
+                    (ahorros + actividades) as monto,
+                    0 as egresos
+                FROM ahorro_final 
+                WHERE id_grupo = %s AND fecha_registro BETWEEN %s AND %s
+                
+                UNION ALL
+                
+                -- Ingresos por pagos de préstamos
+                SELECT 
+                    PP.fecha as fecha,
+                    (PP.capital + PP.interes) as monto,
+                    0 as egresos
+                FROM prestamo_pagos PP
+                JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+                JOIN Miembros M ON P.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s 
+                AND PP.fecha BETWEEN %s AND %s
+                AND PP.estado = 'pagado'
+                
+                UNION ALL
+                
+                -- Egresos por retiros
+                SELECT 
+                    fecha_registro as fecha,
+                    0 as monto,
+                    retiros as egresos
+                FROM ahorro_final 
+                WHERE id_grupo = %s AND fecha_registro BETWEEN %s AND %s
+                
+                UNION ALL
+                
+                -- Egresos por desembolsos de préstamos
+                SELECT 
+                    P.fecha_desembolso as fecha,
+                    0 as monto,
+                    P.monto as egresos
+                FROM prestamos P
+                JOIN Miembros M ON P.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s 
+                AND P.fecha_desembolso BETWEEN %s AND %s
+                AND P.estado IN ('activo', 'pendiente')
+            ) as movimientos
+            GROUP BY DATE_FORMAT(fecha, '%Y-%m')
+            ORDER BY mes
+        """, (id_grupo, fecha_inicio, fecha_fin, 
+              id_grupo, fecha_inicio, fecha_fin,
+              id_grupo, fecha_inicio, fecha_fin,
+              id_grupo, fecha_inicio, fecha_fin,
+              id_grupo, fecha_inicio, fecha_fin))
+        
+        datos = cursor.fetchall()
+        conn.close()
+        return datos
+    except Exception as e:
+        st.error(f"Error al obtener datos históricos: {e}")
+        return []
+
 def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
     """Muestra el reporte para un promotor (puede seleccionar grupo)"""
     st.subheader("👨‍💼 Reporte del Promotor")
@@ -190,7 +280,7 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
         
         st.write("---")
         
-        # Mostrar desglose detallado (el mismo código que antes)
+        # Mostrar desglose detallado
         col_ingresos, col_egresos = st.columns(2)
         
         with col_ingresos:
@@ -210,42 +300,6 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
             df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
             st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
             
-            # Gráfico de torta para ingresos (código igual al anterior)
-            if estadisticas['ingresos']['total'] > 0:
-                fig, ax = plt.subplots(figsize=(8, 6))
-                conceptos = ['Multas', 'Ahorros', 'Actividades', 'Pagos Préstamos']
-                montos = [
-                    estadisticas['ingresos']['multas'],
-                    estadisticas['ingresos']['ahorros'],
-                    estadisticas['ingresos']['actividades'],
-                    estadisticas['ingresos']['pagos_prestamos']
-                ]
-                
-                # Filtrar conceptos con montos mayores a 0
-                conceptos_filtrados = []
-                montos_filtrados = []
-                for concepto, monto in zip(conceptos, montos):
-                    if monto > 0:
-                        conceptos_filtrados.append(concepto)
-                        montos_filtrados.append(monto)
-                
-                if montos_filtrados:
-                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
-                    wedges, texts, autotexts = ax.pie(
-                        montos_filtrados, 
-                        labels=conceptos_filtrados, 
-                        autopct='%1.1f%%',
-                        colors=colors[:len(montos_filtrados)],
-                        startangle=90
-                    )
-                    
-                    for autotext in autotexts:
-                        autotext.set_color('white')
-                        autotext.set_fontweight('bold')
-                    
-                    ax.set_title('Distribución de Ingresos', fontweight='bold', pad=20)
-                    st.pyplot(fig)
-        
         with col_egresos:
             st.markdown("### 🟥 Desglose de Egresos")
             
@@ -260,44 +314,75 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
             df_egresos = pd.DataFrame(datos_egresos)
             df_egresos['Monto'] = df_egresos['Monto'].apply(lambda x: f"${x:,.2f}")
             st.dataframe(df_egresos, use_container_width=True, hide_index=True)
-            
-            # Gráfico de torta para egresos (código igual al anterior)
-            if estadisticas['egresos']['total'] > 0:
-                fig, ax = plt.subplots(figsize=(8, 6))
-                conceptos = ['Retiros', 'Desembolsos']
-                montos = [
-                    estadisticas['egresos']['retiros'],
-                    estadisticas['egresos']['desembolsos']
-                ]
-                
-                # Filtrar conceptos con montos mayores a 0
-                conceptos_filtrados = []
-                montos_filtrados = []
-                for concepto, monto in zip(conceptos, montos):
-                    if monto > 0:
-                        conceptos_filtrados.append(concepto)
-                        montos_filtrados.append(monto)
-                
-                if montos_filtrados:
-                    colors = ['#FFA726', '#AB47BC']
-                    wedges, texts, autotexts = ax.pie(
-                        montos_filtrados, 
-                        labels=conceptos_filtrados, 
-                        autopct='%1.1f%%',
-                        colors=colors[:len(montos_filtrados)],
-                        startangle=90
-                    )
-                    
-                    for autotext in autotexts:
-                        autotext.set_color('white')
-                        autotext.set_fontweight('bold')
-                    
-                    ax.set_title('Distribución de Egresos', fontweight='bold', pad=20)
-                    st.pyplot(fig)
+
+def mostrar_grafico_tendencias(grupos_estadisticas, fecha_inicio, fecha_fin):
+    """Muestra gráfico de líneas de tendencia para múltiples grupos"""
+    
+    # Crear DataFrame para el gráfico
+    datos_grafico = []
+    for stats in grupos_estadisticas:
+        datos_grafico.append({
+            'Grupo': stats['nombre_grupo'],
+            'Ingresos': stats['ingresos']['total'],
+            'Egresos': stats['egresos']['total'],
+            'Saldo Neto': stats['saldo_neto']
+        })
+    
+    df_grafico = pd.DataFrame(datos_grafico)
+    
+    # Ordenar por saldo neto (opcional)
+    df_grafico = df_grafico.sort_values('Saldo Neto', ascending=False)
+    
+    # Crear gráfico de líneas de tendencia
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    # Preparar datos para el gráfico
+    grupos = df_grafico['Grupo'].tolist()
+    ingresos = df_grafico['Ingresos'].tolist()
+    egresos = df_grafico['Egresos'].tolist()
+    saldos = df_grafico['Saldo Neto'].tolist()
+    
+    # Crear índices para el eje X
+    x = range(len(grupos))
+    
+    # Gráfico de líneas
+    ax.plot(x, ingresos, marker='o', linewidth=3, markersize=8, label='Ingresos', color='#2E7D32')
+    ax.plot(x, egresos, marker='s', linewidth=3, markersize=8, label='Egresos', color='#C62828')
+    ax.plot(x, saldos, marker='^', linewidth=3, markersize=8, label='Saldo Neto', color='#1565C0')
+    
+    # Personalizar el gráfico
+    ax.set_xlabel('Grupos', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Monto ($)', fontsize=12, fontweight='bold')
+    ax.set_title('📈 Tendencias Financieras por Grupo', fontsize=16, fontweight='bold', pad=20)
+    
+    # Configurar eje X
+    ax.set_xticks(x)
+    ax.set_xticklabels(grupos, rotation=45, ha='right', fontsize=10)
+    
+    # Agregar grid
+    ax.grid(True, alpha=0.3, linestyle='--')
+    
+    # Agregar leyenda
+    ax.legend(loc='upper left', bbox_to_anchor=(0, 1), fontsize=11)
+    
+    # Agregar valores en los puntos
+    for i, (ing, eg, sal) in enumerate(zip(ingresos, egresos, saldos)):
+        ax.annotate(f'${ing:,.0f}', (i, ing), textcoords="offset points", 
+                   xytext=(0,10), ha='center', fontsize=9, fontweight='bold', color='#2E7D32')
+        ax.annotate(f'${eg:,.0f}', (i, eg), textcoords="offset points", 
+                   xytext=(0,10), ha='center', fontsize=9, fontweight='bold', color='#C62828')
+        ax.annotate(f'${sal:,.0f}', (i, sal), textcoords="offset points", 
+                   xytext=(0,10), ha='center', fontsize=9, fontweight='bold', color='#1565C0')
+    
+    # Ajustar layout
+    plt.tight_layout()
+    
+    # Mostrar gráfico
+    st.pyplot(fig)
 
 def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     """Muestra el reporte para usuario institucional (todos los grupos)"""
-    st.subheader("🏢 Reporte Institucional - Todos los Grupos")
+    # ✅ ELIMINADO: st.subheader("🏢 Reporte Institucional - Todos los Grupos")
     
     # Obtener todos los grupos
     grupos = obtener_todos_los_grupos()
@@ -361,44 +446,11 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
         color_saldo = "normal" if total_saldo >= 0 else "inverse"
         st.metric("🏦 Saldo Neto General", f"${total_saldo:,.2f}", delta_color=color_saldo)
     
-    # Gráfico de barras comparativo
+    # ✅ CAMBIADO: Gráfico de líneas de tendencia en lugar de barras
     st.write("---")
-    st.markdown("### 📈 Comparativa entre Grupos")
+    st.markdown("### 📈 Tendencias Financieras por Grupo")
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-    
-    # Gráfico de ingresos por grupo
-    grupos_nombres = [stats['nombre_grupo'] for stats in estadisticas_grupos]
-    ingresos = [stats['ingresos']['total'] for stats in estadisticas_grupos]
-    egresos = [stats['egresos']['total'] for stats in estadisticas_grupos]
-    
-    bars1 = ax1.bar(grupos_nombres, ingresos, color='#4CAF50', alpha=0.7, label='Ingresos')
-    ax1.set_title('Ingresos por Grupo', fontweight='bold', pad=20)
-    ax1.set_ylabel('Monto ($)')
-    ax1.tick_params(axis='x', rotation=45)
-    
-    # Agregar valores en las barras
-    for bar in bars1:
-        height = bar.get_height()
-        if height > 0:
-            ax1.text(bar.get_x() + bar.get_width()/2., height,
-                    f'${height:,.0f}', ha='center', va='bottom', fontweight='bold')
-    
-    # Gráfico de egresos por grupo
-    bars2 = ax2.bar(grupos_nombres, egresos, color='#F44336', alpha=0.7, label='Egresos')
-    ax2.set_title('Egresos por Grupo', fontweight='bold', pad=20)
-    ax2.set_ylabel('Monto ($)')
-    ax2.tick_params(axis='x', rotation=45)
-    
-    # Agregar valores en las barras
-    for bar in bars2:
-        height = bar.get_height()
-        if height > 0:
-            ax2.text(bar.get_x() + bar.get_width()/2., height,
-                    f'${height:,.0f}', ha='center', va='bottom', fontweight='bold')
-    
-    plt.tight_layout()
-    st.pyplot(fig)
+    mostrar_grafico_tendencias(estadisticas_grupos, fecha_inicio, fecha_fin)
 
 def vista_reportes():
     """
@@ -455,8 +507,8 @@ def vista_reportes():
     # 2. MOSTRAR REPORTES SEGÚN ROL
     # ===============================
     if rol == "promotor":
-        # ✅ CORREGIDO: Promotor ve todos los grupos que supervisa
-        mostrar_reporte_institucional(fecha_inicio, fecha_fin)
+        # ✅ CORREGIDO: Promotor puede seleccionar grupo
+        mostrar_reporte_promotor(fecha_inicio, fecha_fin)
         
     elif rol == "institucional" or usuario == "dark":
         # Institucional: ve todos los grupos
