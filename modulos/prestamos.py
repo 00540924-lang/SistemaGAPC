@@ -114,7 +114,7 @@ def prestamos_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # INSERT del préstamo (sin saldo_pendiente por ahora)
+            # INSERT del préstamo
             cursor.execute("""
                 INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, 
                                      fecha_vencimiento, estado, interes_total)
@@ -148,243 +148,259 @@ def prestamos_modulo():
 
 
 # =====================================================
-#   TABLA DE PRÉSTAMOS CON CONTROL DE PAGOS
+#   TABLA DE PRÉSTAMOS CON CONTROL DE PAGOS - CORREGIDA
 # =====================================================
 def mostrar_lista_prestamos(id_grupo):
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
 
-    con = obtener_conexion()
-    cursor = con.cursor()
+        # PRIMERO: Obtener solo los préstamos básicos
+        cursor.execute("""
+            SELECT 
+                P.id_prestamo, 
+                M.nombre, 
+                P.proposito, 
+                P.monto,
+                P.fecha_desembolso, 
+                P.fecha_vencimiento, 
+                P.estado, 
+                P.interes_total
+            FROM prestamos P
+            JOIN Miembros M ON M.id_miembro = P.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            ORDER BY P.estado, P.id_prestamo DESC
+        """, (id_grupo,))
 
-    # Obtener préstamos con información de pagos (sin saldo_pendiente)
-    cursor.execute("""
-        SELECT 
-            P.id_prestamo, 
-            M.nombre, 
-            P.proposito, 
-            P.monto,
-            P.fecha_desembolso, 
-            P.fecha_vencimiento, 
-            P.estado, 
-            P.interes_total,
-            COALESCE(SUM(PP.capital), 0) as total_pagado,
-            COUNT(PP.id_page) as numero_pagos
-        FROM prestamos P
-        JOIN Miembros M ON M.id_miembro = P.id_miembro
-        JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-        LEFT JOIN prestamo_pagos PP ON PP.id_prestamo = P.id_prestamo
-        WHERE GM.id_grupo = %s
-        GROUP BY P.id_prestamo, M.nombre, P.proposito, P.monto,
-                 P.fecha_desembolso, P.fecha_vencimiento, P.estado, 
-                 P.interes_total
-        ORDER BY P.estado, P.id_prestamo DESC
-    """, (id_grupo,))
+        prestamos_basicos = cursor.fetchall()
 
-    prestamos = cursor.fetchall()
-    con.close()
+        if not prestamos_basicos:
+            st.info("No hay préstamos registrados en este grupo.")
+            return
 
-    if not prestamos:
-        st.info("No hay préstamos registrados en este grupo.")
-        return
+        # SEGUNDO: Para cada préstamo, calcular los pagos por separado
+        prestamos_con_info = []
+        for prestamo in prestamos_basicos:
+            id_prestamo = prestamo[0]
+            
+            # Obtener información de pagos para este préstamo específico
+            cursor.execute("""
+                SELECT 
+                    COALESCE(SUM(capital), 0) as total_pagado,
+                    COUNT(id_page) as numero_pagos
+                FROM prestamo_pagos 
+                WHERE id_prestamo = %s
+            """, (id_prestamo,))
+            
+            info_pagos = cursor.fetchone()
+            total_pagado = info_pagos[0] if info_pagos else 0
+            numero_pagos = info_pagos[1] if info_pagos else 0
+            
+            # Calcular saldo pendiente
+            monto_total = prestamo[3] + prestamo[7]  # monto + interes_total
+            saldo_pendiente = monto_total - total_pagado
+            
+            prestamos_con_info.append(prestamo + (total_pagado, numero_pagos, saldo_pendiente))
 
-    # Mostrar resumen general
-    st.subheader("📊 Resumen de Préstamos")
-    
-    total_prestamos = len(prestamos)
-    prestamos_activos = sum(1 for p in prestamos if p[6] == 'activo')
-    total_prestado = sum(p[3] for p in prestamos)
-    total_pagado = sum(p[8] for p in prestamos)
-    
-    # Calcular saldo pendiente para cada préstamo
-    prestamos_con_saldo = []
-    for p in prestamos:
-        monto_total = p[3] + p[7]  # monto + interes_total
-        saldo_pendiente = monto_total - p[8]  # total - pagado
-        prestamos_con_saldo.append(p + (saldo_pendiente,))
-    
-    total_pendiente = sum(p[9] for p in prestamos_con_saldo)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("📋 Total Préstamos", total_prestamos)
-    with col2:
-        st.metric("🔄 Activos", prestamos_activos)
-    with col3:
-        st.metric("💰 Total Prestado", f"${total_prestado:,.2f}")
-    with col4:
-        st.metric("💵 Pendiente", f"${total_pendiente:,.2f}")
+        con.close()
 
-    st.write("---")
-
-    # Tabla detallada de préstamos
-    st.subheader("📋 Detalle de Préstamos")
-    
-    df = pd.DataFrame(prestamos_con_saldo, columns=[
-        "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", 
-        "Fecha Vencimiento", "Estado", "Interés Total", "Total Pagado", 
-        "Número de Pagos", "Saldo Pendiente"
-    ])
-
-    # Formatear columnas monetarias
-    df["Monto"] = df["Monto"].apply(lambda x: f"${x:,.2f}")
-    df["Interés Total"] = df["Interés Total"].apply(lambda x: f"${x:,.2f}")
-    df["Saldo Pendiente"] = df["Saldo Pendiente"].apply(lambda x: f"${x:,.2f}")
-    df["Total Pagado"] = df["Total Pagado"].apply(lambda x: f"${x:,.2f}")
-
-    st.dataframe(df, use_container_width=True)
-
-    # Selección de préstamo para pagos
-    st.subheader("💳 Registrar Pago")
-    
-    prestamo_opciones = {}
-    for row in prestamos_con_saldo:
-        texto_opcion = f"{row[1]} - ${row[9]:,.2f} pendientes (Pagado: ${row[8]:,.2f}) - {row[2]}"
-        prestamo_opciones[texto_opcion] = row[0]
-
-    if prestamo_opciones:
-        prestamo_sel = st.selectbox("Selecciona un préstamo:", list(prestamo_opciones.keys()))
+        # Mostrar resumen general
+        st.subheader("📊 Resumen de Préstamos")
         
-        if prestamo_sel:
-            id_prestamo = prestamo_opciones[prestamo_sel]
-            mostrar_formulario_pagos(id_prestamo)
-            mostrar_historial_pagos(id_prestamo)
-    else:
-        st.info("No hay préstamos disponibles para registrar pagos.")
+        total_prestamos = len(prestamos_con_info)
+        prestamos_activos = sum(1 for p in prestamos_con_info if p[6] == 'activo')
+        total_prestado = sum(p[3] for p in prestamos_con_info)
+        total_pendiente = sum(p[9] for p in prestamos_con_info)  # saldo_pendiente está en posición 9
+        total_pagado = sum(p[7] for p in prestamos_con_info)     # total_pagado está en posición 7
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("📋 Total Préstamos", total_prestamos)
+        with col2:
+            st.metric("🔄 Activos", prestamos_activos)
+        with col3:
+            st.metric("💰 Total Prestado", f"${total_prestado:,.2f}")
+        with col4:
+            st.metric("💵 Pendiente", f"${total_pendiente:,.2f}")
+
+        st.write("---")
+
+        # Tabla detallada de préstamos
+        st.subheader("📋 Detalle de Préstamos")
+        
+        df = pd.DataFrame(prestamos_con_info, columns=[
+            "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", 
+            "Fecha Vencimiento", "Estado", "Interés Total", "Total Pagado", 
+            "Número de Pagos", "Saldo Pendiente"
+        ])
+
+        # Formatear columnas monetarias
+        df["Monto"] = df["Monto"].apply(lambda x: f"${x:,.2f}")
+        df["Interés Total"] = df["Interés Total"].apply(lambda x: f"${x:,.2f}")
+        df["Saldo Pendiente"] = df["Saldo Pendiente"].apply(lambda x: f"${x:,.2f}")
+        df["Total Pagado"] = df["Total Pagado"].apply(lambda x: f"${x:,.2f}")
+
+        st.dataframe(df, use_container_width=True)
+
+        # Selección de préstamo para pagos
+        st.subheader("💳 Registrar Pago")
+        
+        prestamo_opciones = {}
+        for row in prestamos_con_info:
+            texto_opcion = f"{row[1]} - ${row[9]:,.2f} pendientes (Pagado: ${row[7]:,.2f}) - {row[2]}"
+            prestamo_opciones[texto_opcion] = row[0]
+
+        if prestamo_opciones:
+            prestamo_sel = st.selectbox("Selecciona un préstamo:", list(prestamo_opciones.keys()))
+            
+            if prestamo_sel:
+                id_prestamo = prestamo_opciones[prestamo_sel]
+                mostrar_formulario_pagos(id_prestamo)
+                mostrar_historial_pagos(id_prestamo)
+        else:
+            st.info("No hay préstamos disponibles para registrar pagos.")
+
+    except Exception as e:
+        st.error(f"❌ Error al cargar la lista de préstamos: {str(e)}")
 
 
 # =====================================================
 #   FORMULARIO MEJORADO DE PAGOS
 # =====================================================
 def mostrar_formulario_pagos(id_prestamo):
-
-    # Obtener información actual del préstamo
-    con = obtener_conexion()
-    cursor = con.cursor()
-    cursor.execute("""
-        SELECT monto, interes_total, estado
-        FROM prestamos 
-        WHERE id_prestamo = %s
-    """, (id_prestamo,))
-    prestamo_info = cursor.fetchone()
-    
-    # Calcular total pagado hasta ahora
-    cursor.execute("""
-        SELECT COALESCE(SUM(capital), 0) 
-        FROM prestamo_pagos 
-        WHERE id_prestamo = %s
-    """, (id_prestamo,))
-    total_pagado = cursor.fetchone()[0]
-    
-    con.close()
-
-    if not prestamo_info:
-        st.error("❌ No se encontró información del préstamo")
-        return
-
-    monto_original, interes_total, estado = prestamo_info
-    monto_total_original = monto_original + interes_total
-    saldo_pendiente = monto_total_original - total_pagado
-
-    # Mostrar información del préstamo
-    st.info(f"""
-    **Información del Préstamo:**
-    - 💰 Capital original: ${monto_original:,.2f}
-    - 📈 Interés total: ${interes_total:,.2f}
-    - 💵 Total original: ${monto_total_original:,.2f}
-    - ✅ Total pagado: ${total_pagado:,.2f}
-    - 🏦 Saldo pendiente: **${saldo_pendiente:,.2f}**
-    - 📊 Estado: {estado.title()}
-    """)
-
-    # Si el préstamo ya está pagado, no mostrar formulario
-    if saldo_pendiente <= 0:
-        st.success("🎉 ¡Este préstamo ha sido completamente pagado!")
-        return
-
-    with st.form(f"form_pago_{id_prestamo}"):
-        st.markdown("#### 💸 Nuevo Pago")
-
-        # Calcular próximo número de pago automáticamente
+    try:
+        # Obtener información actual del préstamo
         con = obtener_conexion()
         cursor = con.cursor()
         cursor.execute("""
-            SELECT COALESCE(MAX(numero_page), 0) + 1 
+            SELECT monto, interes_total, estado
+            FROM prestamos 
+            WHERE id_prestamo = %s
+        """, (id_prestamo,))
+        prestamo_info = cursor.fetchone()
+        
+        if not prestamo_info:
+            st.error("❌ No se encontró información del préstamo")
+            return
+
+        # Calcular total pagado hasta ahora
+        cursor.execute("""
+            SELECT COALESCE(SUM(capital), 0) 
             FROM prestamo_pagos 
             WHERE id_prestamo = %s
         """, (id_prestamo,))
-        proximo_pago = cursor.fetchone()[0]
+        total_pagado = cursor.fetchone()[0]
+        
         con.close()
 
-        numero_pago = st.number_input("Número de pago", min_value=1, value=proximo_pago, step=1)
-        fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
-        
-        # Mostrar monto máximo que se puede pagar
-        st.write(f"**Monto máximo disponible para pago: ${saldo_pendiente:,.2f}**")
-        capital = st.number_input("Monto del pago (capital)", min_value=0.01, max_value=float(saldo_pendiente), step=0.01)
-        
-        # Campo para interés si es necesario
-        interes_pago = st.number_input("Interés pagado (opcional)", min_value=0.00, value=0.00, step=0.01)
+        monto_original, interes_total, estado = prestamo_info
+        monto_total_original = monto_original + interes_total
+        saldo_pendiente = monto_total_original - total_pagado
 
-        estado_pago = st.selectbox("Estado del pago", ["Pagado", "Pendiente"])
+        # Mostrar información del préstamo
+        st.info(f"""
+        **Información del Préstamo:**
+        - 💰 Capital original: ${monto_original:,.2f}
+        - 📈 Interés total: ${interes_total:,.2f}
+        - 💵 Total original: ${monto_total_original:,.2f}
+        - ✅ Total pagado: ${total_pagado:,.2f}
+        - 🏦 Saldo pendiente: **${saldo_pendiente:,.2f}**
+        - 📊 Estado: {estado.title()}
+        """)
 
-        guardar = st.form_submit_button("💾 Registrar Pago")
+        # Si el préstamo ya está pagado, no mostrar formulario
+        if saldo_pendiente <= 0:
+            st.success("🎉 ¡Este préstamo ha sido completamente pagado!")
+            return
 
-    if guardar:
-        try:
+        with st.form(f"form_pago_{id_prestamo}"):
+            st.markdown("#### 💸 Nuevo Pago")
+
+            # Calcular próximo número de pago automáticamente
             con = obtener_conexion()
             cursor = con.cursor()
-
-            # Verificar que no se pague más de lo debido
-            if capital > saldo_pendiente:
-                st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
-                return
-
-            # Registrar el pago con los nombres exactos de tus columnas
             cursor.execute("""
-                INSERT INTO prestamo_pagos (id_prestamo, numero_page, fecha, capital, interes, estado)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
-                id_prestamo,
-                numero_pago,
-                fecha_pago,
-                capital,
-                interes_pago,
-                estado_pago.lower()
-            ))
+                SELECT COALESCE(MAX(numero_page), 0) + 1 
+                FROM prestamo_pagos 
+                WHERE id_prestamo = %s
+            """, (id_prestamo,))
+            proximo_pago = cursor.fetchone()[0]
+            con.close()
 
-            # Verificar si el préstamo queda completamente pagado
-            nuevo_total_pagado = total_pagado + capital
-            if nuevo_total_pagado >= monto_total_original:
+            numero_pago = st.number_input("Número de pago", min_value=1, value=proximo_pago, step=1)
+            fecha_pago = st.date_input("Fecha del pago", datetime.date.today())
+            
+            # Mostrar monto máximo que se puede pagar
+            st.write(f"**Monto máximo disponible para pago: ${saldo_pendiente:,.2f}**")
+            capital = st.number_input("Monto del pago (capital)", min_value=0.01, max_value=float(saldo_pendiente), step=0.01)
+            
+            # Campo para interés si es necesario
+            interes_pago = st.number_input("Interés pagado (opcional)", min_value=0.00, value=0.00, step=0.01)
+
+            estado_pago = st.selectbox("Estado del pago", ["Pagado", "Pendiente"])
+
+            guardar = st.form_submit_button("💾 Registrar Pago")
+
+        if guardar:
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+
+                # Verificar que no se pague más de lo debido
+                if capital > saldo_pendiente:
+                    st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
+                    return
+
+                # Registrar el pago con los nombres exactos de tus columnas
                 cursor.execute("""
-                    UPDATE prestamos 
-                    SET estado = 'finalizado'
-                    WHERE id_prestamo = %s
-                """, (id_prestamo,))
+                    INSERT INTO prestamo_pagos (id_prestamo, numero_page, fecha, capital, interes, estado)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (
+                    id_prestamo,
+                    numero_pago,
+                    fecha_pago,
+                    capital,
+                    interes_pago,
+                    estado_pago.lower()
+                ))
 
-            con.commit()
-            st.success(f"✅ Pago registrado correctamente")
-            st.info(f"💰 Nuevo saldo pendiente: ${saldo_pendiente - capital:,.2f}")
-            
-            if (saldo_pendiente - capital) <= 0:
-                st.balloons()
-                st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
-            
-            time.sleep(2)
-            st.rerun()
+                # Verificar si el préstamo queda completamente pagado
+                nuevo_total_pagado = total_pagado + capital
+                if nuevo_total_pagado >= monto_total_original:
+                    cursor.execute("""
+                        UPDATE prestamos 
+                        SET estado = 'finalizado'
+                        WHERE id_prestamo = %s
+                    """, (id_prestamo,))
 
-        except Exception as e:
-            st.error(f"❌ Error al registrar pago: {str(e)}")
-        finally:
-            if 'cursor' in locals():
-                cursor.close()
-            if 'con' in locals() and con.is_connected():
-                con.close()
+                con.commit()
+                st.success(f"✅ Pago registrado correctamente")
+                st.info(f"💰 Nuevo saldo pendiente: ${saldo_pendiente - capital:,.2f}")
+                
+                if (saldo_pendiente - capital) <= 0:
+                    st.balloons()
+                    st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
+                
+                time.sleep(2)
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error al registrar pago: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'con' in locals() and con.is_connected():
+                    con.close()
+
+    except Exception as e:
+        st.error(f"❌ Error al cargar formulario de pagos: {str(e)}")
 
 
 # =====================================================
 #   HISTORIAL DE PAGOS - CON NOMBRES ORIGINALES
 # =====================================================
 def mostrar_historial_pagos(id_prestamo):
-    
     try:
         con = obtener_conexion()
         cursor = con.cursor()
