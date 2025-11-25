@@ -476,4 +476,4 @@ def mostrar_ahorro_final(id_grupo):
                     st.info(f"No hay registros para {opciones_miembros_estadisticas[miembro_estadisticas]}")
             
     else:
-        st.info("No hay registros de ahorro final para mostrar.")strar.")
+        st.info("No hay registros de ahorro final para mostrar.")
