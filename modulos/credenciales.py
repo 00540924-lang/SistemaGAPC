@@ -214,23 +214,24 @@ def pagina_credenciales():
     if usuarios:
         st.write(f"**Mostrando {len(usuarios)} usuario(s):**")
         
-        # MOSTRAR USUARIOS EN TARJETAS
+        # MOSTRAR USUARIOS EN TARJETAS COMPACTAS
         for i, (usuario, rol) in enumerate(usuarios):
             with st.container():
-                col1, col2, col3 = st.columns([3, 2, 1])
+                # UNA SOLA LÍNEA CON TRES COLUMNAS
+                col1, col2, col3 = st.columns([2, 2, 1])
                 
                 with col1:
-                    st.write(f"**Usuario:** {usuario}")
+                    st.write(f"**👤 {usuario}**")
                 
                 with col2:
-                    st.write(f"**Rol:** {rol}")
+                    st.write(f"**🎯 {rol}**")
                 
                 with col3:
-                    # BOTÓN PARA ELIMINAR CON CONFIRMACIÓN
-                    if st.button("🗑️ Eliminar", key=f"eliminar_{usuario}"):
+                    # BOTÓN MÁS COMPACTO
+                    if st.button("🗑️", key=f"eliminar_{usuario}", help=f"Eliminar a {usuario}"):
                         st.session_state[f"confirmar_eliminar_{usuario}"] = True
                 
-                # CONFIRMACIÓN DE ELIMINACIÓN
+                # CONFIRMACIÓN DE ELIMINACIÓN (debajo de la línea)
                 if st.session_state.get(f"confirmar_eliminar_{usuario}", False):
                     st.warning(f"¿Estás seguro de que quieres eliminar al usuario **{usuario}**?")
                     col_conf1, col_conf2 = st.columns(2)
@@ -251,6 +252,10 @@ def pagina_credenciales():
                             st.session_state[f"confirmar_eliminar_{usuario}"] = False
                             st.rerun()
             
+            # LÍNEA SEPARADORA ENTRE USUARIOS (opcional)
+            if i < len(usuarios) - 1:
+                st.markdown("---")
+
     else:
         st.info("No hay usuarios registrados con los filtros seleccionados.")
     
