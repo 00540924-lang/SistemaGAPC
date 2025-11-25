@@ -59,36 +59,39 @@ def eliminar_usuario(usuario):
             conn.close()
 
 # ==========================
-# FUNCIÓN PARA OBTENER MIEMBROS (PARA PROMOTORES)
+# FUNCIÓN PARA OBTENER MIEMBROS CON CREDENCIALES (PARA PROMOTORES)
 # ==========================
-def obtener_miembros_por_grupo(filtro_grupo=None):
-    """Obtiene miembros filtrados por grupo (para Promotores)"""
+def obtener_miembros_con_credenciales(filtro_grupo=None):
+    """Obtiene miembros que tienen credenciales de acceso (rol Miembro)"""
     try:
         conn = get_connection()
         cursor = conn.cursor()
         
         if filtro_grupo and filtro_grupo != "Todos":
             cursor.execute("""
-                SELECT M.id_miembro, M.Nombre, G.nombre_grupo 
-                FROM Miembros M
+                SELECT A.Usuario, M.Nombre, G.nombre_grupo, M.id_miembro
+                FROM Administradores A
+                JOIN Miembros M ON M.id_administrador = A.id_administrador
                 JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
                 JOIN Grupos G ON G.id_grupo = GM.id_grupo
-                WHERE G.id_grupo = %s
+                WHERE A.Rol = 'Miembro' AND G.id_grupo = %s
                 ORDER BY M.Nombre
             """, (filtro_grupo,))
         else:
             cursor.execute("""
-                SELECT M.id_miembro, M.Nombre, G.nombre_grupo 
-                FROM Miembros M
+                SELECT A.Usuario, M.Nombre, G.nombre_grupo, M.id_miembro
+                FROM Administradores A
+                JOIN Miembros M ON M.id_administrador = A.id_administrador
                 JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
                 JOIN Grupos G ON G.id_grupo = GM.id_grupo
+                WHERE A.Rol = 'Miembro'
                 ORDER BY G.nombre_grupo, M.Nombre
             """)
             
         miembros = cursor.fetchall()
         return miembros
     except Exception as e:
-        st.error(f"Error al cargar miembros: {e}")
+        st.error(f"Error al cargar miembros con credenciales: {e}")
         return []
     finally:
         cursor.close()
@@ -113,42 +116,44 @@ def obtener_grupos():
         conn.close()
 
 # ==========================
-# FUNCIÓN PARA ELIMINAR MIEMBRO
+# FUNCIÓN PARA ELIMINAR CREDENCIAL DE MIEMBRO
 # ==========================
-def eliminar_miembro(id_miembro):
-    """Elimina un miembro de la base de datos"""
+def eliminar_credencial_miembro(usuario):
+    """Elimina las credenciales de acceso de un miembro (solo el usuario, no el miembro completo)"""
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # 1️⃣ Borrar relaciones con el grupo
+        # 1. Obtener el id_administrador del miembro
         cursor.execute(
-            "DELETE FROM Grupomiembros WHERE id_miembro = %s",
-            (id_miembro,)
+            "SELECT id_administrador FROM Administradores WHERE Usuario = %s AND Rol = 'Miembro'",
+            (usuario,)
+        )
+        resultado = cursor.fetchone()
+        
+        if not resultado:
+            st.error("No se encontró el usuario miembro.")
+            return False
+        
+        id_administrador = resultado[0]
+
+        # 2. Eliminar la referencia en la tabla Miembros
+        cursor.execute(
+            "UPDATE Miembros SET id_administrador = NULL WHERE id_administrador = %s",
+            (id_administrador,)
         )
 
-        # 2️⃣ Borrar otras relaciones dependientes
+        # 3. Eliminar el usuario de Administradores
         cursor.execute(
-            "DELETE FROM Asistencia WHERE id_miembro = %s",
-            (id_miembro,)
-        )
-
-        cursor.execute(
-            "DELETE FROM Multas WHERE id_miembro = %s",
-            (id_miembro,)
-        )
-
-        # 3️⃣ Finalmente, eliminar el miembro
-        cursor.execute(
-            "DELETE FROM Miembros WHERE id_miembro = %s",
-            (id_miembro,)
+            "DELETE FROM Administradores WHERE id_administrador = %s",
+            (id_administrador,)
         )
 
         conn.commit()
         return True
 
     except Exception as e:
-        st.error(f"Error al eliminar miembro: {e}")
+        st.error(f"Error al eliminar credencial del miembro: {e}")
         return False
     finally:
         if cursor:
@@ -157,31 +162,39 @@ def eliminar_miembro(id_miembro):
             conn.close()
 
 # ==========================
-# FUNCIÓN PARA OBTENER ESTADÍSTICAS MIEMBROS
+# FUNCIÓN PARA OBTENER ESTADÍSTICAS MIEMBROS CON CREDENCIALES
 # ==========================
-def obtener_estadisticas_miembros():
-    """Obtiene estadísticas de miembros"""
+def obtener_estadisticas_miembros_con_credenciales():
+    """Obtiene estadísticas de miembros con credenciales"""
     try:
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Total de miembros
-        cursor.execute("SELECT COUNT(*) FROM Miembros")
-        total_miembros = cursor.fetchone()[0]
+        # Total de miembros con credenciales
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM Administradores A
+            JOIN Miembros M ON M.id_administrador = A.id_administrador
+            WHERE A.Rol = 'Miembro'
+        """)
+        total_miembros_con_credenciales = cursor.fetchone()[0]
+        
+        # Total de grupos que tienen miembros con credenciales
+        cursor.execute("""
+            SELECT COUNT(DISTINCT G.id_grupo)
+            FROM Administradores A
+            JOIN Miembros M ON M.id_administrador = A.id_administrador
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            JOIN Grupos G ON G.id_grupo = GM.id_grupo
+            WHERE A.Rol = 'Miembro'
+        """)
+        grupos_con_miembros_credenciales = cursor.fetchone()[0]
         
         # Total de grupos
         cursor.execute("SELECT COUNT(*) FROM Grupos")
         total_grupos = cursor.fetchone()[0]
         
-        # Miembros con asistencia reciente (últimos 30 días)
-        cursor.execute("""
-            SELECT COUNT(DISTINCT id_miembro) 
-            FROM Asistencia 
-            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-        """)
-        miembros_activos = cursor.fetchone()[0]
-        
-        return total_miembros, total_grupos, miembros_activos
+        return total_miembros_con_credenciales, grupos_con_miembros_credenciales, total_grupos
     except Exception as e:
         st.error(f"Error al cargar estadísticas: {e}")
         return 0, 0, 0
@@ -213,7 +226,7 @@ def pagina_credenciales():
         )
     else:  # Promotor
         st.markdown(
-            "<h1 style='text-align: center; color:#4C3A60;'>Gestión de Miembros</h1>",
+            "<h1 style='text-align: center; color:#4C3A60;'>Gestión de Credenciales de Miembros</h1>",
             unsafe_allow_html=True
         )
 
@@ -372,7 +385,7 @@ def pagina_credenciales():
     # SECCIÓN PARA ROL PROMOTOR
     # ==========================
     else:  # rol_usuario_actual == "promotor"
-        st.subheader("👥 Lista de miembros")
+        st.subheader("👥 Lista de miembros con credenciales de acceso")
         
         # OBTENER GRUPOS PARA FILTRO
         grupos = obtener_grupos()
@@ -393,49 +406,50 @@ def pagina_credenciales():
         if filtro_grupo_nombre != "Todos":
             filtro_grupo_id = mapa_grupos.get(filtro_grupo_nombre)
         
-        # OBTENER MIEMBROS
-        miembros = obtener_miembros_por_grupo(filtro_grupo_id)
+        # OBTENER MIEMBROS CON CREDENCIALES
+        miembros = obtener_miembros_con_credenciales(filtro_grupo_id)
         
         if miembros:
-            st.write(f"**Mostrando {len(miembros)} miembro(s):**")
+            st.write(f"**Mostrando {len(miembros)} miembro(s) con credenciales:**")
             
             # MOSTRAR MIEMBROS EN TARJETAS COMPACTAS
-            for i, (id_miembro, nombre, grupo) in enumerate(miembros):
+            for i, (usuario, nombre, grupo, id_miembro) in enumerate(miembros):
                 with st.container():
                     # UNA SOLA LÍNEA CON TRES COLUMNAS
                     col1, col2, col3 = st.columns([2, 2, 1])
                     
                     with col1:
                         st.write(f"**👤 {nombre}**")
+                        st.write(f"*Usuario: {usuario}*")
                     
                     with col2:
                         st.write(f"**🏘️ {grupo}**")
                     
                     with col3:
                         # BOTÓN MÁS COMPACTO
-                        if st.button("🗑️", key=f"eliminar_miembro_{id_miembro}", help=f"Eliminar a {nombre}"):
-                            st.session_state[f"confirmar_eliminar_miembro_{id_miembro}"] = True
+                        if st.button("🗑️", key=f"eliminar_credencial_{usuario}", help=f"Eliminar credencial de {nombre}"):
+                            st.session_state[f"confirmar_eliminar_credencial_{usuario}"] = True
                     
                     # CONFIRMACIÓN DE ELIMINACIÓN (debajo de la línea)
-                    if st.session_state.get(f"confirmar_eliminar_miembro_{id_miembro}", False):
-                        st.warning(f"¿Estás seguro de que quieres eliminar al miembro **{nombre}**?")
-                        st.error("⚠️ Esta acción eliminará también sus multas, préstamos y registros de asistencia.")
+                    if st.session_state.get(f"confirmar_eliminar_credencial_{usuario}", False):
+                        st.warning(f"¿Estás seguro de que quieres eliminar las credenciales de **{nombre}**?")
+                        st.info("ℹ️ Esta acción solo eliminará el acceso al sistema, el miembro seguirá existiendo en el grupo.")
                         col_conf1, col_conf2 = st.columns(2)
                         
                         with col_conf1:
-                            if st.button("✅ Sí, eliminar", key=f"si_eliminar_miembro_{id_miembro}"):
-                                if eliminar_miembro(id_miembro):
-                                    st.success(f"✅ Miembro **{nombre}** eliminado correctamente.")
+                            if st.button("✅ Sí, eliminar", key=f"si_eliminar_credencial_{usuario}"):
+                                if eliminar_credencial_miembro(usuario):
+                                    st.success(f"✅ Credenciales de **{nombre}** eliminadas correctamente.")
                                     # Limpiar estado de confirmación
-                                    st.session_state[f"confirmar_eliminar_miembro_{id_miembro}"] = False
+                                    st.session_state[f"confirmar_eliminar_credencial_{usuario}"] = False
                                     # Recargar la página para actualizar la lista
                                     st.rerun()
                                 else:
-                                    st.error("❌ Error al eliminar el miembro.")
+                                    st.error("❌ Error al eliminar las credenciales.")
                         
                         with col_conf2:
-                            if st.button("❌ Cancelar", key=f"no_eliminar_miembro_{id_miembro}"):
-                                st.session_state[f"confirmar_eliminar_miembro_{id_miembro}"] = False
+                            if st.button("❌ Cancelar", key=f"no_eliminar_credencial_{usuario}"):
+                                st.session_state[f"confirmar_eliminar_credencial_{usuario}"] = False
                                 st.rerun()
                 
                 # LÍNEA SEPARADORA ENTRE MIEMBROS (opcional)
@@ -443,7 +457,7 @@ def pagina_credenciales():
                     st.markdown("---")
 
         else:
-            st.info("No hay miembros registrados con los filtros seleccionados.")
+            st.info("No hay miembros con credenciales de acceso con los filtros seleccionados.")
 
     # ==========================
     # ESTADÍSTICAS
@@ -493,18 +507,18 @@ def pagina_credenciales():
     
     else:  # Promotor
         # Obtener estadísticas para Promotor
-        total_miembros, total_grupos, miembros_activos = obtener_estadisticas_miembros()
+        total_miembros_con_credenciales, grupos_con_miembros_credenciales, total_grupos = obtener_estadisticas_miembros_con_credenciales()
         
         col_stats1, col_stats2, col_stats3 = st.columns(3)
         
         with col_stats1:
-            st.metric(label="Total Miembros", value=total_miembros)
+            st.metric(label="Miembros con Credenciales", value=total_miembros_con_credenciales)
         
         with col_stats2:
-            st.metric(label="Total Grupos", value=total_grupos)
+            st.metric(label="Grupos con Acceso", value=grupos_con_miembros_credenciales)
         
         with col_stats3:
-            st.metric(label="Miembros Activos", value=miembros_activos)
+            st.metric(label="Total Grupos", value=total_grupos)
     
     # Centrar adicionalmente con CSS
     st.markdown("""
