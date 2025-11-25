@@ -61,6 +61,7 @@ div.stButton > button:hover {
 #ahorro_final_btn > button { background-color: #FF9800 !important; }
 #reuniones_btn > button { background-color: #FF5252 !important; }
 #reportes_financieros_btn > button { background-color: #7B1FA2 !important; }
+#estadisticas_btn > button { background-color: #4CAF50 !important; }
 
 /* Logout */
 #logout_btn > button {
@@ -131,6 +132,7 @@ div.stButton > button:hover {
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
         ("💰 Caja", "caja", "caja_btn"),
+        ("📈 Estadísticas", "estadisticas", "estadisticas_btn"),  # NUEVO MÓDULO
     ]
 
     # -----------------------------------------------------
@@ -139,11 +141,11 @@ div.stButton > button:hover {
     if usuario == "dark":
         modulos = modulos_base
     elif rol_l == "institucional":
-        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final"]]
+        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final","estadisticas"]]
     elif rol_l == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes"]]
     elif rol_l == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "caja", "multas", "prestamos", "ahorro_final", "reuniones","ahorro_final","registrar_miembros"]]
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "caja", "multas", "prestamos", "ahorro_final", "reuniones", "registrar_miembros", "estadisticas"]]  # AGREGADO estadisticas
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
