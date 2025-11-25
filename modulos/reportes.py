@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
 from datetime import date, datetime, timedelta
-import matplotlib.pyplot as plt
-import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 
 def obtener_estadisticas_por_grupo(id_grupo, fecha_inicio, fecha_fin):
     """
@@ -236,9 +236,175 @@ def obtener_todos_los_grupos():
         st.error(f"Error al obtener grupos: {e}")
         return []
 
+def mostrar_kpis_promotor(estadisticas, nombre_grupo):
+    """Muestra KPIs para promotor con diseño mejorado"""
+    st.markdown(f"### 📊 Métricas del Grupo: {nombre_grupo}")
+    
+    # KPIs en 3 columnas
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "💰 Total Ingresos", 
+            f"${estadisticas['ingresos']['total']:,.2f}",
+            help="Suma de todos los ingresos del grupo"
+        )
+    
+    with col2:
+        st.metric(
+            "💸 Total Egresos", 
+            f"${estadisticas['egresos']['total']:,.2f}",
+            help="Suma de todos los egresos del grupo",
+            delta=f"-${estadisticas['egresos']['total']:,.2f}",
+            delta_color="inverse"
+        )
+    
+    with col3:
+        color_saldo = "normal" if estadisticas['saldo_neto'] >= 0 else "inverse"
+        st.metric(
+            "🏦 Saldo Neto", 
+            f"${estadisticas['saldo_neto']:,.2f}",
+            help="Saldo neto (Ingresos - Egresos)",
+            delta=f"{estadisticas['saldo_neto']:,.2f}",
+            delta_color=color_saldo
+        )
+
+def mostrar_kpis_institucional(estadisticas_distritos):
+    """Muestra KPIs para institucional con diseño mejorado"""
+    st.markdown("### 📊 Métricas por Distrito")
+    
+    # Calcular totales generales
+    total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_distritos)
+    total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_distritos)
+    total_saldo = total_ingresos - total_egresos
+    
+    # KPIs en 3 columnas
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "💰 Ingresos Totales", 
+            f"${total_ingresos:,.2f}",
+            help="Suma de ingresos de todos los distritos"
+        )
+    
+    with col2:
+        st.metric(
+            "💸 Egresos Totales", 
+            f"${total_egresos:,.2f}",
+            help="Suma de egresos de todos los distritos",
+            delta=f"-${total_egresos:,.2f}",
+            delta_color="inverse"
+        )
+    
+    with col3:
+        color_saldo = "normal" if total_saldo >= 0 else "inverse"
+        st.metric(
+            "🏦 Saldo Neto Total", 
+            f"${total_saldo:,.2f}",
+            help="Saldo neto total de todos los distritos",
+            delta=f"{total_saldo:,.2f}",
+            delta_color=color_saldo
+        )
+
+def crear_grafico_tendencias_distritos(estadisticas_distritos):
+    """Crea gráfico de tendencias para distritos usando Plotly"""
+    
+    # Preparar datos
+    distritos = [stats['distrito'] for stats in estadisticas_distritos]
+    ingresos = [stats['ingresos']['total'] for stats in estadisticas_distritos]
+    egresos = [stats['egresos']['total'] for stats in estadisticas_distritos]
+    saldos = [stats['saldo_neto'] for stats in estadisticas_distritos]
+    
+    fig = go.Figure()
+    
+    # Línea de ingresos
+    fig.add_trace(go.Scatter(
+        x=distritos, 
+        y=ingresos,
+        mode='lines+markers',
+        name='Ingresos',
+        line=dict(color='#2E7D32', width=4),
+        marker=dict(size=8, symbol='circle')
+    ))
+    
+    # Línea de egresos
+    fig.add_trace(go.Scatter(
+        x=distritos, 
+        y=egresos,
+        mode='lines+markers',
+        name='Egresos',
+        line=dict(color='#C62828', width=4),
+        marker=dict(size=8, symbol='square')
+    ))
+    
+    # Línea de saldo neto
+    fig.add_trace(go.Scatter(
+        x=distritos, 
+        y=saldos,
+        mode='lines+markers',
+        name='Saldo Neto',
+        line=dict(color='#1565C0', width=4),
+        marker=dict(size=8, symbol='triangle-up')
+    ))
+    
+    fig.update_layout(
+        title=dict(
+            text='📈 Tendencias Financieras por Distrito',
+            font=dict(size=20, color='#4C3A60')
+        ),
+        xaxis_title='Distritos',
+        yaxis_title='Monto ($)',
+        hovermode='x unified',
+        height=500,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#4C3A60'),
+        xaxis=dict(tickangle=45)
+    )
+    
+    return fig
+
+def crear_grafico_distribucion(estadisticas, es_distrito=False):
+    """Crea gráfico de distribución usando Plotly"""
+    if es_distrito:
+        # Para distritos, mostrar distribución entre distritos
+        labels = [stats['distrito'] for stats in estadisticas]
+        ingresos = [stats['ingresos']['total'] for stats in estadisticas]
+        
+        fig = px.pie(
+            names=labels, 
+            values=ingresos,
+            title='🥧 Distribución de Ingresos por Distrito',
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+    else:
+        # Para grupo individual, mostrar distribución por concepto
+        labels = ['Ahorros', 'Actividades', 'Multas', 'Pagos Préstamos']
+        values = [
+            estadisticas['ingresos']['ahorros'],
+            estadisticas['ingresos']['actividades'],
+            estadisticas['ingresos']['multas'],
+            estadisticas['ingresos']['pagos_prestamos']
+        ]
+        
+        fig = px.pie(
+            names=labels, 
+            values=values,
+            title='🥧 Distribución de Ingresos por Concepto',
+            color_discrete_sequence=px.colors.qualitative.Pastel
+        )
+    
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(
+        height=400,
+        font=dict(color='#4C3A60')
+    )
+    
+    return fig
+
 def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
-    """Muestra el reporte para un promotor (puede seleccionar grupo)"""
-    st.subheader("👨‍💼 Reporte del Promotor")
+    """Muestra el reporte para un promotor con diseño mejorado"""
     
     # Obtener todos los grupos para que el promotor seleccione
     grupos = obtener_todos_los_grupos()
@@ -248,11 +414,11 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
         return
     
     # Crear lista de grupos para selección
-    opciones_grupos = {f"{nombre} (ID: {id_grupo})": id_grupo for id_grupo, nombre in grupos}
+    opciones_grupos = {f"{nombre}": id_grupo for id_grupo, nombre in grupos}
     
     # Selectbox para elegir grupo
     grupo_seleccionado = st.selectbox(
-        "Seleccione un grupo para ver reporte:",
+        "👥 Seleccione un grupo para analizar:",
         options=list(opciones_grupos.keys())
     )
     
@@ -266,137 +432,60 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
             st.warning("No se encontraron datos para el período seleccionado.")
             return
         
-        # Mostrar métricas principales
-        col1, col2, col3 = st.columns(3)
+        # Mostrar KPIs
+        mostrar_kpis_promotor(estadisticas, grupo_seleccionado)
         
-        with col1:
-            st.metric(
-                "💰 Total Ingresos", 
-                f"${estadisticas['ingresos']['total']:,.2f}",
-                delta=f"${estadisticas['ingresos']['total']:,.2f}"
-            )
+        st.markdown("---")
         
-        with col2:
-            st.metric(
-                "💸 Total Egresos", 
-                f"${estadisticas['egresos']['total']:,.2f}",
-                delta=f"-${estadisticas['egresos']['total']:,.2f}",
-                delta_color="inverse"
-            )
+        # Pestañas para diferentes visualizaciones
+        tab1, tab2 = st.tabs(["📈 Análisis Detallado", "📋 Reporte Completo"])
         
-        with col3:
-            color_saldo = "normal" if estadisticas['saldo_neto'] >= 0 else "inverse"
-            st.metric(
-                "🏦 Saldo Neto", 
-                f"${estadisticas['saldo_neto']:,.2f}",
-                delta=f"{estadisticas['saldo_neto']:,.2f}",
-                delta_color=color_saldo
-            )
-        
-        st.write("---")
-        
-        # Mostrar desglose detallado
-        col_ingresos, col_egresos = st.columns(2)
-        
-        with col_ingresos:
-            st.markdown("### 🟩 Desglose de Ingresos")
+        with tab1:
+            col1, col2 = st.columns(2)
             
-            datos_ingresos = {
-                'Concepto': ['Multas', 'Ahorros', 'Actividades', 'Pagos de Préstamos'],
-                'Monto': [
-                    estadisticas['ingresos']['multas'],
-                    estadisticas['ingresos']['ahorros'],
-                    estadisticas['ingresos']['actividades'],
-                    estadisticas['ingresos']['pagos_prestamos']
-                ]
-            }
+            with col1:
+                # Gráfico de distribución
+                fig_distribucion = crear_grafico_distribucion(estadisticas, es_distrito=False)
+                st.plotly_chart(fig_distribucion, use_container_width=True)
             
-            df_ingresos = pd.DataFrame(datos_ingresos)
-            df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
-            st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
+            with col2:
+                # Mostrar desglose detallado
+                st.markdown("#### 🟩 Desglose de Ingresos")
+                
+                datos_ingresos = {
+                    'Concepto': ['Ahorros', 'Actividades', 'Multas', 'Pagos Préstamos'],
+                    'Monto': [
+                        estadisticas['ingresos']['ahorros'],
+                        estadisticas['ingresos']['actividades'],
+                        estadisticas['ingresos']['multas'],
+                        estadisticas['ingresos']['pagos_prestamos']
+                    ]
+                }
+                
+                df_ingresos = pd.DataFrame(datos_ingresos)
+                df_ingresos['Monto'] = df_ingresos['Monto'].apply(lambda x: f"${x:,.2f}")
+                st.dataframe(df_ingresos, use_container_width=True, hide_index=True)
+        
+        with tab2:
+            col1, col2 = st.columns(2)
             
-        with col_egresos:
-            st.markdown("### 🟥 Desglose de Egresos")
+            with col1:
+                st.markdown("#### 🟩 Entradas de Dinero")
+                st.write(f"**Ahorros:** ${estadisticas['ingresos']['ahorros']:,.2f}")
+                st.write(f"**Actividades:** ${estadisticas['ingresos']['actividades']:,.2f}")
+                st.write(f"**Multas:** ${estadisticas['ingresos']['multas']:,.2f}")
+                st.write(f"**Pagos Préstamos:** ${estadisticas['ingresos']['pagos_prestamos']:,.2f}")
+                st.markdown(f"**💰 Total Ingresos:** ${estadisticas['ingresos']['total']:,.2f}")
             
-            datos_egresos = {
-                'Concepto': ['Retiros de Ahorros', 'Desembolsos de Préstamos'],
-                'Monto': [
-                    estadisticas['egresos']['retiros'],
-                    estadisticas['egresos']['desembolsos']
-                ]
-            }
-            
-            df_egresos = pd.DataFrame(datos_egresos)
-            df_egresos['Monto'] = df_egresos['Monto'].apply(lambda x: f"${x:,.2f}")
-            st.dataframe(df_egresos, use_container_width=True, hide_index=True)
-
-def mostrar_grafico_tendencias_distritos(estadisticas_distritos):
-    """Muestra gráfico de líneas de tendencia para distritos"""
-    
-    # Crear DataFrame para el gráfico
-    datos_grafico = []
-    for stats in estadisticas_distritos:
-        datos_grafico.append({
-            'Distrito': stats['distrito'],
-            'Ingresos': stats['ingresos']['total'],
-            'Egresos': stats['egresos']['total'],
-            'Saldo Neto': stats['saldo_neto']
-        })
-    
-    df_grafico = pd.DataFrame(datos_grafico)
-    
-    # Ordenar por saldo neto (opcional)
-    df_grafico = df_grafico.sort_values('Saldo Neto', ascending=False)
-    
-    # Crear gráfico de líneas de tendencia
-    fig, ax = plt.subplots(figsize=(14, 8))
-    
-    # Preparar datos para el gráfico
-    distritos = df_grafico['Distrito'].tolist()
-    ingresos = df_grafico['Ingresos'].tolist()
-    egresos = df_grafico['Egresos'].tolist()
-    saldos = df_grafico['Saldo Neto'].tolist()
-    
-    # Crear índices para el eje X
-    x = range(len(distritos))
-    
-    # Gráfico de líneas
-    ax.plot(x, ingresos, marker='o', linewidth=3, markersize=8, label='Ingresos', color='#2E7D32')
-    ax.plot(x, egresos, marker='s', linewidth=3, markersize=8, label='Egresos', color='#C62828')
-    ax.plot(x, saldos, marker='^', linewidth=3, markersize=8, label='Saldo Neto', color='#1565C0')
-    
-    # Personalizar el gráfico
-    ax.set_xlabel('Distritos', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Monto ($)', fontsize=12, fontweight='bold')
-    ax.set_title('📈 Tendencias Financieras por Distrito', fontsize=16, fontweight='bold', pad=20)
-    
-    # Configurar eje X
-    ax.set_xticks(x)
-    ax.set_xticklabels(distritos, rotation=45, ha='right', fontsize=10)
-    
-    # Agregar grid
-    ax.grid(True, alpha=0.3, linestyle='--')
-    
-    # Agregar leyenda
-    ax.legend(loc='upper left', bbox_to_anchor=(0, 1), fontsize=11)
-    
-    # Agregar valores en los puntos
-    for i, (ing, eg, sal) in enumerate(zip(ingresos, egresos, saldos)):
-        ax.annotate(f'${ing:,.0f}', (i, ing), textcoords="offset points", 
-                   xytext=(0,10), ha='center', fontsize=9, fontweight='bold', color='#2E7D32')
-        ax.annotate(f'${eg:,.0f}', (i, eg), textcoords="offset points", 
-                   xytext=(0,10), ha='center', fontsize=9, fontweight='bold', color='#C62828')
-        ax.annotate(f'${sal:,.0f}', (i, sal), textcoords="offset points", 
-                   xytext=(0,10), ha='center', fontsize=9, fontweight='bold', color='#1565C0')
-    
-    # Ajustar layout
-    plt.tight_layout()
-    
-    # Mostrar gráfico
-    st.pyplot(fig)
+            with col2:
+                st.markdown("#### 🟥 Salidas de Dinero")
+                st.write(f"**Retiros:** ${estadisticas['egresos']['retiros']:,.2f}")
+                st.write(f"**Desembolsos:** ${estadisticas['egresos']['desembolsos']:,.2f}")
+                st.markdown(f"**💸 Total Egresos:** ${estadisticas['egresos']['total']:,.2f}")
+                st.markdown(f"**🏦 Saldo Neto:** ${estadisticas['saldo_neto']:,.2f}")
 
 def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
-    """Muestra el reporte para usuario institucional (por distrito)"""
+    """Muestra el reporte para usuario institucional con diseño mejorado"""
     
     # Obtener estadísticas por distrito
     estadisticas_distritos = obtener_estadisticas_por_distrito(fecha_inicio, fecha_fin)
@@ -405,58 +494,61 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
         st.warning("No se encontraron datos para el período seleccionado.")
         return
     
-    # Crear DataFrame consolidado por distrito
-    datos_consolidados = []
-    for stats in estadisticas_distritos:
-        datos_consolidados.append({
-            'Distrito': stats['distrito'],
-            'Total Ingresos': stats['ingresos']['total'],
-            'Total Egresos': stats['egresos']['total'],
-            'Saldo Neto': stats['saldo_neto']
-        })
+    # Mostrar KPIs
+    mostrar_kpis_institucional(estadisticas_distritos)
     
-    df_consolidado = pd.DataFrame(datos_consolidados)
+    st.markdown("---")
     
-    # Mostrar tabla consolidada
-    st.markdown("### 📋 Resumen por Distrito")
+    # Pestañas para diferentes visualizaciones
+    tab1, tab2 = st.tabs(["📈 Tendencias por Distrito", "📋 Resumen Detallado"])
     
-    # Formatear columnas monetarias
-    df_display = df_consolidado.copy()
-    df_display['Total Ingresos'] = df_display['Total Ingresos'].apply(lambda x: f"${x:,.2f}")
-    df_display['Total Egresos'] = df_display['Total Egresos'].apply(lambda x: f"${x:,.2f}")
-    df_display['Saldo Neto'] = df_display['Saldo Neto'].apply(lambda x: f"${x:,.2f}")
+    with tab1:
+        # Gráfico de tendencias
+        fig_tendencias = crear_grafico_tendencias_distritos(estadisticas_distritos)
+        st.plotly_chart(fig_tendencias, use_container_width=True)
+        
+        # Gráfico de distribución
+        col1, col2 = st.columns(2)
+        with col1:
+            fig_distribucion = crear_grafico_distribucion(estadisticas_distritos, es_distrito=True)
+            st.plotly_chart(fig_distribucion, use_container_width=True)
     
-    st.dataframe(df_display, use_container_width=True)
-    
-    # Mostrar totales generales
-    st.write("---")
-    st.markdown("### 📊 Totales Generales")
-    
-    total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_distritos)
-    total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_distritos)
-    total_saldo = total_ingresos - total_egresos
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("💰 Total Ingresos General", f"${total_ingresos:,.2f}")
-    
-    with col2:
-        st.metric("💸 Total Egresos General", f"${total_egresos:,.2f}")
-    
-    with col3:
-        color_saldo = "normal" if total_saldo >= 0 else "inverse"
-        st.metric("🏦 Saldo Neto General", f"${total_saldo:,.2f}", delta_color=color_saldo)
-    
-    # Gráfico de líneas de tendencia por distrito
-    st.write("---")
-    st.markdown("### 📈 Tendencias Financieras por Distrito")
-    
-    mostrar_grafico_tendencias_distritos(estadisticas_distritos)
+    with tab2:
+        # Crear DataFrame consolidado por distrito
+        datos_consolidados = []
+        for stats in estadisticas_distritos:
+            datos_consolidados.append({
+                'Distrito': stats['distrito'],
+                'Ingresos': stats['ingresos']['total'],
+                'Egresos': stats['egresos']['total'],
+                'Saldo Neto': stats['saldo_neto']
+            })
+        
+        df_consolidado = pd.DataFrame(datos_consolidados)
+        
+        # Formatear columnas monetarias
+        df_display = df_consolidado.copy()
+        df_display['Ingresos'] = df_display['Ingresos'].apply(lambda x: f"${x:,.2f}")
+        df_display['Egresos'] = df_display['Egresos'].apply(lambda x: f"${x:,.2f}")
+        df_display['Saldo Neto'] = df_display['Saldo Neto'].apply(lambda x: f"${x:,.2f}")
+        
+        st.dataframe(df_display, use_container_width=True)
+        
+        # Mostrar totales generales
+        st.markdown("---")
+        st.markdown("### 📊 Resumen General por Distrito")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            for stats in estadisticas_distritos:
+                with st.expander(f"📁 {stats['distrito']}"):
+                    st.write(f"**Ingresos:** ${stats['ingresos']['total']:,.2f}")
+                    st.write(f"**Egresos:** ${stats['egresos']['total']:,.2f}")
+                    st.write(f"**Saldo Neto:** ${stats['saldo_neto']:,.2f}")
 
 def vista_reportes():
     """
-    Módulo de Reportes - Estadísticas financieras
+    Módulo de Reportes - Dashboard financiero mejorado
     """
     # ===============================
     # 0. Verificar acceso y permisos
@@ -475,25 +567,31 @@ def vista_reportes():
         st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
         return
 
-    st.title("📊 Reportes Financieros")
+    # Título principal con diseño mejorado
+    st.markdown("""
+    <div style='text-align: center;'>
+        <h1>📊 Dashboard de Reportes Financieros</h1>
+        <h3 style='color: #4C3A60; margin-top: -10px;'>Análisis completo de ingresos y egresos</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ===============================
-    # 1. FILTRO POR RANGO DE FECHAS
+    # 1. FILTROS PRINCIPALES
     # ===============================
-    st.subheader("📅 Seleccionar Período")
+    st.subheader("🎛️ Configurar Período de Análisis")
     
     col1, col2 = st.columns(2)
     
     with col1:
         fecha_inicio = st.date_input(
-            "Fecha inicio", 
+            "📅 Fecha inicio", 
             date.today() - timedelta(days=30),
             key="fecha_inicio_reportes"
         )
     
     with col2:
         fecha_fin = st.date_input(
-            "Fecha fin", 
+            "📅 Fecha fin", 
             date.today(),
             key="fecha_fin_reportes"
         )
@@ -503,7 +601,7 @@ def vista_reportes():
         st.error("❌ La fecha de inicio no puede ser mayor que la fecha fin")
         return
 
-    st.write("---")
+    st.markdown("---")
 
     # ===============================
     # 2. MOSTRAR REPORTES SEGÚN ROL
@@ -517,9 +615,22 @@ def vista_reportes():
         mostrar_reporte_institucional(fecha_inicio, fecha_fin)
 
     # ===============================
-    # 3. Botón regresar
+    # 3. INFORMACIÓN DEL PERÍODO EN SIDEBAR
     # ===============================
-    st.write("---")
-    if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
+    st.sidebar.markdown("---")
+    st.sidebar.info(f"""
+    **📅 Período Analizado:**
+    - Inicio: {fecha_inicio}
+    - Fin: {fecha_fin}
+    - Rol: {rol.title()}
+    """)
+
+    # ===============================
+    # 4. BOTÓN REGRESAR
+    # ===============================
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("⬅️ Regresar al Menú Principal", use_container_width=True):
+            st.session_state.page = "menu"
+            st.rerun()
