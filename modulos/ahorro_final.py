@@ -1,182 +1,5 @@
-import streamlit as st
-import mysql.connector
-from datetime import datetime
-
-def get_db_connection():
-    """Establece conexión con la base de datos"""
-    try:
-        conn = mysql.connector.connect(
-            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
-            user="uiazxdhtd3r8o7uv",
-            password="uGjZ9MXWemv7vPsjOdA5",
-            database="bzn5gsi7ken7lufcglbg",
-            port=3306
-        )
-        return conn
-    except mysql.connector.Error as e:
-        st.error(f"Error de conexión a la base de datos: {e}")
-        return None
-
-def obtener_miembros_grupo(id_grupo):
-    """Obtiene los miembros de un grupo específico usando la tabla Grupomiembros"""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-    
-    try:
-        cursor = conn.cursor(dictionary=True)
-        
-        # Usar JOIN con la tabla Grupomiembros (todo junto)
-        cursor.execute("""
-            SELECT m.id_miembro, m.Nombre 
-            FROM Miembros m 
-            INNER JOIN Grupomiembros gm ON m.id_miembro = gm.id_miembro 
-            WHERE gm.id_grupo = %s
-        """, (id_grupo,))
-        
-        miembros = cursor.fetchall()
-        return miembros
-        
-    except mysql.connector.Error as e:
-        st.error(f"Error al obtener miembros: {e}")
-        
-        # Si hay error, intentar obtener todos los miembros como fallback
-        try:
-            cursor.execute("SELECT id_miembro, Nombre FROM Miembros")
-            miembros = cursor.fetchall()
-            st.warning("Usando todos los miembros (fallback por error en relación)")
-            return miembros
-        except:
-            return []
-            
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
-def obtener_registros_ahorro_final(id_grupo):
-    """Obtiene los registros de ahorro final de un grupo"""
-    conn = get_db_connection()
-    if conn is None:
-        return []
-    
-    try:
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("""
-            SELECT af.*, m.Nombre 
-            FROM ahorro_final af 
-            JOIN Miembros m ON af.id_miembro = m.id_miembro 
-            WHERE af.id_grupo = %s 
-            ORDER BY af.fecha_registro DESC
-        """, (id_grupo,))
-        
-        registros = cursor.fetchall()
-        return registros
-        
-    except mysql.connector.Error as e:
-        st.error(f"Error al obtener registros: {e}")
-        return []
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
-def obtener_estadisticas_personales(id_miembro, id_grupo):
-    """Obtiene estadísticas personales de un miembro específico"""
-    conn = get_db_connection()
-    if conn is None:
-        return {}
-    
-    try:
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("""
-            SELECT 
-                SUM(ahorros) as total_ahorros,
-                SUM(actividades) as total_actividades,
-                SUM(retiros) as total_retiros,
-                SUM(saldo_final) as total_saldo_final,
-                COUNT(*) as total_registros
-            FROM ahorro_final 
-            WHERE id_miembro = %s AND id_grupo = %s
-        """, (id_miembro, id_grupo))
-        
-        estadisticas = cursor.fetchone()
-        
-        # Obtener el nombre del miembro
-        cursor.execute("SELECT Nombre FROM Miembros WHERE id_miembro = %s", (id_miembro,))
-        miembro_info = cursor.fetchone()
-        
-        if estadisticas and miembro_info:
-            estadisticas['nombre'] = miembro_info['Nombre']
-            # Convertir None a 0
-            for key in ['total_ahorros', 'total_actividades', 'total_retiros', 'total_saldo_final']:
-                estadisticas[key] = estadisticas[key] or 0
-            
-        return estadisticas or {}
-        
-    except mysql.connector.Error as e:
-        st.error(f"Error al obtener estadísticas personales: {e}")
-        return {}
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
-def guardar_registro_ahorro(id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros):
-    """Guarda un nuevo registro de ahorro final"""
-    conn = get_db_connection()
-    if conn is None:
-        return False, "Error de conexión a la base de datos"
-    
-    try:
-        saldo_final = calcular_saldo_final(ahorros, actividades, retiros)
-        cursor = conn.cursor()
-        
-        sql = """INSERT INTO ahorro_final 
-                 (id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros, saldo_final) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-        
-        cursor.execute(sql, (id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros, saldo_final))
-        conn.commit()
-        
-        return True, "Registro guardado exitosamente"
-        
-    except mysql.connector.Error as e:
-        return False, f"Error al guardar el registro: {e}"
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
-def borrar_registro_ahorro(id_ahorro):
-    """Borra un registro de ahorro final"""
-    conn = get_db_connection()
-    if conn is None:
-        return False, "Error de conexión a la base de datos"
-    
-    try:
-        cursor = conn.cursor()
-        
-        cursor.execute("DELETE FROM ahorro_final WHERE id_ahorro = %s", (id_ahorro,))
-        conn.commit()
-        
-        return True, "Registro borrado exitosamente"
-        
-    except mysql.connector.Error as e:
-        return False, f"Error al borrar el registro: {e}"
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
-
-def calcular_saldo_final(ahorros, actividades, retiros):
-    """Calcula el saldo final automáticamente"""
-    return ahorros + actividades - retiros
-
 def mostrar_ahorro_final(id_grupo):
-    """Función principal del módulo Ahorro Final"""
+    """Función principal del módulo Ahorro Final - Versión reorganizada"""
     
     # Obtener nombre del grupo desde la sesión
     nombre_grupo = st.session_state.get("nombre_grupo", "Grupo Desconocido")
@@ -210,60 +33,133 @@ def mostrar_ahorro_final(id_grupo):
     
     registros = obtener_registros_ahorro_final(id_grupo)
     
-    # Formulario para nuevo registro
-    with st.form("form_ahorro_final", clear_on_submit=True):
-        st.subheader("Nuevo Registro de Ahorro")
-        
-        col1, col2 = st.columns(2)
+    # SECCIÓN 1: REGISTRO DE AHORROS POR PERSONA
+    st.subheader("💰 Registrar Ahorro por Persona")
+    with st.form("form_ahorro", clear_on_submit=True):
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             # Crear diccionario para mapear id a nombre
             opciones_miembros = {m['id_miembro']: m['Nombre'] for m in miembros}
-            miembro_seleccionado = st.selectbox(
+            miembro_ahorro = st.selectbox(
                 "Seleccionar Miembro:",
                 options=list(opciones_miembros.keys()),
-                format_func=lambda x: opciones_miembros[x]
+                format_func=lambda x: opciones_miembros[x],
+                key="ahorro_miembro"
             )
         
         with col2:
-            fecha_registro = st.date_input("Fecha:", value=datetime.now())
-        
-        st.subheader("Detalles del Ahorro")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            ahorros = st.number_input("Ahorros ($):", min_value=0.0, step=0.01, value=0.0)
-        
-        with col2:
-            actividades = st.number_input("Actividades ($):", min_value=0.0, step=0.01, value=0.0)
+            fecha_ahorro = st.date_input("Fecha:", value=datetime.now(), key="fecha_ahorro")
         
         with col3:
-            retiros = st.number_input("Retiros ($):", min_value=0.0, step=0.01, value=0.0)
+            monto_ahorro = st.number_input("Monto de Ahorro ($):", min_value=0.0, step=0.01, value=0.0, key="monto_ahorro")
         
-        # Calcular saldo final automáticamente
-        saldo_final = calcular_saldo_final(ahorros, actividades, retiros)
-        st.info(f"**Saldo Final Calculado: ${saldo_final:,.2f}**")
-        
-        submitted = st.form_submit_button("💾 Guardar Registro")
-        if submitted:
+        submitted_ahorro = st.form_submit_button("💾 Guardar Ahorro")
+        if submitted_ahorro and monto_ahorro > 0:
             success, message = guardar_registro_ahorro(
-                miembro_seleccionado, id_grupo, fecha_registro, 
-                ahorros, actividades, retiros
+                miembro_ahorro, id_grupo, fecha_ahorro, 
+                monto_ahorro, 0.0, 0.0  # Solo ahorro, actividades=0, retiros=0
             )
             if success:
                 st.success(message)
                 st.rerun()
             else:
                 st.error(message)
+        elif submitted_ahorro:
+            st.warning("Por favor ingresa un monto de ahorro mayor a 0")
     
-    # BOTÓN REGRESAR - FUERA DEL FORMULARIO
+    st.write("---")
+    
+    # SECCIÓN 2: REGISTRO DE RETIROS POR PERSONA
+    st.subheader("💸 Registrar Retiro por Persona")
+    with st.form("form_retiro", clear_on_submit=True):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            opciones_miembros = {m['id_miembro']: m['Nombre'] for m in miembros}
+            miembro_retiro = st.selectbox(
+                "Seleccionar Miembro:",
+                options=list(opciones_miembros.keys()),
+                format_func=lambda x: opciones_miembros[x],
+                key="retiro_miembro"
+            )
+        
+        with col2:
+            fecha_retiro = st.date_input("Fecha:", value=datetime.now(), key="fecha_retiro")
+        
+        with col3:
+            monto_retiro = st.number_input("Monto de Retiro ($):", min_value=0.0, step=0.01, value=0.0, key="monto_retiro")
+        
+        submitted_retiro = st.form_submit_button("💾 Guardar Retiro")
+        if submitted_retiro and monto_retiro > 0:
+            success, message = guardar_registro_ahorro(
+                miembro_retiro, id_grupo, fecha_retiro, 
+                0.0, 0.0, monto_retiro  # Solo retiro, ahorros=0, actividades=0
+            )
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
+        elif submitted_retiro:
+            st.warning("Por favor ingresa un monto de retiro mayor a 0")
+    
+    st.write("---")
+    
+    # SECCIÓN 3: REGISTRO DE ACTIVIDADES (GRUPO COMPLETO)
+    st.subheader("🎯 Registrar Actividad del Grupo")
+    with st.form("form_actividad", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fecha_actividad = st.date_input("Fecha:", value=datetime.now(), key="fecha_actividad")
+        
+        with col2:
+            monto_actividad = st.number_input("Monto de Actividad ($):", min_value=0.0, step=0.01, value=0.0, key="monto_actividad")
+        
+        st.info("💡 **Nota:** Las actividades se aplican a TODOS los miembros del grupo por igual")
+        
+        submitted_actividad = st.form_submit_button("💾 Guardar Actividad para Todos")
+        if submitted_actividad and monto_actividad > 0:
+            # Guardar la actividad para cada miembro del grupo
+            success_count = 0
+            error_messages = []
+            
+            for miembro in miembros:
+                success, message = guardar_registro_ahorro(
+                    miembro['id_miembro'], id_grupo, fecha_actividad, 
+                    0.0, monto_actividad, 0.0  # Solo actividad, ahorros=0, retiros=0
+                )
+                if success:
+                    success_count += 1
+                else:
+                    error_messages.append(f"{miembro['Nombre']}: {message}")
+            
+            if success_count == len(miembros):
+                st.success(f"✅ Actividad registrada exitosamente para todos los {success_count} miembros")
+            elif success_count > 0:
+                st.warning(f"⚠️ Actividad registrada para {success_count} de {len(miembros)} miembros")
+                for error in error_messages:
+                    st.error(error)
+            else:
+                st.error("❌ No se pudo registrar la actividad para ningún miembro")
+                for error in error_messages:
+                    st.error(error)
+            
+            if success_count > 0:
+                st.rerun()
+                
+        elif submitted_actividad:
+            st.warning("Por favor ingresa un monto de actividad mayor a 0")
+    
+    # BOTÓN REGRESAR
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
     st.write("---")
     
-    # Mostrar registros existentes en TABLA
+    # Mostrar registros existentes en TABLA (se mantiene igual)
     st.subheader("📊 Registros Existentes")
     
     if registros:
@@ -296,7 +192,7 @@ def mostrar_ahorro_final(id_grupo):
             hide_index=True
         )
         
-        # SECCIÓN PARA BORRAR REGISTROS (fuera de la tabla)
+        # SECCIÓN PARA BORRAR REGISTROS (se mantiene igual)
         st.subheader("🗑️ Gestión de Registros")
         
         # Selector para elegir qué registro borrar
@@ -329,7 +225,7 @@ def mostrar_ahorro_final(id_grupo):
                 if st.session_state.get("confirmar_borrado", False):
                     st.error("**Confirmación pendiente:** Haz clic nuevamente en 'Borrar Registro' para confirmar la eliminación.")
         
-        # ESTADÍSTICAS CON SELECTOR DE MIEMBRO
+        # ESTADÍSTICAS (se mantiene igual)
         st.subheader("📈 Estadísticas")
         
         # Selector para estadísticas (grupo o individual)
@@ -359,7 +255,8 @@ def mostrar_ahorro_final(id_grupo):
             miembro_estadisticas = st.selectbox(
                 "Seleccionar miembro para estadísticas:",
                 options=list(opciones_miembros_estadisticas.keys()),
-                format_func=lambda x: opciones_miembros_estadisticas[x]
+                format_func=lambda x: opciones_miembros_estadisticas[x],
+                key="estadisticas_miembro"
             )
             
             if miembro_estadisticas:
