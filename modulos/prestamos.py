@@ -259,10 +259,10 @@ def mostrar_lista_prestamos(id_grupo):
         for prestamo in prestamos_basicos:
             id_prestamo = prestamo[0]
             
-            # Obtener información de pagos para este préstamo específico
+            # CORRECCIÓN: Sumar capital + interés para el total pagado
             cursor.execute("""
                 SELECT 
-                    COALESCE(SUM(capital), 0) as total_pagado,
+                    COALESCE(SUM(capital + interes), 0) as total_pagado,
                     COUNT(id_pago) as numero_pagos
                 FROM prestamo_pagos 
                 WHERE id_prestamo = %s
@@ -341,9 +341,9 @@ def mostrar_formulario_pagos(id_prestamo):
             st.error("❌ No se encontró información del préstamo")
             return
 
-        # Calcular total pagado hasta ahora
+        # CORRECCIÓN: Sumar capital + interés para el total pagado
         cursor.execute("""
-            SELECT COALESCE(SUM(capital), 0) 
+            SELECT COALESCE(SUM(capital + interes), 0) 
             FROM prestamo_pagos 
             WHERE id_prestamo = %s
         """, (id_prestamo,))
