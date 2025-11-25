@@ -1,8 +1,204 @@
+import streamlit as st
+import mysql.connector
+from datetime import datetime
+
+def get_db_connection():
+    """Establece conexión con la base de datos"""
+    try:
+        conn = mysql.connector.connect(
+            host="bzn5gsi7ken7lufcglbg-mysql.services.clever-cloud.com",
+            user="uiazxdhtd3r8o7uv",
+            password="uGjZ9MXWemv7vPsjOdA5",
+            database="bzn5gsi7ken7lufcglbg",
+            port=3306
+        )
+        return conn
+    except mysql.connector.Error as e:
+        st.error(f"Error de conexión a la base de datos: {e}")
+        return None
+
+def obtener_miembros_grupo(id_grupo):
+    """Obtiene los miembros de un grupo específico usando la tabla Grupomiembros"""
+    conn = get_db_connection()
+    if conn is None:
+        return []
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Usar JOIN con la tabla Grupomiembros (todo junto)
+        cursor.execute("""
+            SELECT m.id_miembro, m.Nombre 
+            FROM Miembros m 
+            INNER JOIN Grupomiembros gm ON m.id_miembro = gm.id_miembro 
+            WHERE gm.id_grupo = %s
+        """, (id_grupo,))
+        
+        miembros = cursor.fetchall()
+        return miembros
+        
+    except mysql.connector.Error as e:
+        st.error(f"Error al obtener miembros: {e}")
+        
+        # Si hay error, intentar obtener todos los miembros como fallback
+        try:
+            cursor.execute("SELECT id_miembro, Nombre FROM Miembros")
+            miembros = cursor.fetchall()
+            st.warning("Usando todos los miembros (fallback por error en relación)")
+            return miembros
+        except:
+            return []
+            
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def obtener_registros_ahorro_final(id_grupo):
+    """Obtiene los registros de ahorro final de un grupo"""
+    conn = get_db_connection()
+    if conn is None:
+        return []
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT af.*, m.Nombre 
+            FROM ahorro_final af 
+            JOIN Miembros m ON af.id_miembro = m.id_miembro 
+            WHERE af.id_grupo = %s 
+            ORDER BY af.fecha_registro DESC
+        """, (id_grupo,))
+        
+        registros = cursor.fetchall()
+        return registros
+        
+    except mysql.connector.Error as e:
+        st.error(f"Error al obtener registros: {e}")
+        return []
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def obtener_estadisticas_personales(id_miembro, id_grupo):
+    """Obtiene estadísticas personales de un miembro específico"""
+    conn = get_db_connection()
+    if conn is None:
+        return {}
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                SUM(ahorros) as total_ahorros,
+                SUM(actividades) as total_actividades,
+                SUM(retiros) as total_retiros,
+                SUM(saldo_final) as total_saldo_final,
+                COUNT(*) as total_registros
+            FROM ahorro_final 
+            WHERE id_miembro = %s AND id_grupo = %s
+        """, (id_miembro, id_grupo))
+        
+        estadisticas = cursor.fetchone()
+        
+        # Obtener el nombre del miembro
+        cursor.execute("SELECT Nombre FROM Miembros WHERE id_miembro = %s", (id_miembro,))
+        miembro_info = cursor.fetchone()
+        
+        if estadisticas and miembro_info:
+            estadisticas['nombre'] = miembro_info['Nombre']
+            # Convertir None a 0
+            for key in ['total_ahorros', 'total_actividades', 'total_retiros', 'total_saldo_final']:
+                estadisticas[key] = estadisticas[key] or 0
+            
+        return estadisticas or {}
+        
+    except mysql.connector.Error as e:
+        st.error(f"Error al obtener estadísticas personales: {e}")
+        return {}
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def guardar_registro_ahorro(id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros):
+    """Guarda un nuevo registro de ahorro final"""
+    conn = get_db_connection()
+    if conn is None:
+        return False, "Error de conexión a la base de datos"
+    
+    try:
+        saldo_final = calcular_saldo_final(ahorros, actividades, retiros)
+        cursor = conn.cursor()
+        
+        sql = """INSERT INTO ahorro_final 
+                 (id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros, saldo_final) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+        
+        cursor.execute(sql, (id_miembro, id_grupo, fecha_registro, ahorros, actividades, retiros, saldo_final))
+        conn.commit()
+        
+        return True, "Registro guardado exitosamente"
+        
+    except mysql.connector.Error as e:
+        return False, f"Error al guardar el registro: {e}"
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def borrar_registro_ahorro(id_ahorro):
+    """Borra un registro de ahorro final"""
+    conn = get_db_connection()
+    if conn is None:
+        return False, "Error de conexión a la base de datos"
+    
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM ahorro_final WHERE id_ahorro = %s", (id_ahorro,))
+        conn.commit()
+        
+        return True, "Registro borrado exitosamente"
+        
+    except mysql.connector.Error as e:
+        return False, f"Error al borrar el registro: {e}"
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def calcular_saldo_final(ahorros, actividades, retiros):
+    """Calcula el saldo final automáticamente"""
+    return ahorros + actividades - retiros
+
+def obtener_nombre_grupo(id_grupo):
+    """Obtiene el nombre del grupo desde la base de datos"""
+    conn = get_db_connection()
+    if conn is None:
+        return "Grupo Desconocido"
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT nombre_grupo FROM Grupos WHERE id_grupo = %s", (id_grupo,))
+        resultado = cursor.fetchone()
+        return resultado['nombre_grupo'] if resultado else "Grupo Desconocido"
+    except mysql.connector.Error as e:
+        st.error(f"Error al obtener nombre del grupo: {e}")
+        return "Grupo Desconocido"
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 def mostrar_ahorro_final(id_grupo):
     """Función principal del módulo Ahorro Final - Versión reorganizada"""
     
-    # Obtener nombre del grupo desde la sesión
-    nombre_grupo = st.session_state.get("nombre_grupo", "Grupo Desconocido")
+    # Obtener nombre del grupo desde la base de datos
+    nombre_grupo = obtener_nombre_grupo(id_grupo)
     
     # Título principal con nombre del grupo
     st.markdown(f"""
@@ -27,8 +223,8 @@ def mostrar_ahorro_final(id_grupo):
         st.warning("No se encontraron miembros en este grupo.")
         st.info("💡 **Solución:** Asegúrate de que los miembros estén asignados al grupo en el módulo 'Gestión de Miembros'")
         if st.button("👥 Ir a Gestión de Miembros"):
-            st.session_state.page = "registrar_miembros"
-            st.rerun()
+            # Necesitarías definir cómo manejar la navegación entre páginas
+            st.error("La navegación entre páginas no está configurada")
         return
     
     registros = obtener_registros_ahorro_final(id_grupo)
@@ -155,8 +351,8 @@ def mostrar_ahorro_final(id_grupo):
     # BOTÓN REGRESAR
     st.write("")
     if st.button("⬅️ Regresar al Menú"):
-        st.session_state.page = "menu"
-        st.rerun()
+        # Necesitarías definir cómo manejar la navegación entre páginas
+        st.error("La navegación entre páginas no está configurada")
     st.write("---")
     
     # Mostrar registros existentes en TABLA (se mantiene igual)
@@ -280,4 +476,4 @@ def mostrar_ahorro_final(id_grupo):
                     st.info(f"No hay registros para {opciones_miembros_estadisticas[miembro_estadisticas]}")
             
     else:
-        st.info("No hay registros de ahorro final para mostrar.")
+        st.info("No hay registros de ahorro final para mostrar.")strar.")
