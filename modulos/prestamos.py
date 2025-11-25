@@ -86,17 +86,9 @@ def prestamos_modulo():
         fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
         fecha_vencimiento = st.date_input("Fecha de vencimiento", datetime.date.today())
 
-        # Calcular y mostrar interés automáticamente
+        # Calcular interés automáticamente (pero no mostrar las métricas)
         interes_total = (monto / 10) * interes_por_10
         monto_total = monto + interes_total
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("💰 Capital", f"${monto:,.2f}")
-        with col2:
-            st.metric("📈 Interés Total", f"${interes_total:,.2f}")
-        with col3:
-            st.metric("💵 Total a Pagar", f"${monto_total:,.2f}")
 
         enviar = st.form_submit_button("💾 Guardar Préstamo")
 
