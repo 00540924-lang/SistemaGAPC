@@ -255,7 +255,7 @@ def mostrar_ahorro_final(id_grupo):
     registros = obtener_registros_ahorro_final(id_grupo)
     
     # SECCIÓN 1: REGISTRO DE AHORROS POR PERSONA
-    st.subheader("Registrar ahorro")
+    st.subheader("💲 Registrar ahorro")
     with st.form("form_ahorro", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         
