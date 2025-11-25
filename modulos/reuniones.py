@@ -33,7 +33,21 @@ def mostrar_reuniones(id_grupo):
     # ===============================
     st.subheader("Información de la reunión")
     fecha = st.date_input("📅 Fecha de la reunión", datetime.now().date())
-    hora = st.time_input("⏰ Hora de inicio", datetime.now().time())
+    
+    # INICIALIZAR SESSION STATE PARA LA HORA
+    if 'hora_reunion' not in st.session_state:
+        st.session_state.hora_reunion = datetime.now().time()
+    
+    # WIDGET DE HORA CON SESSION STATE
+    hora = st.time_input(
+        "⏰ Hora de inicio", 
+        value=st.session_state.hora_reunion,
+        key="hora_input"
+    )
+    
+    # ACTUALIZAR SESSION STATE CUANDO CAMBIA LA HORA
+    if hora != st.session_state.hora_reunion:
+        st.session_state.hora_reunion = hora
 
     # ===============================
     # ASISTENCIA INTEGRADA
@@ -137,7 +151,7 @@ def mostrar_reuniones(id_grupo):
         cursor.execute("""
             INSERT INTO Reuniones (id_grupo, fecha, hora, agenda, observaciones)
             VALUES (%s, %s, %s, %s, %s)
-        """, (id_grupo, fecha, hora, agenda_completa, observaciones))
+        """, (id_grupo, fecha, st.session_state.hora_reunion, agenda_completa, observaciones))
         conn.commit()
 
         for _, row in tabla_asistencia.iterrows():
@@ -148,6 +162,9 @@ def mostrar_reuniones(id_grupo):
 
         conn.commit()
         st.success("✅ Reunión y asistencia guardadas con éxito.")
+        
+        # LIMPIAR EL ESTADO DE LA HORA DESPUÉS DE GUARDAR
+        st.session_state.hora_reunion = datetime.now().time()
         st.rerun()
 
     # ===============================
