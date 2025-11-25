@@ -491,7 +491,7 @@ def mostrar_formulario_pagos(id_prestamo):
 
 
 # =====================================================
-#   HISTORIAL DE PAGOS
+#   HISTORIAL DE PAGOS - SIN COLUMNA DE INTERÉS
 # =====================================================
 def mostrar_historial_pagos(id_prestamo):
     try:
@@ -523,30 +523,63 @@ def mostrar_historial_pagos(id_prestamo):
                 "ID Pago", "N° Pago", "Fecha", "Capital", "Interés", "Estado"
             ])
             
+            # Calcular el monto total de cada pago (capital + interés)
+            montos_totales = []
+            for pago in pagos:
+                capital = float(pago[3]) if pago[3] is not None else 0.0
+                interes = float(pago[4]) if pago[4] is not None else 0.0
+                monto_total = capital + interes
+                montos_totales.append(monto_total)
+            
+            # Agregar columna de monto total al DataFrame
+            df_pagos["Monto Total"] = montos_totales
+            
             # Formatear columnas
-            df_pagos["Capital"] = df_pagos["Capital"].apply(lambda x: f"${x:,.2f}")
-            df_pagos["Interés"] = df_pagos["Interés"].apply(lambda x: f"${x:,.2f}")
+            df_pagos["Monto Total"] = df_pagos["Monto Total"].apply(lambda x: f"${x:,.2f}")
             df_pagos["Estado"] = df_pagos["Estado"].apply(lambda x: x.title() if x else "N/A")
             
-            # Mostrar solo las columnas relevantes
-            columnas_mostrar = ["N° Pago", "Fecha", "Capital", "Interés", "Estado"]
+            # Mostrar solo las columnas relevantes (SIN INTERÉS)
+            columnas_mostrar = ["N° Pago", "Fecha", "Monto Total", "Estado"]
             st.dataframe(df_pagos[columnas_mostrar], use_container_width=True)
             
-            # Resumen de pagos
-            total_capital_pagado = sum(p[3] for p in pagos)
-            total_interes_pagado = sum(p[4] for p in pagos)
+            # Resumen de pagos - SOLO MONTO TOTAL
+            total_capital_pagado = sum(float(p[3]) if p[3] is not None else 0.0 for p in pagos)
+            total_interes_pagado = sum(float(p[4]) if p[4] is not None else 0.0 for p in pagos)
             total_pagado = total_capital_pagado + total_interes_pagado
             pagos_realizados = len(pagos)
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("💰 Capital Pagado", f"${total_capital_pagado:,.2f}")
+                st.metric("💰 Total Pagado", f"${total_pagado:,.2f}")
             with col2:
-                st.metric("📈 Interés Pagado", f"${total_interes_pagado:,.2f}")
-            with col3:
                 st.metric("📊 Total Pagos", pagos_realizados)
-                
-            st.metric("💵 Total Pagado", f"${total_pagado:,.2f}")
+            with col3:
+                # Calcular porcentaje pagado si hay información del préstamo
+                try:
+                    con = obtener_conexion()
+                    cursor = con.cursor()
+                    cursor.execute("""
+                        SELECT monto, interes_total 
+                        FROM prestamos 
+                        WHERE id_prestamo = %s
+                    """, (id_prestamo,))
+                    prestamo_info = cursor.fetchone()
+                    con.close()
+                    
+                    if prestamo_info:
+                        monto_original = float(prestamo_info[0]) if prestamo_info[0] is not None else 0.0
+                        interes_total = float(prestamo_info[1]) if prestamo_info[1] is not None else 0.0
+                        monto_total_prestamo = monto_original + interes_total
+                        
+                        if monto_total_prestamo > 0:
+                            porcentaje_pagado = (total_pagado / monto_total_prestamo) * 100
+                            st.metric("📈 % Pagado", f"{porcentaje_pagado:.1f}%")
+                        else:
+                            st.metric("📈 % Pagado", "0%")
+                    else:
+                        st.metric("📈 % Pagado", "N/A")
+                except:
+                    st.metric("📈 % Pagado", "N/A")
                 
         else:
             st.info("ℹ️ No se han registrado pagos para este préstamo.")
