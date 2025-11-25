@@ -132,11 +132,11 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
         
         where_clause = " AND ".join(condiciones)
         
+        # CORREGIDO: Eliminada la columna M.Correo que no existe
         query = f"""
             SELECT 
                 M.id_miembro,
                 M.Nombre,
-                M.Correo,
                 
                 -- Ahorros del miembro
                 COALESCE(SUM(AF.ahorros), 0) as total_ahorros,
@@ -163,10 +163,10 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
             LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
             LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro
-            LEFT JOIN prestamos P ON M.id_membro = P.id_miembro
+            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro
             LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.estado = 'pagado'
             WHERE {where_clause}
-            GROUP BY M.id_miembro, M.Nombre, M.Correo
+            GROUP BY M.id_miembro, M.Nombre
             ORDER BY saldo_ahorro DESC
         """
         
