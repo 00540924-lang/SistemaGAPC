@@ -132,7 +132,6 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
         
         where_clause = " AND ".join(condiciones)
         
-        # CORREGIDO: Eliminada la columna M.Correo que no existe
         query = f"""
             SELECT 
                 M.id_miembro,
@@ -517,31 +516,40 @@ def mostrar_estadisticas(id_grupo):
             st.info("🥧 No hay datos de distribución para mostrar en el período seleccionado.")
     
     with tab3:
-        # Ranking de miembros
+        # Ranking de miembros - CORREGIDO
         stats_miembros = obtener_estadisticas_por_miembro(id_grupo, fecha_inicio, fecha_fin)
         
         if stats_miembros:
             df_miembros = pd.DataFrame(stats_miembros)
             
-            # Crear gráfico de barras para top 10 ahorradores
-            top_miembros = df_miembros.nlargest(10, 'saldo_ahorro')
+            # CORRECCIÓN: Asegurar que la columna 'saldo_ahorro' sea numérica
+            df_miembros['saldo_ahorro'] = pd.to_numeric(df_miembros['saldo_ahorro'], errors='coerce').fillna(0)
             
-            fig_barras = px.bar(
-                top_miembros,
-                x='Nombre',
-                y='saldo_ahorro',
-                title='Top 10 Miembros por Saldo de Ahorro',
-                color='saldo_ahorro',
-                color_continuous_scale='Viridis'
-            )
+            # Filtrar miembros con saldo positivo y ordenar
+            miembros_con_saldo = df_miembros[df_miembros['saldo_ahorro'] > 0]
             
-            fig_barras.update_layout(
-                xaxis_title='Miembro',
-                yaxis_title='Saldo de Ahorro ($)',
-                height=400
-            )
-            
-            st.plotly_chart(fig_barras, use_container_width=True)
+            if not miembros_con_saldo.empty:
+                # Tomar los top 10 o todos si hay menos de 10
+                top_miembros = miembros_con_saldo.nlargest(min(10, len(miembros_con_saldo)), 'saldo_ahorro')
+                
+                fig_barras = px.bar(
+                    top_miembros,
+                    x='Nombre',
+                    y='saldo_ahorro',
+                    title='Top Miembros por Saldo de Ahorro',
+                    color='saldo_ahorro',
+                    color_continuous_scale='Viridis'
+                )
+                
+                fig_barras.update_layout(
+                    xaxis_title='Miembro',
+                    yaxis_title='Saldo de Ahorro ($)',
+                    height=400
+                )
+                
+                st.plotly_chart(fig_barras, use_container_width=True)
+            else:
+                st.info("💰 No hay miembros con saldo de ahorro positivo para mostrar en el ranking.")
             
             # Mostrar tabla completa
             with st.expander("📋 Ver tabla completa de miembros"):
@@ -553,7 +561,7 @@ def mostrar_estadisticas(id_grupo):
                 
                 # Formatear números
                 for col in nombres_columnas[1:]:
-                    df_display[col] = df_display[col].apply(lambda x: f"${x:,.2f}")
+                    df_display[col] = df_display[col].apply(lambda x: f"${float(x):,.2f}" if pd.notna(x) else "$0.00")
                 
                 st.dataframe(df_display, use_container_width=True)
         else:
