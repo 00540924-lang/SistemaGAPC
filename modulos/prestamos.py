@@ -132,33 +132,34 @@ def prestamos_modulo():
         fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
         fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
 
-        # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA
-st.markdown("**Configuración del Reglamento:**")
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.number_input(
-        "Interés por cada $10 (%)",  # ← ESTE ES EL CAMPO DEL INTERÉS
-        value=interes_por_10,        # ← AQUÍ APARECE EL VALOR 10.0%
-        step=0.01,
-        disabled=True,
-        key="interes_reglamento"
-    )
-with col2:
-    # Mostrar monto máximo como texto
-    st.text_input(
-        "Monto máximo permitido",
-        value=monto_maximo_texto,
-        disabled=True,
-        key="monto_maximo_reglamento"
-    )
-with col3:
-    # Mostrar plazo máximo como texto
-    st.text_input(
-        "Plazo máximo",
-        value=plazo_maximo_texto,
-        disabled=True,
-        key="plazo_maximo_reglamento"
-    )
+        # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA (CORREGIDO LA INDENTACIÓN)
+        st.markdown("**Configuración del Reglamento:**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.number_input(
+                "Interés por cada $10 (%)",
+                value=interes_por_10,
+                step=0.01,
+                disabled=True,
+                key="interes_reglamento"
+            )
+        with col2:
+            # Mostrar monto máximo como texto
+            st.text_input(
+                "Monto máximo permitido",
+                value=monto_maximo_texto,
+                disabled=True,
+                key="monto_maximo_reglamento"
+            )
+        with col3:
+            # Mostrar plazo máximo como texto
+            st.text_input(
+                "Plazo máximo",
+                value=plazo_maximo_texto,
+                disabled=True,
+                key="plazo_maximo_reglamento"
+            )
+
         # Calcular interés automáticamente (solo usa el interés)
         interes_total = (monto / 10) * interes_por_10
         monto_total = monto + interes_total
