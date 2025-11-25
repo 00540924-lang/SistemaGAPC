@@ -107,6 +107,110 @@ def obtener_estadisticas_por_grupo(id_grupo, fecha_inicio, fecha_fin):
         st.error(f"Error al obtener estadísticas del grupo: {e}")
         return None
 
+def obtener_estadisticas_por_distrito(fecha_inicio, fecha_fin):
+    """
+    Obtiene estadísticas de ingresos, egresos y saldo agrupadas por distrito
+    """
+    try:
+        conn = obtener_conexion()
+        if not conn:
+            return None
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        # Obtener estadísticas por distrito
+        cursor.execute("""
+            SELECT 
+                G.distrito,
+                COALESCE(SUM(
+                    (SELECT COALESCE(SUM(MT.monto_a_pagar), 0)
+                     FROM Multas MT
+                     JOIN Miembros M2 ON MT.id_miembro = M2.id_miembro
+                     JOIN Grupomiembros GM2 ON GM2.id_miembro = M2.id_miembro
+                     WHERE GM2.id_grupo = G.id_grupo
+                     AND MT.fecha BETWEEN %s AND %s
+                     AND MT.pagada = 1)
+                ), 0) as total_multas,
+                
+                COALESCE(SUM(
+                    (SELECT COALESCE(SUM(ahorros + actividades), 0)
+                     FROM ahorro_final AF
+                     WHERE AF.id_grupo = G.id_grupo
+                     AND AF.fecha_registro BETWEEN %s AND %s)
+                ), 0) as total_ahorros_actividades,
+                
+                COALESCE(SUM(
+                    (SELECT COALESCE(SUM(PP.capital + PP.interes), 0)
+                     FROM prestamo_pagos PP
+                     JOIN prestamos P2 ON PP.id_prestamo = P2.id_prestamo
+                     JOIN Miembros M3 ON P2.id_miembro = M3.id_miembro
+                     JOIN Grupomiembros GM3 ON GM3.id_miembro = M3.id_miembro
+                     WHERE GM3.id_grupo = G.id_grupo
+                     AND PP.fecha BETWEEN %s AND %s
+                     AND PP.estado = 'pagado')
+                ), 0) as total_pagos_prestamos,
+                
+                COALESCE(SUM(
+                    (SELECT COALESCE(SUM(retiros), 0)
+                     FROM ahorro_final AF2
+                     WHERE AF2.id_grupo = G.id_grupo
+                     AND AF2.fecha_registro BETWEEN %s AND %s)
+                ), 0) as total_retiros,
+                
+                COALESCE(SUM(
+                    (SELECT COALESCE(SUM(P3.monto), 0)
+                     FROM prestamos P3
+                     JOIN Miembros M4 ON P3.id_miembro = M4.id_miembro
+                     JOIN Grupomiembros GM4 ON GM4.id_miembro = M4.id_miembro
+                     WHERE GM4.id_grupo = G.id_grupo
+                     AND P3.fecha_desembolso BETWEEN %s AND %s
+                     AND P3.estado IN ('activo', 'pendiente'))
+                ), 0) as total_desembolsos
+                
+            FROM Grupos G
+            GROUP BY G.distrito
+            ORDER BY G.distrito
+        """, (fecha_inicio, fecha_fin,
+              fecha_inicio, fecha_fin,
+              fecha_inicio, fecha_fin,
+              fecha_inicio, fecha_fin,
+              fecha_inicio, fecha_fin))
+        
+        resultados = cursor.fetchall()
+        conn.close()
+        
+        # Procesar resultados
+        estadisticas_distritos = []
+        for resultado in resultados:
+            distrito = resultado['distrito']
+            total_ingresos = (resultado['total_multas'] + 
+                            resultado['total_ahorros_actividades'] + 
+                            resultado['total_pagos_prestamos'])
+            total_egresos = resultado['total_retiros'] + resultado['total_desembolsos']
+            saldo_neto = total_ingresos - total_egresos
+            
+            estadisticas_distritos.append({
+                'distrito': distrito,
+                'ingresos': {
+                    'multas': float(resultado['total_multas']),
+                    'ahorros_actividades': float(resultado['total_ahorros_actividades']),
+                    'pagos_prestamos': float(resultado['total_pagos_prestamos']),
+                    'total': float(total_ingresos)
+                },
+                'egresos': {
+                    'retiros': float(resultado['total_retiros']),
+                    'desembolsos': float(resultado['total_desembolsos']),
+                    'total': float(total_egresos)
+                },
+                'saldo_neto': float(saldo_neto)
+            })
+        
+        return estadisticas_distritos
+        
+    except Exception as e:
+        st.error(f"Error al obtener estadísticas por distrito: {e}")
+        return None
+
 def obtener_nombre_grupo(id_grupo):
     """Obtiene el nombre del grupo por su ID"""
     try:
@@ -130,95 +234,6 @@ def obtener_todos_los_grupos():
         return grupos
     except Exception as e:
         st.error(f"Error al obtener grupos: {e}")
-        return []
-
-def obtener_datos_historicos_por_grupo(id_grupo, fecha_inicio, fecha_fin):
-    """Obtiene datos históricos para el gráfico de tendencias"""
-    try:
-        conn = obtener_conexion()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Consulta para obtener datos mensuales
-        cursor.execute("""
-            SELECT 
-                DATE_FORMAT(fecha, '%Y-%m') as mes,
-                COALESCE(SUM(monto), 0) as ingresos,
-                COALESCE(SUM(egresos), 0) as egresos
-            FROM (
-                -- Ingresos por multas
-                SELECT 
-                    MT.fecha as fecha,
-                    MT.monto_a_pagar as monto,
-                    0 as egresos
-                FROM Multas MT
-                JOIN Miembros M ON MT.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s
-                AND MT.fecha BETWEEN %s AND %s
-                AND MT.pagada = 1
-                
-                UNION ALL
-                
-                -- Ingresos por ahorros y actividades
-                SELECT 
-                    fecha_registro as fecha,
-                    (ahorros + actividades) as monto,
-                    0 as egresos
-                FROM ahorro_final 
-                WHERE id_grupo = %s AND fecha_registro BETWEEN %s AND %s
-                
-                UNION ALL
-                
-                -- Ingresos por pagos de préstamos
-                SELECT 
-                    PP.fecha as fecha,
-                    (PP.capital + PP.interes) as monto,
-                    0 as egresos
-                FROM prestamo_pagos PP
-                JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
-                JOIN Miembros M ON P.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s 
-                AND PP.fecha BETWEEN %s AND %s
-                AND PP.estado = 'pagado'
-                
-                UNION ALL
-                
-                -- Egresos por retiros
-                SELECT 
-                    fecha_registro as fecha,
-                    0 as monto,
-                    retiros as egresos
-                FROM ahorro_final 
-                WHERE id_grupo = %s AND fecha_registro BETWEEN %s AND %s
-                
-                UNION ALL
-                
-                -- Egresos por desembolsos de préstamos
-                SELECT 
-                    P.fecha_desembolso as fecha,
-                    0 as monto,
-                    P.monto as egresos
-                FROM prestamos P
-                JOIN Miembros M ON P.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s 
-                AND P.fecha_desembolso BETWEEN %s AND %s
-                AND P.estado IN ('activo', 'pendiente')
-            ) as movimientos
-            GROUP BY DATE_FORMAT(fecha, '%Y-%m')
-            ORDER BY mes
-        """, (id_grupo, fecha_inicio, fecha_fin, 
-              id_grupo, fecha_inicio, fecha_fin,
-              id_grupo, fecha_inicio, fecha_fin,
-              id_grupo, fecha_inicio, fecha_fin,
-              id_grupo, fecha_inicio, fecha_fin))
-        
-        datos = cursor.fetchall()
-        conn.close()
-        return datos
-    except Exception as e:
-        st.error(f"Error al obtener datos históricos: {e}")
         return []
 
 def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
@@ -315,14 +330,14 @@ def mostrar_reporte_promotor(fecha_inicio, fecha_fin):
             df_egresos['Monto'] = df_egresos['Monto'].apply(lambda x: f"${x:,.2f}")
             st.dataframe(df_egresos, use_container_width=True, hide_index=True)
 
-def mostrar_grafico_tendencias(grupos_estadisticas, fecha_inicio, fecha_fin):
-    """Muestra gráfico de líneas de tendencia para múltiples grupos"""
+def mostrar_grafico_tendencias_distritos(estadisticas_distritos):
+    """Muestra gráfico de líneas de tendencia para distritos"""
     
     # Crear DataFrame para el gráfico
     datos_grafico = []
-    for stats in grupos_estadisticas:
+    for stats in estadisticas_distritos:
         datos_grafico.append({
-            'Grupo': stats['nombre_grupo'],
+            'Distrito': stats['distrito'],
             'Ingresos': stats['ingresos']['total'],
             'Egresos': stats['egresos']['total'],
             'Saldo Neto': stats['saldo_neto']
@@ -337,13 +352,13 @@ def mostrar_grafico_tendencias(grupos_estadisticas, fecha_inicio, fecha_fin):
     fig, ax = plt.subplots(figsize=(14, 8))
     
     # Preparar datos para el gráfico
-    grupos = df_grafico['Grupo'].tolist()
+    distritos = df_grafico['Distrito'].tolist()
     ingresos = df_grafico['Ingresos'].tolist()
     egresos = df_grafico['Egresos'].tolist()
     saldos = df_grafico['Saldo Neto'].tolist()
     
     # Crear índices para el eje X
-    x = range(len(grupos))
+    x = range(len(distritos))
     
     # Gráfico de líneas
     ax.plot(x, ingresos, marker='o', linewidth=3, markersize=8, label='Ingresos', color='#2E7D32')
@@ -351,13 +366,13 @@ def mostrar_grafico_tendencias(grupos_estadisticas, fecha_inicio, fecha_fin):
     ax.plot(x, saldos, marker='^', linewidth=3, markersize=8, label='Saldo Neto', color='#1565C0')
     
     # Personalizar el gráfico
-    ax.set_xlabel('Grupos', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Distritos', fontsize=12, fontweight='bold')
     ax.set_ylabel('Monto ($)', fontsize=12, fontweight='bold')
-    ax.set_title('📈 Tendencias Financieras por Grupo', fontsize=16, fontweight='bold', pad=20)
+    ax.set_title('📈 Tendencias Financieras por Distrito', fontsize=16, fontweight='bold', pad=20)
     
     # Configurar eje X
     ax.set_xticks(x)
-    ax.set_xticklabels(grupos, rotation=45, ha='right', fontsize=10)
+    ax.set_xticklabels(distritos, rotation=45, ha='right', fontsize=10)
     
     # Agregar grid
     ax.grid(True, alpha=0.3, linestyle='--')
@@ -381,33 +396,20 @@ def mostrar_grafico_tendencias(grupos_estadisticas, fecha_inicio, fecha_fin):
     st.pyplot(fig)
 
 def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
-    """Muestra el reporte para usuario institucional (todos los grupos)"""
-    # ✅ ELIMINADO: st.subheader("🏢 Reporte Institucional - Todos los Grupos")
+    """Muestra el reporte para usuario institucional (por distrito)"""
     
-    # Obtener todos los grupos
-    grupos = obtener_todos_los_grupos()
+    # Obtener estadísticas por distrito
+    estadisticas_distritos = obtener_estadisticas_por_distrito(fecha_inicio, fecha_fin)
     
-    if not grupos:
-        st.warning("No se encontraron grupos en el sistema.")
-        return
-    
-    # Obtener estadísticas para cada grupo
-    estadisticas_grupos = []
-    for id_grupo, nombre_grupo in grupos:
-        estadisticas = obtener_estadisticas_por_grupo(id_grupo, fecha_inicio, fecha_fin)
-        if estadisticas:
-            estadisticas['nombre_grupo'] = nombre_grupo
-            estadisticas_grupos.append(estadisticas)
-    
-    if not estadisticas_grupos:
+    if not estadisticas_distritos:
         st.warning("No se encontraron datos para el período seleccionado.")
         return
     
-    # Crear DataFrame consolidado
+    # Crear DataFrame consolidado por distrito
     datos_consolidados = []
-    for stats in estadisticas_grupos:
+    for stats in estadisticas_distritos:
         datos_consolidados.append({
-            'Grupo': stats['nombre_grupo'],
+            'Distrito': stats['distrito'],
             'Total Ingresos': stats['ingresos']['total'],
             'Total Egresos': stats['egresos']['total'],
             'Saldo Neto': stats['saldo_neto']
@@ -416,7 +418,7 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     df_consolidado = pd.DataFrame(datos_consolidados)
     
     # Mostrar tabla consolidada
-    st.markdown("### 📋 Resumen por Grupo")
+    st.markdown("### 📋 Resumen por Distrito")
     
     # Formatear columnas monetarias
     df_display = df_consolidado.copy()
@@ -430,8 +432,8 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     st.write("---")
     st.markdown("### 📊 Totales Generales")
     
-    total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_grupos)
-    total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_grupos)
+    total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_distritos)
+    total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_distritos)
     total_saldo = total_ingresos - total_egresos
     
     col1, col2, col3 = st.columns(3)
@@ -446,15 +448,15 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
         color_saldo = "normal" if total_saldo >= 0 else "inverse"
         st.metric("🏦 Saldo Neto General", f"${total_saldo:,.2f}", delta_color=color_saldo)
     
-    # ✅ CAMBIADO: Gráfico de líneas de tendencia en lugar de barras
+    # Gráfico de líneas de tendencia por distrito
     st.write("---")
-    st.markdown("### 📈 Tendencias Financieras por Grupo")
+    st.markdown("### 📈 Tendencias Financieras por Distrito")
     
-    mostrar_grafico_tendencias(estadisticas_grupos, fecha_inicio, fecha_fin)
+    mostrar_grafico_tendencias_distritos(estadisticas_distritos)
 
 def vista_reportes():
     """
-    Módulo de Reportes - Estadísticas financieras por grupo
+    Módulo de Reportes - Estadísticas financieras
     """
     # ===============================
     # 0. Verificar acceso y permisos
@@ -507,11 +509,11 @@ def vista_reportes():
     # 2. MOSTRAR REPORTES SEGÚN ROL
     # ===============================
     if rol == "promotor":
-        # ✅ CORREGIDO: Promotor puede seleccionar grupo
+        # Promotor: puede seleccionar grupo individual
         mostrar_reporte_promotor(fecha_inicio, fecha_fin)
         
     elif rol == "institucional" or usuario == "dark":
-        # Institucional: ve todos los grupos
+        # Institucional: ve estadísticas por distrito
         mostrar_reporte_institucional(fecha_inicio, fecha_fin)
 
     # ===============================
