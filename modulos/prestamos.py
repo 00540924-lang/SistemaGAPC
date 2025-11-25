@@ -114,11 +114,11 @@ def prestamos_modulo():
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # INSERT del préstamo
+            # INSERT del préstamo (sin saldo_pendiente por ahora)
             cursor.execute("""
                 INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, 
-                                     fecha_vencimiento, estado, interes_total, saldo_pendiente)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                     fecha_vencimiento, estado, interes_total)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 miembros_dict[miembro_seleccionado],
                 proposito,
@@ -126,8 +126,7 @@ def prestamos_modulo():
                 fecha_desembolso,
                 fecha_vencimiento,
                 estado.lower(),
-                interes_total,
-                monto_total  # Saldo pendiente inicial = monto total
+                interes_total
             ))
 
             con.commit()
@@ -156,7 +155,7 @@ def mostrar_lista_prestamos(id_grupo):
     con = obtener_conexion()
     cursor = con.cursor()
 
-    # Obtener préstamos con información de pagos
+    # Obtener préstamos con información de pagos (sin saldo_pendiente)
     cursor.execute("""
         SELECT 
             P.id_prestamo, 
@@ -167,9 +166,8 @@ def mostrar_lista_prestamos(id_grupo):
             P.fecha_vencimiento, 
             P.estado, 
             P.interes_total,
-            P.saldo_pendiente,
             COALESCE(SUM(PP.capital), 0) as total_pagado,
-            COUNT(PP.id_pago) as numero_pagos
+            COUNT(PP.id_page) as numero_pagos
         FROM prestamos P
         JOIN Miembros M ON M.id_miembro = P.id_miembro
         JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
@@ -177,7 +175,7 @@ def mostrar_lista_prestamos(id_grupo):
         WHERE GM.id_grupo = %s
         GROUP BY P.id_prestamo, M.nombre, P.proposito, P.monto,
                  P.fecha_desembolso, P.fecha_vencimiento, P.estado, 
-                 P.interes_total, P.saldo_pendiente
+                 P.interes_total
         ORDER BY P.estado, P.id_prestamo DESC
     """, (id_grupo,))
 
@@ -194,8 +192,16 @@ def mostrar_lista_prestamos(id_grupo):
     total_prestamos = len(prestamos)
     prestamos_activos = sum(1 for p in prestamos if p[6] == 'activo')
     total_prestado = sum(p[3] for p in prestamos)
-    total_pendiente = sum(p[8] for p in prestamos)
-    total_pagado = sum(p[9] for p in prestamos)
+    total_pagado = sum(p[8] for p in prestamos)
+    
+    # Calcular saldo pendiente para cada préstamo
+    prestamos_con_saldo = []
+    for p in prestamos:
+        monto_total = p[3] + p[7]  # monto + interes_total
+        saldo_pendiente = monto_total - p[8]  # total - pagado
+        prestamos_con_saldo.append(p + (saldo_pendiente,))
+    
+    total_pendiente = sum(p[9] for p in prestamos_con_saldo)
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -212,10 +218,10 @@ def mostrar_lista_prestamos(id_grupo):
     # Tabla detallada de préstamos
     st.subheader("📋 Detalle de Préstamos")
     
-    df = pd.DataFrame(prestamos, columns=[
+    df = pd.DataFrame(prestamos_con_saldo, columns=[
         "ID", "Miembro", "Propósito", "Monto", "Fecha Desembolso", 
-        "Fecha Vencimiento", "Estado", "Interés Total", "Saldo Pendiente", 
-        "Total Pagado", "Número de Pagos"
+        "Fecha Vencimiento", "Estado", "Interés Total", "Total Pagado", 
+        "Número de Pagos", "Saldo Pendiente"
     ])
 
     # Formatear columnas monetarias
@@ -230,8 +236,8 @@ def mostrar_lista_prestamos(id_grupo):
     st.subheader("💳 Registrar Pago")
     
     prestamo_opciones = {}
-    for row in prestamos:
-        texto_opcion = f"{row[1]} - ${row[8]:,.2f} pendientes (Pagado: ${row[9]:,.2f}) - {row[2]}"
+    for row in prestamos_con_saldo:
+        texto_opcion = f"{row[1]} - ${row[9]:,.2f} pendientes (Pagado: ${row[8]:,.2f}) - {row[2]}"
         prestamo_opciones[texto_opcion] = row[0]
 
     if prestamo_opciones:
@@ -254,19 +260,29 @@ def mostrar_formulario_pagos(id_prestamo):
     con = obtener_conexion()
     cursor = con.cursor()
     cursor.execute("""
-        SELECT monto, interes_total, saldo_pendiente, estado
+        SELECT monto, interes_total, estado
         FROM prestamos 
         WHERE id_prestamo = %s
     """, (id_prestamo,))
     prestamo_info = cursor.fetchone()
+    
+    # Calcular total pagado hasta ahora
+    cursor.execute("""
+        SELECT COALESCE(SUM(capital), 0) 
+        FROM prestamo_pagos 
+        WHERE id_prestamo = %s
+    """, (id_prestamo,))
+    total_pagado = cursor.fetchone()[0]
+    
     con.close()
 
     if not prestamo_info:
         st.error("❌ No se encontró información del préstamo")
         return
 
-    monto_original, interes_total, saldo_pendiente, estado = prestamo_info
+    monto_original, interes_total, estado = prestamo_info
     monto_total_original = monto_original + interes_total
+    saldo_pendiente = monto_total_original - total_pagado
 
     # Mostrar información del préstamo
     st.info(f"""
@@ -274,6 +290,7 @@ def mostrar_formulario_pagos(id_prestamo):
     - 💰 Capital original: ${monto_original:,.2f}
     - 📈 Interés total: ${interes_total:,.2f}
     - 💵 Total original: ${monto_total_original:,.2f}
+    - ✅ Total pagado: ${total_pagado:,.2f}
     - 🏦 Saldo pendiente: **${saldo_pendiente:,.2f}**
     - 📊 Estado: {estado.title()}
     """)
@@ -290,7 +307,7 @@ def mostrar_formulario_pagos(id_prestamo):
         con = obtener_conexion()
         cursor = con.cursor()
         cursor.execute("""
-            SELECT COALESCE(MAX(numero_pago), 0) + 1 
+            SELECT COALESCE(MAX(numero_page), 0) + 1 
             FROM prestamo_pagos 
             WHERE id_prestamo = %s
         """, (id_prestamo,))
@@ -302,7 +319,10 @@ def mostrar_formulario_pagos(id_prestamo):
         
         # Mostrar monto máximo que se puede pagar
         st.write(f"**Monto máximo disponible para pago: ${saldo_pendiente:,.2f}**")
-        capital = st.number_input("Monto del pago", min_value=0.01, max_value=float(saldo_pendiente), step=0.01)
+        capital = st.number_input("Monto del pago (capital)", min_value=0.01, max_value=float(saldo_pendiente), step=0.01)
+        
+        # Campo para interés si es necesario
+        interes_pago = st.number_input("Interés pagado (opcional)", min_value=0.00, value=0.00, step=0.01)
 
         estado_pago = st.selectbox("Estado del pago", ["Pagado", "Pendiente"])
 
@@ -313,42 +333,38 @@ def mostrar_formulario_pagos(id_prestamo):
             con = obtener_conexion()
             cursor = con.cursor()
 
-            # Calcular nuevo saldo
-            nuevo_saldo = saldo_pendiente - capital
-            
             # Verificar que no se pague más de lo debido
             if capital > saldo_pendiente:
                 st.error("❌ El monto del pago no puede ser mayor al saldo pendiente")
                 return
 
-            # Registrar el pago
+            # Registrar el pago con los nombres exactos de tus columnas
             cursor.execute("""
-                INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, estado)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO prestamo_pagos (id_prestamo, numero_page, fecha, capital, interes, estado)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 id_prestamo,
                 numero_pago,
                 fecha_pago,
                 capital,
+                interes_pago,
                 estado_pago.lower()
             ))
 
-            # Actualizar saldo pendiente del préstamo
-            cursor.execute("""
-                UPDATE prestamos 
-                SET saldo_pendiente = %s,
-                    estado = CASE 
-                        WHEN %s <= 0 THEN 'finalizado' 
-                        ELSE estado 
-                    END
-                WHERE id_prestamo = %s
-            """, (nuevo_saldo, nuevo_saldo, id_prestamo))
+            # Verificar si el préstamo queda completamente pagado
+            nuevo_total_pagado = total_pagado + capital
+            if nuevo_total_pagado >= monto_total_original:
+                cursor.execute("""
+                    UPDATE prestamos 
+                    SET estado = 'finalizado'
+                    WHERE id_prestamo = %s
+                """, (id_prestamo,))
 
             con.commit()
             st.success(f"✅ Pago registrado correctamente")
-            st.info(f"💰 Nuevo saldo pendiente: ${nuevo_saldo:,.2f}")
+            st.info(f"💰 Nuevo saldo pendiente: ${saldo_pendiente - capital:,.2f}")
             
-            if nuevo_saldo <= 0:
+            if (saldo_pendiente - capital) <= 0:
                 st.balloons()
                 st.success("🎉 ¡Felicidades! El préstamo ha sido completamente pagado")
             
@@ -365,48 +381,66 @@ def mostrar_formulario_pagos(id_prestamo):
 
 
 # =====================================================
-#   HISTORIAL DE PAGOS
+#   HISTORIAL DE PAGOS - CON NOMBRES ORIGINALES
 # =====================================================
 def mostrar_historial_pagos(id_prestamo):
     
-    con = obtener_conexion()
-    cursor = con.cursor()
-    cursor.execute("""
-        SELECT 
-            numero_pago,
-            fecha,
-            capital,
-            estado,
-            fecha_registro
-        FROM prestamo_pagos 
-        WHERE id_prestamo = %s 
-        ORDER BY numero_pago
-    """, (id_prestamo,))
-    
-    pagos = cursor.fetchall()
-    con.close()
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        
+        # Consulta con los nombres exactos de tus columnas
+        cursor.execute("""
+            SELECT 
+                id_page,
+                numero_page, 
+                fecha,
+                capital,
+                interes,
+                estado
+            FROM prestamo_pagos 
+            WHERE id_prestamo = %s 
+            ORDER BY numero_page
+        """, (id_prestamo,))
+        
+        pagos = cursor.fetchall()
+        con.close()
 
-    if pagos:
-        st.subheader("📋 Historial de Pagos")
-        
-        df_pagos = pd.DataFrame(pagos, columns=[
-            "N° Pago", "Fecha", "Monto", "Estado", "Fecha Registro"
-        ])
-        
-        # Formatear columnas
-        df_pagos["Monto"] = df_pagos["Monto"].apply(lambda x: f"${x:,.2f}")
-        df_pagos["Estado"] = df_pagos["Estado"].apply(lambda x: x.title())
-        
-        st.dataframe(df_pagos, use_container_width=True)
-        
-        # Resumen de pagos
-        total_pagado = sum(p[2] for p in pagos)
-        pagos_realizados = len(pagos)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("💰 Total Pagado", f"${total_pagado:,.2f}")
-        with col2:
-            st.metric("📊 Pagos Realizados", pagos_realizados)
-    else:
-        st.info("ℹ️ No se han registrado pagos para este préstamo.")
+        if pagos:
+            st.subheader("📋 Historial de Pagos")
+            
+            # Crear DataFrame con los nombres exactos
+            df_pagos = pd.DataFrame(pagos, columns=[
+                "ID Pago", "N° Pago", "Fecha", "Capital", "Interés", "Estado"
+            ])
+            
+            # Formatear columnas
+            df_pagos["Capital"] = df_pagos["Capital"].apply(lambda x: f"${x:,.2f}")
+            df_pagos["Interés"] = df_pagos["Interés"].apply(lambda x: f"${x:,.2f}")
+            df_pagos["Estado"] = df_pagos["Estado"].apply(lambda x: x.title() if x else "N/A")
+            
+            # Mostrar solo las columnas relevantes
+            columnas_mostrar = ["N° Pago", "Fecha", "Capital", "Interés", "Estado"]
+            st.dataframe(df_pagos[columnas_mostrar], use_container_width=True)
+            
+            # Resumen de pagos
+            total_capital_pagado = sum(p[3] for p in pagos)
+            total_interes_pagado = sum(p[4] for p in pagos)
+            total_pagado = total_capital_pagado + total_interes_pagado
+            pagos_realizados = len(pagos)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("💰 Capital Pagado", f"${total_capital_pagado:,.2f}")
+            with col2:
+                st.metric("📈 Interés Pagado", f"${total_interes_pagado:,.2f}")
+            with col3:
+                st.metric("📊 Total Pagos", pagos_realizados)
+                
+            st.metric("💵 Total Pagado", f"${total_pagado:,.2f}")
+                
+        else:
+            st.info("ℹ️ No se han registrado pagos para este préstamo.")
+            
+    except Exception as e:
+        st.error(f"❌ Error al cargar el historial de pagos: {str(e)}")
