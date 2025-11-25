@@ -122,6 +122,7 @@ div.stButton > button:hover {
         ("👥 Gestión de Miembros", "registrar_miembros", "usuarios_btn"),
         ("📝 Grupos", "grupos", "grupos_btn"),
         ("📜 Reglamento", "reglamento", "documentos_btn"),
+        ("📌 Reuniones", "reuniones", "reuniones_btn"),
         ("📊 Reportes", "reportes", "reportes_btn"),
         ("💸 Multas", "multas", "configuracion_btn"),
         ("📋 Asistencia", "asistencia", "asistencia_btn"),
@@ -129,7 +130,6 @@ div.stButton > button:hover {
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💰 Caja", "caja", "caja_btn"),
         ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
-        ("📌 Reuniones", "reuniones", "reuniones_btn"),
     ]
 
     # -----------------------------------------------------
