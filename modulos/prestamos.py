@@ -69,7 +69,6 @@ def prestamos_modulo():
             monto_maximo_texto = str(reglamento[1]) if reglamento[1] is not None else "No definido"
             plazo_maximo_texto = str(reglamento[2]) if reglamento[2] is not None else "No definido"
             
-            # En la sección donde obtienes el reglamento, cambia el mensaje informativo:
             st.info(f"📊 Reglamento cargado: Interés {interes_por_10}% sobre el monto total")
         else:
             st.warning("⚠️ No se encontró reglamento para este grupo. Se usarán valores por defecto.")
@@ -114,67 +113,67 @@ def prestamos_modulo():
         return
 
     # =====================================================
-#   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON CÁLCULO CORREGIDO
-# =====================================================
-with st.form("form_nuevo_prestamo"):
-    st.subheader("📄 Nuevo Préstamo")
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON CÁLCULO CORREGIDO
+    # =====================================================
+    with st.form("form_nuevo_prestamo"):
+        st.subheader("📄 Nuevo Préstamo")
 
-    miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
-    proposito = st.text_input("Propósito del préstamo")
-    
-    # MONTO SIN LÍMITE AUTOMÁTICO (solo informativo)
-    monto = st.number_input(
-        "Monto del préstamo", 
-        min_value=0.01, 
-        step=0.01,
-        help=f"Monto máximo según reglamento: {monto_maximo_texto}"
-    )
-    
-    fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
-    fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
-
-    # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA
-    st.markdown("**Configuración del Reglamento:**")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.number_input(
-            "Interés (%)",
-            value=interes_por_10,
+        miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
+        proposito = st.text_input("Propósito del préstamo")
+        
+        # MONTO SIN LÍMITE AUTOMÁTICO (solo informativo)
+        monto = st.number_input(
+            "Monto del préstamo", 
+            min_value=0.01, 
             step=0.01,
-            disabled=True,
-            key="interes_reglamento"
+            help=f"Monto máximo según reglamento: {monto_maximo_texto}"
         )
-    with col2:
-        # Mostrar monto máximo como texto
-        st.text_input(
-            "Monto máximo permitido",
-            value=monto_maximo_texto,
-            disabled=True,
-            key="monto_maximo_reglamento"
-        )
-    with col3:
-        # Mostrar plazo máximo como texto
-        st.text_input(
-            "Plazo máximo",
-            value=plazo_maximo_texto,
-            disabled=True,
-            key="plazo_maximo_reglamento"
-        )
+        
+        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
+        fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
 
-    # CALCULAR INTERÉS CORREGIDO - PORCENTAJE SOBRE EL MONTO TOTAL
-    interes_total = (monto * interes_por_10) / 100
-    monto_total = monto + interes_total
+        # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA
+        st.markdown("**Configuración del Reglamento:**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.number_input(
+                "Interés (%)",
+                value=interes_por_10,
+                step=0.01,
+                disabled=True,
+                key="interes_reglamento"
+            )
+        with col2:
+            # Mostrar monto máximo como texto
+            st.text_input(
+                "Monto máximo permitido",
+                value=monto_maximo_texto,
+                disabled=True,
+                key="monto_maximo_reglamento"
+            )
+        with col3:
+            # Mostrar plazo máximo como texto
+            st.text_input(
+                "Plazo máximo",
+                value=plazo_maximo_texto,
+                disabled=True,
+                key="plazo_maximo_reglamento"
+            )
 
-    # Mostrar resumen del préstamo
-    st.markdown("**Resumen del Préstamo:**")
-    col_res1, col_res2 = st.columns(2)
-    with col_res1:
-        st.info(f"💰 **Capital:** ${monto:,.2f}")
-        st.info(f"📈 **Interés ({interes_por_10}%):** ${interes_total:,.2f}")
-    with col_res2:
-        st.success(f"💵 **Total a pagar:** ${monto_total:,.2f}")
+        # CALCULAR INTERÉS CORREGIDO - PORCENTAJE SOBRE EL MONTO TOTAL
+        interes_total = (monto * interes_por_10) / 100
+        monto_total = monto + interes_total
 
-    enviar = st.form_submit_button("💾 Guardar Préstamo")
+        # Mostrar resumen del préstamo
+        st.markdown("**Resumen del Préstamo:**")
+        col_res1, col_res2 = st.columns(2)
+        with col_res1:
+            st.info(f"💰 **Capital:** ${monto:,.2f}")
+            st.info(f"📈 **Interés ({interes_por_10}%):** ${interes_total:,.2f}")
+        with col_res2:
+            st.success(f"💵 **Total a pagar:** ${monto_total:,.2f}")
+
+        enviar = st.form_submit_button("💾 Guardar Préstamo")
 
     # BOTÓN REGRESAR - FUERA DEL FORMULARIO
     st.write("")
