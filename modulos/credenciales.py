@@ -59,21 +59,23 @@ def eliminar_usuario(usuario):
             conn.close()
 
 # ==========================
-# FUNCIÓN PARA OBTENER USUARIOS
+# FUNCIÓN PARA OBTENER USUARIOS (EXCLUYE MIEMBROS Y DARK)
 # ==========================
 def obtener_usuarios(filtro_rol=None):
-    """Obtiene todos los usuarios, opcionalmente filtrados por rol (excluye al desarrollador)"""
+    """Obtiene usuarios excluyendo 'Miembro' y 'Dark'"""
     try:
         conn = get_connection()
         cursor = conn.cursor()
         
         if filtro_rol and filtro_rol != "Todos":
             cursor.execute(
-                "SELECT Usuario, Rol FROM Administradores WHERE Rol = %s AND Usuario != 'Dark' ORDER BY Usuario",
+                "SELECT Usuario, Rol FROM Administradores WHERE Rol = %s AND Usuario != 'Dark' AND Rol != 'Miembro' ORDER BY Usuario",
                 (filtro_rol,)
             )
         else:
-            cursor.execute("SELECT Usuario, Rol FROM Administradores WHERE Usuario != 'Dark' ORDER BY Usuario")
+            cursor.execute(
+                "SELECT Usuario, Rol FROM Administradores WHERE Usuario != 'Dark' AND Rol != 'Miembro' ORDER BY Usuario"
+            )
             
         usuarios = cursor.fetchall()
         return usuarios
@@ -85,16 +87,16 @@ def obtener_usuarios(filtro_rol=None):
         conn.close()
 
 # ==========================
-# FUNCIÓN PARA OBTENER ESTADÍSTICAS (incluye todos los usuarios)
+# FUNCIÓN PARA OBTENER ESTADÍSTICAS (excluye Miembro y Dark)
 # ==========================
 def obtener_estadisticas():
-    """Obtiene estadísticas incluyendo todos los usuarios"""
+    """Obtiene estadísticas excluyendo 'Miembro' y 'Dark'"""
     try:
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Total de usuarios (excluyendo Dark)
-        cursor.execute("SELECT COUNT(*) FROM Administradores WHERE Usuario != 'Dark'")
+        # Total de usuarios (excluyendo Dark y Miembro)
+        cursor.execute("SELECT COUNT(*) FROM Administradores WHERE Usuario != 'Dark' AND Rol != 'Miembro'")
         total_usuarios = cursor.fetchone()[0]
         
         # Usuarios institucionales (excluyendo Dark)
@@ -117,6 +119,18 @@ def obtener_estadisticas():
 # MÓDULO DE CREDENCIALES
 # ==========================
 def pagina_credenciales():
+    # VERIFICAR QUE EL USUARIO TENGA ROL INSTITUCIONAL
+    rol_usuario_actual = st.session_state.get("rol", "").lower()
+    
+    if rol_usuario_actual != "institucional":
+        st.error("❌ Acceso denegado. Solo los usuarios con rol 'Institucional' pueden acceder a este módulo.")
+        
+        # Botón para regresar al menú
+        if st.button("⬅️ Regresar al menú"):
+            st.session_state["page"] = "menu"
+            st.rerun()
+        return
+
     # TÍTULO CENTRADO
     st.markdown(
         "<h1 style='text-align: center; color:#4C3A60;'>Registro de nuevas credenciales</h1>",
@@ -130,7 +144,6 @@ def pagina_credenciales():
     
     st.write("---")
     st.subheader("➕ Registrar nueva credencial")
-
 
     # FORMULARIO DE REGISTRO
     usuario = st.text_input("Usuario").strip()
@@ -186,7 +199,7 @@ def pagina_credenciales():
     # SECCIÓN DE LISTA DE USUARIOS
     st.subheader("👥 Lista de usuarios con acceso")
     
-    # FILTRO POR ROL
+    # FILTRO POR ROL (solo Institucional y Promotor)
     col1, col2 = st.columns([1, 3])
     with col1:
         filtro_rol = st.selectbox(
@@ -195,7 +208,7 @@ def pagina_credenciales():
             key="filtro_rol"
         )
     
-    # OBTENER USUARIOS (excluye Dark)
+    # OBTENER USUARIOS (excluye Miembro y Dark)
     usuarios = obtener_usuarios(filtro_rol)
     
     if usuarios:
@@ -241,11 +254,11 @@ def pagina_credenciales():
     else:
         st.info("No hay usuarios registrados con los filtros seleccionados.")
     
-    # ESTADÍSTICAS CENTRADAS (excluye Dark)
+    # ESTADÍSTICAS CENTRADAS (excluye Miembro y Dark)
     st.write("---")
     st.subheader("📊 Estadísticas")
     
-    # Obtener estadísticas (excluyendo Dark)
+    # Obtener estadísticas (excluyendo Miembro y Dark)
     total_usuarios, usuarios_institucionales, usuarios_promotores = obtener_estadisticas()
     
     col_stats1, col_stats2, col_stats3 = st.columns(3)
