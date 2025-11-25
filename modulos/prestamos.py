@@ -188,7 +188,7 @@ def mostrar_lista_prestamos(id_grupo):
             cursor.execute("""
                 SELECT 
                     COALESCE(SUM(capital), 0) as total_pagado,
-                    COUNT(id_page) as numero_pagos
+                    COUNT(id_pago) as numero_pagos
                 FROM prestamo_pagos 
                 WHERE id_prestamo = %s
             """, (id_prestamo,))
@@ -266,7 +266,7 @@ def mostrar_lista_prestamos(id_grupo):
 
 
 # =====================================================
-#   FORMULARIO MEJORADO DE PAGOS
+#   FORMULARIO MEJORADO DE PAGOS - CORREGIDO
 # =====================================================
 def mostrar_formulario_pagos(id_prestamo):
     try:
@@ -321,7 +321,7 @@ def mostrar_formulario_pagos(id_prestamo):
             con = obtener_conexion()
             cursor = con.cursor()
             cursor.execute("""
-                SELECT COALESCE(MAX(numero_page), 0) + 1 
+                SELECT COALESCE(MAX(numero_pago), 0) + 1 
                 FROM prestamo_pagos 
                 WHERE id_prestamo = %s
             """, (id_prestamo,))
@@ -354,7 +354,7 @@ def mostrar_formulario_pagos(id_prestamo):
 
                 # Registrar el pago con los nombres exactos de tus columnas
                 cursor.execute("""
-                    INSERT INTO prestamo_pagos (id_prestamo, numero_page, fecha, capital, interes, estado)
+                    INSERT INTO prestamo_pagos (id_prestamo, numero_pago, fecha, capital, interes, estado)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (
                     id_prestamo,
@@ -398,7 +398,7 @@ def mostrar_formulario_pagos(id_prestamo):
 
 
 # =====================================================
-#   HISTORIAL DE PAGOS - CON NOMBRES ORIGINALES
+#   HISTORIAL DE PAGOS - CON NOMBRES EXACTOS
 # =====================================================
 def mostrar_historial_pagos(id_prestamo):
     try:
@@ -408,15 +408,15 @@ def mostrar_historial_pagos(id_prestamo):
         # Consulta con los nombres exactos de tus columnas
         cursor.execute("""
             SELECT 
-                id_page,
-                numero_page, 
+                id_pago,
+                numero_pago, 
                 fecha,
                 capital,
                 interes,
                 estado
             FROM prestamo_pagos 
             WHERE id_prestamo = %s 
-            ORDER BY numero_page
+            ORDER BY numero_pago
         """, (id_prestamo,))
         
         pagos = cursor.fetchall()
