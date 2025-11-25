@@ -203,7 +203,7 @@ def mostrar_ahorro_final(id_grupo):
     # Título principal con nombre del grupo
     st.markdown(f"""
     <div style='text-align: center;'>
-        <h1>💰 Módulo de ahorro</h1>
+        <h1>💰 Gestión de ahorro</h1>
         <h3 style='color: #4C3A60; margin-top: -10px;'>Grupo: {nombre_grupo}</h3>
     </div>
     """, unsafe_allow_html=True)
