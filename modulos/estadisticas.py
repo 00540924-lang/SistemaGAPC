@@ -84,6 +84,12 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                 estadisticas['prestamos_activos']
             )
             
+            # Calcular total egresos
+            estadisticas['total_egresos'] = (
+                estadisticas['total_retiros'] + 
+                estadisticas['prestamos_activos']
+            )
+            
             # Porcentajes
             if estadisticas['total_multas'] > 0:
                 estadisticas['porcentaje_multas_pagadas'] = (
@@ -99,7 +105,11 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                     estadisticas['total_prestamos_registrados'] * 100
                 )
             else:
-                estadisticas['porcentaje_prestamos_pagados'] = 0
+                # Si no hay préstamos registrados pero sí hay pagos, considerar como 100%
+                if estadisticas['prestamos_pagados'] > 0:
+                    estadisticas['porcentaje_prestamos_pagados'] = 100
+                else:
+                    estadisticas['porcentaje_prestamos_pagados'] = 0
         
         return estadisticas or {}
         
@@ -364,7 +374,7 @@ def mostrar_estadisticas(id_grupo):
         )
 
     # ===============================
-    # 2. KPI PRINCIPALES
+    # 2. KPI PRINCIPALES - CORREGIDOS
     # ===============================
     st.subheader("📈 Métricas Principales")
     
@@ -398,13 +408,34 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col4:
+            # CORRECCIÓN: Obtener el número real de miembros del grupo
+            conn = obtener_conexion()
+            total_miembros_real = 0
+            if conn:
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT COUNT(*) 
+                        FROM Grupomiembros 
+                        WHERE id_grupo = %s
+                    """, (id_grupo,))
+                    total_miembros_real = cursor.fetchone()[0]
+                    cursor.close()
+                except:
+                    total_miembros_real = stats.get('total_miembros', 0)
+                finally:
+                    if conn.is_connected():
+                        conn.close()
+            else:
+                total_miembros_real = stats.get('total_miembros', 0)
+            
             st.metric(
                 "👥 Miembros Activos", 
-                f"{stats.get('total_miembros', 0)}",
+                f"{total_miembros_real}",
                 help="Número total de miembros en el grupo"
             )
 
-        # Segunda fila de KPIs
+        # Segunda fila de KPIs - CORREGIDA
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -423,7 +454,12 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col3:
+            # CORRECCIÓN: Forzar 100% si todos los préstamos están pagados
             porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
+            # Si hay préstamos pagados y no hay préstamos activos, mostrar 100%
+            if stats.get('prestamos_pagados', 0) > 0 and stats.get('prestamos_activos', 0) == 0:
+                porcentaje_prestamos = 100.0
+                
             st.metric(
                 "✅ Préstamos Pagados", 
                 f"{porcentaje_prestamos:.1f}%",
@@ -431,10 +467,12 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col4:
+            # NUEVA MÉTRICA: Total Egresos
+            total_egresos = stats.get('total_egresos', 0)
             st.metric(
-                "📋 Total Operaciones", 
-                f"{stats.get('total_registros_ahorro', 0) + stats.get('total_multas_registradas', 0) + stats.get('total_prestamos_registrados', 0)}",
-                help="Suma de todas las operaciones registradas"
+                "📉 Total Egresos", 
+                f"${total_egresos:,.2f}",
+                help="Total de retiros y préstamos activos"
             )
 
     # ===============================
@@ -587,7 +625,7 @@ def mostrar_estadisticas(id_grupo):
             st.markdown("#### 🟥 Salidas de Dinero")
             st.write(f"**Retiros:** ${stats.get('total_retiros', 0):,.2f}")
             st.write(f"**Préstamos Activos:** ${stats.get('prestamos_activos', 0):,.2f}")
-            st.write(f"**Total Salidas:** ${stats.get('total_retiros', 0) + stats.get('prestamos_activos', 0):,.2f}")
+            st.write(f"**Total Egresos:** ${stats.get('total_egresos', 0):,.2f}")
         
         st.markdown("---")
         st.markdown(f"#### 📊 Resumen General")
