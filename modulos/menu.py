@@ -145,17 +145,17 @@ div.stButton > button:hover {
     elif rol_l == "institucional":
         # Para institucional: excluir módulos específicos pero INCLUIR cierre_ciclo desde la lista base
         modulos = [m for m in modulos_base if m[1] not in [
-            "caja", "multas", "prestamos", "reglamento", "asistencia", 
+            "caja", "multas", "prestamos", "reglamento","cierre_ciclo", "asistencia", 
             "registrar_miembros", "reuniones", "ahorro_final", "estadisticas"
         ]]
     elif rol_l == "promotor":
         # Para promotor: solo los módulos específicos + cierre_ciclo
-        modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes", "cierre_ciclo"]]
+        modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes"]]
     elif rol_l == "miembro":
         # Para miembro: módulos específicos (sin cierre_ciclo)
         modulos = [m for m in modulos_base if m[1] in [
             "reglamento", "caja", "multas", "prestamos", "ahorro_final", 
-            "reuniones", "registrar_miembros", "estadisticas"
+            "reuniones", "registrar_miembros", "estadisticas", "cierre_ciclo"
         ]]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
