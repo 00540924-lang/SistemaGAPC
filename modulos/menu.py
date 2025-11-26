@@ -62,6 +62,7 @@ div.stButton > button:hover {
 #reuniones_btn > button { background-color: #FF5252 !important; }
 #reportes_financieros_btn > button { background-color: #7B1FA2 !important; }
 #estadisticas_btn > button { background-color: #4CAF50 !important; }
+#cierre_ciclo_btn > button { background-color: #FF6D00 !important; }
 
 /* Logout */
 #logout_btn > button {
@@ -132,7 +133,8 @@ div.stButton > button:hover {
         ("💼 Préstamos", "prestamos", "prestamos_btn"),
         ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
         ("💰 Caja", "caja", "caja_btn"),
-        ("📈 Estadísticas", "estadisticas", "estadisticas_btn"),  # NUEVO MÓDULO
+        ("📈 Estadísticas", "estadisticas", "estadisticas_btn"),
+        ("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"),  # NUEVO MÓDULO
     ]
 
     # -----------------------------------------------------
@@ -142,10 +144,15 @@ div.stButton > button:hover {
         modulos = modulos_base
     elif rol_l == "institucional":
         modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final","estadisticas"]]
+        # Agregar cierre de ciclo para institucional
+        modulos.append(("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"))
     elif rol_l == "promotor":
         modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes"]]
+        # Agregar cierre de ciclo para promotor
+        modulos.append(("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"))
     elif rol_l == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "caja", "multas", "prestamos", "ahorro_final", "reuniones", "registrar_miembros", "estadisticas"]]  # AGREGADO estadisticas
+        modulos = [m for m in modulos_base if m[1] in ["reglamento", "caja", "multas", "prestamos", "ahorro_final", "reuniones", "registrar_miembros", "estadisticas"]]
+        # Los miembros NO tienen acceso al cierre de ciclo
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
