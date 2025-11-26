@@ -307,13 +307,19 @@ def vista_cierre_ciclo():
     """
     Módulo de Cierre de Ciclo - Dashboard principal
     """
-    # Verificar permisos
+    # Verificar permisos - CORREGIDO: Solo miembros pueden acceder
     rol = st.session_state.get("rol", "").lower()
     usuario = st.session_state.get("usuario", "")
     id_grupo = st.session_state.get("id_grupo")
     
-    if rol not in ["promotor", "institucional"] and usuario != "dark":
-        st.error("❌ No tiene permisos para acceder a este módulo.")
+    # SOLO MIEMBROS pueden acceder
+    if rol != "miembro":
+        st.error("❌ No tiene permisos para acceder a este módulo. Solo los miembros pueden realizar cierres de ciclo.")
+        return
+    
+    # Verificar que el miembro tenga grupo asignado
+    if not id_grupo:
+        st.error("⚠️ No se encontró el grupo del usuario. Contacte al administrador.")
         return
     
     st.markdown("""
@@ -331,24 +337,10 @@ def vista_cierre_ciclo():
     col1, col2 = st.columns(2)
     
     with col1:
-        # Selección de grupo
-        if rol == "institucional" or usuario == "dark":
-            grupos = obtener_todos_los_grupos()
-            if grupos:
-                opciones_grupos = {f"{nombre}": id_grupo for id_grupo, nombre in grupos}
-                grupo_seleccionado = st.selectbox(
-                    "👥 Seleccione el grupo:",
-                    options=list(opciones_grupos.keys())
-                )
-                id_grupo_seleccionado = opciones_grupos[grupo_seleccionado]
-            else:
-                st.warning("No se encontraron grupos en el sistema.")
-                return
-        else:
-            # Para promotores, usar su grupo asignado
-            id_grupo_seleccionado = id_grupo
-            grupo_seleccionado = obtener_nombre_grupo(id_grupo)
-            st.info(f"**Grupo asignado:** {grupo_seleccionado}")
+        # Para miembros, usar su grupo asignado automáticamente
+        id_grupo_seleccionado = id_grupo
+        grupo_seleccionado = obtener_nombre_grupo(id_grupo)
+        st.info(f"**Grupo asignado:** {grupo_seleccionado}")
     
     with col2:
         fecha_cierre = st.date_input(
