@@ -304,195 +304,6 @@ def validar_cierre_ciclo(datos_cierre):
     
     return errores
 
-def ejecutar_cierre_ciclo(datos_cierre, fecha_inicio, fecha_fin, usuario):
-    """
-    Ejecuta el cierre de ciclo en la base de datos
-    """
-    try:
-        conn = obtener_conexion()
-        if not conn:
-            return False, "Error de conexión a la base de datos"
-            
-        cursor = conn.cursor()
-        
-        # Calcular el total entregado a todas las socias
-        total_entregado_grupo = sum(socia.get('total_a_entregar', 0) for socia in datos_cierre.get('miembros', []))
-        
-        # 1. Registrar el cierre de ciclo en la tabla principal
-        cursor.execute("""
-            INSERT INTO cierre_ciclo 
-            (id_grupo, fecha_inicio, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre, total_entregado)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            datos_cierre['grupo_info']['id_grupo'],
-            fecha_inicio,
-            fecha_fin,
-            float(datos_cierre['totales_grupales']['total_ahorro_grupo']),
-            float(datos_cierre['totales_grupales']['fondo_grupal_total']),
-            float(datos_cierre['totales_grupales']['monto_por_socia']),
-            usuario,
-            float(total_entregado_grupo)
-        ))
-        
-        # Obtener el ID del cierre recién insertado
-        id_cierre = cursor.lastrowid
-        
-        # 2. Registrar detalle por cada socia
-        for socia in datos_cierre['miembros']:
-            cursor.execute("""
-                INSERT INTO cierre_ciclo_detalle 
-                (id_cierre, id_miembro, ahorros_individuales, monto_fondo_grupal, 
-                 total_entregado, entregado)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
-                id_cierre,
-                socia['id_miembro'],
-                float(socia['ahorros_individuales']),
-                float(socia['monto_fondo_grupal']),
-                float(socia['total_a_entregar']),
-                1 if socia.get('entregado', False) else 0
-            ))
-            
-            # 3. ACTUALIZAR SALDOS: Registrar retiro total en ahorro_final
-            if socia['total_a_entregar'] > 0:
-                cursor.execute("""
-                    INSERT INTO ahorro_final 
-                    (id_grupo, id_miembro, fecha_registro, ahorros, retiros, actividades)
-                    VALUES (%s, %s, %s, 0, %s, 0)
-                """, (
-                    datos_cierre['grupo_info']['id_grupo'],
-                    socia['id_miembro'],
-                    fecha_fin,
-                    float(socia['total_a_entregar'])  # Retiro total
-                ))
-        
-        # 4. OPCIONAL: Resetear multas pendientes (marcar como pagadas si es necesario)
-        cursor.execute("""
-            UPDATE Multas 
-            SET pagada = 1 
-            WHERE id_miembro IN (
-                SELECT M.id_miembro 
-                FROM Miembros M 
-                JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro 
-                WHERE GM.id_grupo = %s
-            ) AND pagada = 0
-        """, (datos_cierre['grupo_info']['id_grupo'],))
-        
-        # Confirmar los cambios en la base de datos
-        conn.commit()
-        conn.close()
-        
-        return True, f"✅ Cierre de ciclo ejecutado exitosamente. ID: {id_cierre}"
-        
-    except Exception as e:
-        # Si hay error, revertir los cambios
-        if conn:
-            conn.rollback()
-            conn.close()
-        return False, f"❌ Error al ejecutar cierre de ciclo: {str(e)}"
-
-def obtener_historial_cierres(id_grupo=None):
-    """
-    Obtiene el historial de cierres de ciclo
-    """
-    try:
-        conn = obtener_conexion()
-        if not conn:
-            return None
-            
-        cursor = conn.cursor(dictionary=True)
-        
-        if id_grupo:
-            # Obtener cierres de un grupo específico
-            cursor.execute("""
-                SELECT 
-                    cc.id_cierre,
-                    g.Nombre_grupo,
-                    cc.fecha_inicio,
-                    cc.fecha_cierre,
-                    cc.total_ahorro,
-                    cc.total_fondo,
-                    cc.monto_por_socia,
-                    cc.usuario_cierre,
-                    cc.fecha_registro,
-                    COUNT(ccd.id_detalle) as total_socias,
-                    SUM(ccd.entregado) as socias_entregadas
-                FROM cierre_ciclo cc
-                JOIN Grupos g ON cc.id_grupo = g.id_grupo
-                LEFT JOIN cierre_ciclo_detalle ccd ON cc.id_cierre = ccd.id_cierre
-                WHERE cc.id_grupo = %s
-                GROUP BY cc.id_cierre
-                ORDER BY cc.fecha_cierre DESC
-            """, (id_grupo,))
-        else:
-            # Obtener todos los cierres
-            cursor.execute("""
-                SELECT 
-                    cc.id_cierre,
-                    g.Nombre_grupo,
-                    cc.fecha_inicio,
-                    cc.fecha_cierre,
-                    cc.total_ahorro,
-                    cc.total_fondo,
-                    cc.monto_por_socia,
-                    cc.usuario_cierre,
-                    cc.fecha_registro,
-                    COUNT(ccd.id_detalle) as total_socias,
-                    SUM(ccd.entregado) as socias_entregadas
-                FROM cierre_ciclo cc
-                JOIN Grupos g ON cc.id_grupo = g.id_grupo
-                LEFT JOIN cierre_ciclo_detalle ccd ON cc.id_cierre = ccd.id_cierre
-                GROUP BY cc.id_cierre
-                ORDER BY cc.fecha_cierre DESC
-            """)
-        
-        historial = cursor.fetchall()
-        conn.close()
-        
-        return historial
-        
-    except Exception as e:
-        st.error(f"Error al obtener historial de cierres: {e}")
-        return None
-
-def mostrar_historial_cierres():
-    """
-    Muestra el historial de cierres de ciclo
-    """
-    st.markdown("### 📋 Historial de Cierres de Ciclo")
-    
-    rol = st.session_state.get("rol", "").lower()
-    id_grupo = st.session_state.get("id_grupo")
-    
-    # Obtener historial según el rol
-    if rol == "miembro":
-        historial = obtener_historial_cierres(id_grupo)
-    else:
-        historial = obtener_historial_cierres()
-    
-    if not historial:
-        st.info("No hay cierres de ciclo registrados.")
-        return
-    
-    # Preparar datos para mostrar
-    datos_historial = []
-    for cierre in historial:
-        datos_historial.append({
-            'ID': cierre['id_cierre'],
-            'Grupo': cierre['Nombre_grupo'],
-            'Fecha Inicio': cierre['fecha_inicio'],
-            'Fecha Cierre': cierre['fecha_cierre'],
-            'Total Ahorro': f"${cierre['total_ahorro']:,.2f}",
-            'Total Fondo': f"${cierre['total_fondo']:,.2f}",
-            'Monto por Socia': f"${cierre['monto_por_socia']:,.2f}",
-            'Socias': f"{cierre['socias_entregadas']}/{cierre['total_socias']}",
-            'Usuario': cierre['usuario_cierre'],
-            'Fecha Registro': cierre['fecha_registro'].strftime('%Y-%m-%d %H:%M')
-        })
-    
-    df = pd.DataFrame(datos_historial)
-    st.dataframe(df, use_container_width=True)
-
 def vista_cierre_ciclo():
     """
     Módulo de Cierre de Ciclo - Dashboard principal
@@ -519,124 +330,89 @@ def vista_cierre_ciclo():
     </div>
     """, unsafe_allow_html=True)
     
-    # Pestañas para diferentes funcionalidades
-    tab_cierre, tab_historial = st.tabs(["🔄 Realizar Cierre", "📋 Ver Historial"])
+    # ===============================
+    # 1. CONFIGURACIÓN INICIAL
+    # ===============================
+    st.subheader("🎛️ Configuración del Cierre")
     
-    with tab_cierre:
-        # ===============================
-        # 1. CONFIGURACIÓN INICIAL
-        # ===============================
-        st.subheader("🎛️ Configuración del Cierre")
+    # Usar claves únicas para evitar conflictos
+    col_config1, col_config2 = st.columns(2)
+    
+    with col_config1:
+        # Para miembros, usar su grupo asignado automáticamente
+        id_grupo_seleccionado = id_grupo
+        grupo_seleccionado = obtener_nombre_grupo(id_grupo)
+        st.info(f"**Grupo asignado:** {grupo_seleccionado}")
+    
+    with col_config2:
+        # Calcular fechas por defecto (último mes)
+        hoy = date.today()
+        primer_dia_mes_actual = date(hoy.year, hoy.month, 1)
+        ultimo_dia_mes_anterior = primer_dia_mes_actual - pd.Timedelta(days=1)
+        primer_dia_mes_anterior = date(ultimo_dia_mes_anterior.year, ultimo_dia_mes_anterior.month, 1)
         
-        # Usar claves únicas para evitar conflictos
-        col_config1, col_config2 = st.columns(2)
+        fecha_inicio = st.date_input(
+            "📅 Fecha de inicio del ciclo",
+            primer_dia_mes_anterior,
+            key="cierre_fecha_inicio"
+        )
         
-        with col_config1:
-            # Para miembros, usar su grupo asignado automáticamente
-            id_grupo_seleccionado = id_grupo
-            grupo_seleccionado = obtener_nombre_grupo(id_grupo)
-            st.info(f"**Grupo asignado:** {grupo_seleccionado}")
+        fecha_fin = st.date_input(
+            "📅 Fecha de cierre del ciclo",
+            ultimo_dia_mes_anterior,
+            key="cierre_fecha_fin"
+        )
         
-        with col_config2:
-            # Calcular fechas por defecto (último mes)
-            hoy = date.today()
-            primer_dia_mes_actual = date(hoy.year, hoy.month, 1)
-            ultimo_dia_mes_anterior = primer_dia_mes_actual - pd.Timedelta(days=1)
-            primer_dia_mes_anterior = date(ultimo_dia_mes_anterior.year, ultimo_dia_mes_anterior.month, 1)
+        # Validar que la fecha de inicio sea anterior a la fecha de fin
+        if fecha_inicio >= fecha_fin:
+            st.error("❌ La fecha de inicio debe ser anterior a la fecha de cierre")
+    
+    # ===============================
+    # 2. OBTENER Y MOSTRAR DATOS
+    # ===============================
+    if st.button("🔄 Cargar Datos para Cierre", type="primary", key="btn_cargar_datos"):
+        if fecha_inicio >= fecha_fin:
+            st.error("❌ Por favor, corrija las fechas antes de continuar")
+        else:
+            with st.spinner("Cargando datos del ciclo..."):
+                datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_inicio, fecha_fin)
+                
+                if datos_cierre:
+                    # Usar un diccionario temporal en lugar de session_state
+                    st.session_state.cierre_info = {
+                        'datos': datos_cierre,
+                        'fecha_inicio': fecha_inicio,
+                        'fecha_fin': fecha_fin,
+                        'grupo': id_grupo_seleccionado
+                    }
+                    st.success("✅ Datos cargados exitosamente")
+                else:
+                    st.error("❌ No se pudieron cargar los datos para el cierre")
+    
+    # ===============================
+    # 3. PROCESAR CIERRE SI HAY DATOS
+    # ===============================
+    if 'cierre_info' in st.session_state:
+        datos_cierre = st.session_state.cierre_info['datos']
+        
+        # Mostrar resumen
+        mostrar_resumen_cierre(datos_cierre)
+        
+        # Mostrar formulario editable
+        datos_cierre_actualizado = mostrar_formulario_cierre(datos_cierre)
+        
+        # Botón para validar cierre
+        st.markdown("---")
+        st.subheader("✅ Validar Cierre")
+        
+        if st.button("🔍 Validar Cierre", type="primary", use_container_width=True, key="btn_validar_cierre"):
+            errores = validar_cierre_ciclo(datos_cierre_actualizado)
             
-            fecha_inicio = st.date_input(
-                "📅 Fecha de inicio del ciclo",
-                primer_dia_mes_anterior,
-                key="cierre_fecha_inicio"
-            )
-            
-            fecha_fin = st.date_input(
-                "📅 Fecha de cierre del ciclo",
-                ultimo_dia_mes_anterior,
-                key="cierre_fecha_fin"
-            )
-            
-            # Validar que la fecha de inicio sea anterior a la fecha de fin
-            if fecha_inicio >= fecha_fin:
-                st.error("❌ La fecha de inicio debe ser anterior a la fecha de cierre")
-        
-        # ===============================
-        # 2. OBTENER Y MOSTRAR DATOS
-        # ===============================
-        if st.button("🔄 Cargar Datos para Cierre", type="primary", key="btn_cargar_datos"):
-            if fecha_inicio >= fecha_fin:
-                st.error("❌ Por favor, corrija las fechas antes de continuar")
+            if errores:
+                for error in errores:
+                    st.error(f"❌ {error}")
             else:
-                with st.spinner("Cargando datos del ciclo..."):
-                    datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_inicio, fecha_fin)
-                    
-                    if datos_cierre:
-                        # Usar un diccionario temporal en lugar de session_state
-                        st.session_state.cierre_info = {
-                            'datos': datos_cierre,
-                            'fecha_inicio': fecha_inicio,
-                            'fecha_fin': fecha_fin,
-                            'grupo': id_grupo_seleccionado
-                        }
-                        st.success("✅ Datos cargados exitosamente")
-                    else:
-                        st.error("❌ No se pudieron cargar los datos para el cierre")
-        
-        # ===============================
-        # 3. PROCESAR CIERRE SI HAY DATOS
-        # ===============================
-        if 'cierre_info' in st.session_state:
-            datos_cierre = st.session_state.cierre_info['datos']
-            
-            # Mostrar resumen
-            mostrar_resumen_cierre(datos_cierre)
-            
-            # Mostrar formulario editable
-            datos_cierre_actualizado = mostrar_formulario_cierre(datos_cierre)
-            
-            # Botón para validar y ejecutar cierre
-            st.markdown("---")
-            st.subheader("✅ Confirmar y Ejecutar Cierre")
-            
-            col_botones1, col_botones2 = st.columns([1, 1])
-            
-            with col_botones1:
-                if st.button("🔍 Validar Cierre", use_container_width=True, key="btn_validar_cierre"):
-                    errores = validar_cierre_ciclo(datos_cierre_actualizado)
-                    
-                    if errores:
-                        for error in errores:
-                            st.error(f"❌ {error}")
-                    else:
-                        st.success("✅ Validación exitosa. Todas las socias han sido marcadas como entregadas.")
-            
-            with col_botones2:
-                if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True, key="btn_ejecutar_cierre"):
-                    # Validar antes de ejecutar
-                    errores = validar_cierre_ciclo(datos_cierre_actualizado)
-                    if errores:
-                        for error in errores:
-                            st.error(f"❌ {error}")
-                    else:
-                        with st.spinner("Ejecutando cierre de ciclo..."):
-                            exito, mensaje = ejecutar_cierre_ciclo(
-                                datos_cierre_actualizado, 
-                                st.session_state.cierre_info['fecha_inicio'],
-                                st.session_state.cierre_info['fecha_fin'],
-                                usuario
-                            )
-                            
-                            if exito:
-                                st.success(f"✅ {mensaje}")
-                                st.balloons()
-                                # Limpiar datos de sesión
-                                if 'cierre_info' in st.session_state:
-                                    del st.session_state.cierre_info
-                            else:
-                                st.error(f"❌ {mensaje}")
-    
-    with tab_historial:
-        mostrar_historial_cierres()
+                st.success("✅ Validación exitosa. Todas las socias han sido marcadas como entregadas.")
     
     # ===============================
     # 4. BOTÓN REGRESAR
