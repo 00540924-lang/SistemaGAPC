@@ -347,30 +347,44 @@ def mostrar_kpis_promotor(estadisticas, nombre_grupo):
             delta_color=color_saldo
         )
 
-def mostrar_kpis_institucional(estadisticas_distritos):
+def mostrar_kpis_institucional(estadisticas_distritos, distrito_seleccionado="Todos"):
     """Muestra KPIs para institucional con diseño mejorado"""
     st.markdown("### 📊 Métricas por Distrito")
     
-    # Calcular totales generales
-    total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_distritos)
-    total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_distritos)
-    total_saldo = total_ingresos - total_egresos
+    # Filtrar datos si se seleccionó un distrito específico
+    if distrito_seleccionado != "Todos":
+        estadisticas_filtradas = [stats for stats in estadisticas_distritos if stats['distrito'] == distrito_seleccionado]
+        if not estadisticas_filtradas:
+            st.warning(f"No se encontraron datos para el distrito: {distrito_seleccionado}")
+            return
+        # Usar el primer (y único) elemento del distrito seleccionado
+        stats = estadisticas_filtradas[0]
+        total_ingresos = stats['ingresos']['total']
+        total_egresos = stats['egresos']['total']
+        total_saldo = stats['saldo_neto']
+        titulo_sufijo = f" - {distrito_seleccionado}"
+    else:
+        # Calcular totales generales para todos los distritos
+        total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_distritos)
+        total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_distritos)
+        total_saldo = total_ingresos - total_egresos
+        titulo_sufijo = ""
     
     # KPIs en 3 columnas
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric(
-            "💰 Ingresos Totales", 
+            f"💰 Ingresos Totales{titulo_sufijo}", 
             f"${total_ingresos:,.2f}",
-            help="Suma de ingresos de todos los distritos"
+            help="Suma de ingresos" + (" del distrito" if distrito_seleccionado != "Todos" else " de todos los distritos")
         )
     
     with col2:
         st.metric(
-            "💸 Egresos Totales", 
+            f"💸 Egresos Totales{titulo_sufijo}", 
             f"${total_egresos:,.2f}",
-            help="Suma de egresos de todos los distritos",
+            help="Suma de egresos" + (" del distrito" if distrito_seleccionado != "Todos" else " de todos los distritos"),
             delta=f"-${total_egresos:,.2f}",
             delta_color="inverse"
         )
@@ -378,9 +392,9 @@ def mostrar_kpis_institucional(estadisticas_distritos):
     with col3:
         color_saldo = "normal" if total_saldo >= 0 else "inverse"
         st.metric(
-            "🏦 Saldo Neto Total", 
+            f"🏦 Saldo Neto Total{titulo_sufijo}", 
             f"${total_saldo:,.2f}",
-            help="Saldo neto total de todos los distritos",
+            help="Saldo neto (Ingresos - Egresos)" + (" del distrito" if distrito_seleccionado != "Todos" else " de todos los distritos"),
             delta=f"{total_saldo:,.2f}",
             delta_color=color_saldo
         )
