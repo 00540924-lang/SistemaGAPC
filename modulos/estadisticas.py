@@ -18,7 +18,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         
-        # Construir condiciones WHERE dinámicas - CORREGIDO: sin PP.fecha
+        # Construir condiciones WHERE dinámicas
         condiciones = ["GM.id_grupo = %s"]
         params = [id_grupo]
         
@@ -33,7 +33,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         where_clause = " AND ".join(condiciones)
         
-        # Consulta principal para estadísticas - CORREGIDA
+        # Consulta principal para estadísticas
         query = f"""
             SELECT 
                 -- Estadísticas de ahorros
@@ -47,7 +47,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                 COUNT(DISTINCT CASE WHEN MT.pagada = 1 THEN MT.id_multa END) as multas_pagadas,
                 COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
                 
-                -- Estadísticas de préstamos (CORREGIDO)
+                -- Estadísticas de préstamos
                 COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_activos,
                 COALESCE(SUM(CASE WHEN P.estado = 'pagado' THEN P.monto ELSE 0 END), 0) as prestamos_pagados,
                 COUNT(DISTINCT CASE WHEN P.estado = 'activo' THEN P.id_prestamo END) as num_prestamos_activos,
@@ -70,7 +70,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         # Calcular métricas adicionales
         if estadisticas:
-            # CORRECCIÓN: Calcular saldo neto correctamente
+            # Calcular saldo neto correctamente
             estadisticas['saldo_neto'] = (
                 estadisticas['total_ahorros'] + 
                 estadisticas['total_actividades'] - 
@@ -82,28 +82,6 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                 estadisticas['total_retiros'] + 
                 estadisticas['prestamos_activos']
             )
-            
-            # Porcentajes
-            total_multas = estadisticas['multas_pagadas'] + estadisticas['multas_pendientes']
-            if total_multas > 0:
-                estadisticas['porcentaje_multas_pagadas'] = (
-                    estadisticas['multas_pagadas'] / total_multas * 100
-                )
-            else:
-                estadisticas['porcentaje_multas_pagadas'] = 0
-                
-            # CORRECCIÓN MEJORADA: Lógica para préstamos pagados
-            total_prestamos = estadisticas['num_prestamos_activos'] + estadisticas['num_prestamos_pagados']
-            if total_prestamos > 0:
-                estadisticas['porcentaje_prestamos_pagados'] = (
-                    estadisticas['num_prestamos_pagados'] / total_prestamos * 100
-                )
-            else:
-                estadisticas['porcentaje_prestamos_pagados'] = 0
-            
-            # Si no hay préstamos activos pero sí hay préstamos pagados, forzar 100%
-            if estadisticas['num_prestamos_pagados'] > 0 and estadisticas['num_prestamos_activos'] == 0:
-                estadisticas['porcentaje_prestamos_pagados'] = 100.0
         
         return estadisticas or {}
         
@@ -126,7 +104,7 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         
-        # Construir condiciones WHERE dinámicas - CORREGIDO
+        # Construir condiciones WHERE dinámicas
         condiciones = ["GM.id_grupo = %s"]
         params = [id_grupo]
         
@@ -350,7 +328,7 @@ def mostrar_estadisticas(id_grupo):
         )
 
     # ===============================
-    # 2. KPI PRINCIPALES - CORREGIDOS
+    # 2. KPI PRINCIPALES - REORGANIZADOS
     # ===============================
     st.subheader("📈 Métricas Principales")
     
@@ -359,7 +337,7 @@ def mostrar_estadisticas(id_grupo):
     stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
     
     if stats:
-        # PRIMERA FILA - 4 columnas
+        # PRIMERA FILA - 4 métricas principales
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -384,7 +362,17 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col4:
-            # CORRECCIÓN: Obtener el número real de miembros del grupo
+            st.metric(
+                "📉 Total Egresos", 
+                f"${stats.get('total_egresos', 0):,.2f}",
+                help="Total de retiros y préstamos activos"
+            )
+
+        # SEGUNDA FILA - Solo Miembros Activos centrado
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col2:  # Columna 2 para centrar
+            # Obtener el número real de miembros del grupo
             conn = obtener_conexion()
             total_miembros_real = 0
             if conn:
@@ -410,76 +398,6 @@ def mostrar_estadisticas(id_grupo):
                 f"{total_miembros_real}",
                 help="Número total de miembros en el grupo"
             )
-
-        # SEGUNDA FILA - 4 columnas (CORREGIDA - SIN REGISTROS DE AHORRO)
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            # NUEVA MÉTRICA: Total Egresos
-            total_egresos = stats.get('total_egresos', 0)
-            st.metric(
-                "📉 Total Egresos", 
-                f"${total_egresos:,.2f}",
-                help="Total de retiros y préstamos activos"
-            )
-        
-        with col2:
-            porcentaje_multas = stats.get('porcentaje_multas_pagadas', 0)
-            total_multas = stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)
-            st.metric(
-                "🎯 Multas Pagadas", 
-                f"{porcentaje_multas:.1f}%",
-                help=f"{stats.get('multas_pagadas', 0)} de {total_multas} multas"
-            )
-        
-        with col3:
-            # CORRECCIÓN: Lógica mejorada para préstamos pagados
-            porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
-            num_prestamos_pagados = stats.get('num_prestamos_pagados', 0)
-            num_prestamos_activos = stats.get('num_prestamos_activos', 0)
-            total_prestamos = num_prestamos_pagados + num_prestamos_activos
-            
-            # Texto de ayuda
-            texto_ayuda = f"{num_prestamos_pagados} de {total_prestamos} préstamos"
-            if total_prestamos == 0:
-                texto_ayuda = "No hay préstamos registrados"
-            
-            st.metric(
-                "✅ Préstamos Pagados", 
-                f"{porcentaje_prestamos:.1f}%",
-                help=texto_ayuda
-            )
-        
-        with col4:
-            # Consulta adicional para verificar préstamos (solo si hay problemas)
-            if porcentaje_prestamos == 0 and num_prestamos_pagados > 0:
-                conn = obtener_conexion()
-                if conn:
-                    try:
-                        cursor = conn.cursor(dictionary=True)
-                        cursor.execute("""
-                            SELECT estado, COUNT(*) as cantidad 
-                            FROM prestamos 
-                            WHERE id_grupo = %s
-                            GROUP BY estado
-                        """, (id_grupo,))
-                        prestamos_estado = cursor.fetchall()
-                        cursor.close()
-                        
-                        # Solo mostrar debug si hay discrepancia
-                        if prestamos_estado:
-                            with st.expander("🔍 Debug Préstamos"):
-                                st.write("Estado de préstamos en BD:", prestamos_estado)
-                                st.write("Estadísticas calculadas:", {
-                                    'activos': stats.get('num_prestamos_activos', 0),
-                                    'pagados': stats.get('num_prestamos_pagados', 0),
-                                    'porcentaje': stats.get('porcentaje_prestamos_pagados', 0)
-                                })
-                    except:
-                        pass
-                    finally:
-                        if conn.is_connected():
-                            conn.close()
 
     else:
         st.warning("No se pudieron cargar las estadísticas del grupo.")
