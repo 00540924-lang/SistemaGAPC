@@ -229,7 +229,7 @@ def mostrar_formulario_cierre(datos_cierre):
     st.warning("Marque cada socia como entregada una vez que reciba su dinero.")
     
     for i, socia in enumerate(datos_cierre['miembros']):
-        col_socia1, col_socia2, col_socia3 = st.columns([3, 2, 1])  # Nombres únicos
+        col_socia1, col_socia2, col_socia3 = st.columns([3, 2, 1])
         
         with col_socia1:
             st.write(f"**{socia['nombre_completo']}**")
@@ -269,6 +269,68 @@ def validar_cierre_ciclo(datos_cierre):
         errores.append(f"Socias pendientes de entrega: {', '.join(socias_pendientes)}")
     
     return errores
+
+def obtener_saldo_caja_actual(id_grupo):
+    """
+    Obtiene el saldo actual de la caja del grupo
+    """
+    try:
+        conn = obtener_conexion()
+        if not conn:
+            return None
+            
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT saldo 
+            FROM caja 
+            WHERE id_grupo = %s 
+            ORDER BY fecha DESC, id_caja DESC 
+            LIMIT 1
+        """, (id_grupo,))
+        
+        resultado = cursor.fetchone()
+        conn.close()
+        
+        return float(resultado[0]) if resultado else 0.00
+        
+    except Exception as e:
+        st.error(f"Error al obtener saldo de caja: {e}")
+        return 0.00
+
+def mostrar_estado_caja_antes_despues(id_grupo, total_entregado):
+    """
+    Muestra el estado de la caja antes y después del cierre
+    """
+    saldo_actual = obtener_saldo_caja_actual(id_grupo)
+    saldo_final = 0.00  # Después del cierre
+    
+    st.markdown("### 💰 Estado de la Caja")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "Saldo Actual",
+            f"${saldo_actual:,.2f}",
+            delta=None
+        )
+    
+    with col2:
+        st.metric(
+            "Total a Entregar",
+            f"${total_entregado:,.2f}",
+            delta=f"-${total_entregado:,.2f}",
+            delta_color="inverse"
+        )
+    
+    with col3:
+        st.metric(
+            "Saldo Final",
+            f"${saldo_final:,.2f}",
+            delta=f"-${saldo_actual:,.2f}",
+            delta_color="inverse"
+        )
 
 def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
     """
@@ -371,67 +433,7 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             conn.rollback()
             conn.close()
         return False, f"❌ Error al ejecutar cierre de ciclo: {str(e)}"
-def obtener_saldo_caja_actual(id_grupo):
-    """
-    Obtiene el saldo actual de la caja del grupo
-    """
-    try:
-        conn = obtener_conexion()
-        if not conn:
-            return None
-            
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT saldo 
-            FROM caja 
-            WHERE id_grupo = %s 
-            ORDER BY fecha DESC, id_caja DESC 
-            LIMIT 1
-        """, (id_grupo,))
-        
-        resultado = cursor.fetchone()
-        conn.close()
-        
-        return float(resultado[0]) if resultado else 0.00
-        
-    except Exception as e:
-        st.error(f"Error al obtener saldo de caja: {e}")
-        return 0.00
 
-def mostrar_estado_caja_antes_despues(id_grupo, total_entregado):
-    """
-    Muestra el estado de la caja antes y después del cierre
-    """
-    saldo_actual = obtener_saldo_caja_actual(id_grupo)
-    saldo_final = 0.00  # Después del cierre
-    
-    st.markdown("### 💰 Estado de la Caja")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "Saldo Actual",
-            f"${saldo_actual:,.2f}",
-            delta=None
-        )
-    
-    with col2:
-        st.metric(
-            "Total a Entregar",
-            f"${total_entregado:,.2f}",
-            delta=f"-${total_entregado:,.2f}",
-            delta_color="inverse"
-        )
-    
-    with col3:
-        st.metric(
-            "Saldo Final",
-            f"${saldo_final:,.2f}",
-            delta=f"-${saldo_actual:,.2f}",
-            delta_color="inverse"
-        )
 def obtener_historial_cierres(id_grupo=None):
     """
     Obtiene el historial de cierres de ciclo
@@ -557,95 +559,112 @@ def vista_cierre_ciclo():
     </div>
     """, unsafe_allow_html=True)
     
-    # ===============================
-    # 1. CONFIGURACIÓN INICIAL
-    # ===============================
-    st.subheader("🎛️ Configuración del Cierre")
+    # Pestañas para diferentes funcionalidades
+    tab_cierre, tab_historial = st.tabs(["🔄 Realizar Cierre", "📋 Ver Historial"])
     
-    # Usar claves únicas para evitar conflictos
-    col_config1, col_config2 = st.columns(2)
-    
-    with col_config1:
-        # Para miembros, usar su grupo asignado automáticamente
-        id_grupo_seleccionado = id_grupo
-        grupo_seleccionado = obtener_nombre_grupo(id_grupo)
-        st.info(f"**Grupo asignado:** {grupo_seleccionado}")
-    
-    with col_config2:
-        fecha_cierre = st.date_input(
-            "📅 Fecha de cierre del ciclo",
-            date.today(),
-            key="cierre_fecha_input"
-        )
-    
-    # ===============================
-    # 2. OBTENER Y MOSTRAR DATOS
-    # ===============================
-    if st.button("🔄 Cargar Datos para Cierre", type="primary", key="btn_cargar_datos"):
-        with st.spinner("Cargando datos del ciclo..."):
-            datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_cierre)
+    with tab_cierre:
+        # ===============================
+        # 1. CONFIGURACIÓN INICIAL
+        # ===============================
+        st.subheader("🎛️ Configuración del Cierre")
+        
+        # Usar claves únicas para evitar conflictos
+        col_config1, col_config2 = st.columns(2)
+        
+        with col_config1:
+            # Para miembros, usar su grupo asignado automáticamente
+            id_grupo_seleccionado = id_grupo
+            grupo_seleccionado = obtener_nombre_grupo(id_grupo)
+            st.info(f"**Grupo asignado:** {grupo_seleccionado}")
+        
+        with col_config2:
+            fecha_cierre = st.date_input(
+                "📅 Fecha de cierre del ciclo",
+                date.today(),
+                key="cierre_fecha_input"
+            )
+        
+        # ===============================
+        # 2. OBTENER Y MOSTRAR DATOS
+        # ===============================
+        if st.button("🔄 Cargar Datos para Cierre", type="primary", key="btn_cargar_datos"):
+            with st.spinner("Cargando datos del ciclo..."):
+                datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_cierre)
+                
+                if datos_cierre:
+                    # Usar un diccionario temporal en lugar de session_state
+                    st.session_state.cierre_info = {
+                        'datos': datos_cierre,
+                        'fecha': fecha_cierre,
+                        'grupo': id_grupo_seleccionado
+                    }
+                    st.success("✅ Datos cargados exitosamente")
+                else:
+                    st.error("❌ No se pudieron cargar los datos para el cierre")
+        
+        # ===============================
+        # 3. PROCESAR CIERRE SI HAY DATOS
+        # ===============================
+        if 'cierre_info' in st.session_state:
+            datos_cierre = st.session_state.cierre_info['datos']
             
-            if datos_cierre:
-                # Usar un diccionario temporal en lugar de session_state
-                st.session_state.cierre_info = {
-                    'datos': datos_cierre,
-                    'fecha': fecha_cierre,
-                    'grupo': id_grupo_seleccionado
-                }
-                st.success("✅ Datos cargados exitosamente")
-            else:
-                st.error("❌ No se pudieron cargar los datos para el cierre")
-    
-    # ===============================
-    # 3. PROCESAR CIERRE SI HAY DATOS
-    # ===============================
-    if 'cierre_info' in st.session_state:
-        datos_cierre = st.session_state.cierre_info['datos']
-        
-        # Mostrar resumen
-        mostrar_resumen_cierre(datos_cierre)
-        
-        # Mostrar formulario editable
-        datos_cierre_actualizado = mostrar_formulario_cierre(datos_cierre)
-        
-        # Botón para validar y ejecutar cierre
-        st.markdown("---")
-        st.subheader("✅ Confirmar y Ejecutar Cierre")
-        
-        col_botones1, col_botones2 = st.columns([1, 1])
-        
-        with col_botones1:
-            if st.button("🔍 Validar Cierre", use_container_width=True, key="btn_validar_cierre"):
-                errores = validar_cierre_ciclo(datos_cierre_actualizado)
-                if errores:
-                    for error in errores:
-                        st.error(f"❌ {error}")
-                else:
-                    st.success("✅ Validación exitosa. Puede proceder con el cierre.")
-        
-        with col_botones2:
-            if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True, key="btn_ejecutar_cierre"):
-                # Validar antes de ejecutar
-                errores = validar_cierre_ciclo(datos_cierre_actualizado)
-                if errores:
-                    for error in errores:
-                        st.error(f"❌ {error}")
-                else:
-                    with st.spinner("Ejecutando cierre de ciclo..."):
-                        exito, mensaje = ejecutar_cierre_ciclo(
-                            datos_cierre_actualizado, 
-                            st.session_state.cierre_info['fecha'],
-                            usuario
+            # Mostrar resumen
+            mostrar_resumen_cierre(datos_cierre)
+            
+            # Mostrar formulario editable
+            datos_cierre_actualizado = mostrar_formulario_cierre(datos_cierre)
+            
+            # Botón para validar y ejecutar cierre
+            st.markdown("---")
+            st.subheader("✅ Confirmar y Ejecutar Cierre")
+            
+            col_botones1, col_botones2 = st.columns([1, 1])
+            
+            with col_botones1:
+                if st.button("🔍 Validar Cierre", use_container_width=True, key="btn_validar_cierre"):
+                    errores = validar_cierre_ciclo(datos_cierre_actualizado)
+                    
+                    if errores:
+                        for error in errores:
+                            st.error(f"❌ {error}")
+                    else:
+                        # Calcular total a entregar
+                        total_entregado = sum(socia['total_a_entregar'] for socia in datos_cierre_actualizado['miembros'])
+                        
+                        # Mostrar estado de la caja
+                        mostrar_estado_caja_antes_despues(
+                            datos_cierre_actualizado['grupo_info']['id_grupo'], 
+                            total_entregado
                         )
                         
-                        if exito:
-                            st.success(f"✅ {mensaje}")
-                            st.balloons()
-                            # Limpiar datos de sesión
-                            if 'cierre_info' in st.session_state:
-                                del st.session_state.cierre_info
-                        else:
-                            st.error(f"❌ {mensaje}")
+                        st.success("✅ Validación exitosa. La caja quedará en CERO después del cierre.")
+            
+            with col_botones2:
+                if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True, key="btn_ejecutar_cierre"):
+                    # Validar antes de ejecutar
+                    errores = validar_cierre_ciclo(datos_cierre_actualizado)
+                    if errores:
+                        for error in errores:
+                            st.error(f"❌ {error}")
+                    else:
+                        with st.spinner("Ejecutando cierre de ciclo..."):
+                            exito, mensaje = ejecutar_cierre_ciclo(
+                                datos_cierre_actualizado, 
+                                st.session_state.cierre_info['fecha'],
+                                usuario
+                            )
+                            
+                            if exito:
+                                st.success(f"✅ {mensaje}")
+                                st.balloons()
+                                # Limpiar datos de sesión
+                                if 'cierre_info' in st.session_state:
+                                    del st.session_state.cierre_info
+                            else:
+                                st.error(f"❌ {mensaje}")
+    
+    with tab_historial:
+        mostrar_historial_cierres()
     
     # ===============================
     # 4. BOTÓN REGRESAR
