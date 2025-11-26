@@ -550,7 +550,8 @@ def mostrar_estadisticas(id_grupo):
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 
-                fig_pie.update_trace(textposition='inside', textinfo='percent+label')
+                # CORRECCIÓN: update_trace -> update_traces
+                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
             else:
                 st.info("🥧 No hay datos suficientes para mostrar la distribución.")
