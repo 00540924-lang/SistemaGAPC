@@ -24,7 +24,7 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
         """, (id_grupo,))
         grupo_info = cursor.fetchone()
         
-        # 2. Obtener miembros del grupo - CORREGIDO: eliminar filtro de estado
+        # 2. Obtener miembros del grupo
         cursor.execute("""
             SELECT M.id_miembro, M.Nombre
             FROM Miembros M
@@ -47,7 +47,8 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
                 WHERE id_grupo = %s AND id_miembro = %s
                 AND fecha_registro <= %s
             """, (id_grupo, miembro['id_miembro'], fecha_cierre))
-            saldo_ahorro = cursor.fetchone()['saldo_ahorros']
+            resultado_ahorro = cursor.fetchone()
+            saldo_ahorro = float(resultado_ahorro['saldo_ahorros'])  # Convertir a float
             
             # Aportes al fondo del grupo (actividades)
             cursor.execute("""
@@ -56,28 +57,33 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
                 WHERE id_grupo = %s AND id_miembro = %s
                 AND fecha_registro <= %s
             """, (id_grupo, miembro['id_miembro'], fecha_cierre))
-            aporte_fondo = cursor.fetchone()['aporte_fondo']
+            resultado_fondo = cursor.fetchone()
+            aporte_fondo = float(resultado_fondo['aporte_fondo'])  # Convertir a float
             
             datos_cierre.append({
                 'id_miembro': miembro['id_miembro'],
                 'nombre_completo': miembro['Nombre'],
-                'saldo_ahorros': float(saldo_ahorro),
-                'aporte_fondo': float(aporte_fondo)
+                'saldo_ahorros': saldo_ahorro,
+                'aporte_fondo': aporte_fondo
             })
             
             total_ahorro_grupo += saldo_ahorro
             total_fondo_grupo += aporte_fondo
         
-        # 4. Calcular distribución proporcional del fondo
+        # 4. Calcular distribución proporcional del fondo - CORREGIDO: asegurar tipos float
         if total_fondo_grupo > 0:
             for dato in datos_cierre:
-                proporcion = (dato['aporte_fondo'] / total_fondo_grupo) if total_fondo_grupo > 0 else 0
+                # Asegurar que ambos sean float
+                aporte = float(dato['aporte_fondo'])
+                fondo_total = float(total_fondo_grupo)
+                
+                proporcion = (aporte / fondo_total) if fondo_total > 0 else 0
                 proporcion_redondeada = round(proporcion, 4)
                 
-                dato['proporcion_fondo'] = proporcion
-                dato['proporcion_redondeada'] = proporcion_redondeada
+                dato['proporcion_fondo'] = float(proporcion)
+                dato['proporcion_redondeada'] = float(proporcion_redondeada)
                 dato['retiro'] = 0.0  # Inicializar retiro en 0
-                dato['saldo_inicial_siguiente'] = dato['saldo_ahorros']  # Inicialmente igual al saldo final
+                dato['saldo_inicial_siguiente'] = float(dato['saldo_ahorros'])  # Inicialmente igual al saldo final
         
         conn.close()
         
@@ -93,7 +99,6 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
     except Exception as e:
         st.error(f"Error al obtener datos para cierre de ciclo: {e}")
         return None
-
 def validar_cierre_ciclo(datos_cierre):
     """
     Valida que los datos estén completos para proceder con el cierre
