@@ -40,33 +40,27 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                 COALESCE(SUM(AF.actividades), 0) as total_actividades,
                 COALESCE(SUM(AF.retiros), 0) as total_retiros,
                 COALESCE(SUM(AF.saldo_final), 0) as saldo_total_ahorros,
-                COUNT(DISTINCT CASE WHEN AF.ahorros > 0 THEN AF.id_ahorro END) as num_ahorros,
-                COUNT(DISTINCT CASE WHEN AF.retiros > 0 THEN AF.id_ahorro END) as num_retiros,
                 
                 -- Estadísticas de multas
                 COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas,
                 COUNT(DISTINCT CASE WHEN MT.pagada = 1 THEN MT.id_multa END) as multas_pagadas,
                 COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
                 
-                -- Estadísticas de préstamos
+                -- Estadísticas de préstamos (CORREGIDO)
                 COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_activos,
                 COALESCE(SUM(CASE WHEN P.estado = 'pagado' THEN P.monto ELSE 0 END), 0) as prestamos_pagados,
-                COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos,
                 COUNT(DISTINCT CASE WHEN P.estado = 'activo' THEN P.id_prestamo END) as num_prestamos_activos,
                 COUNT(DISTINCT CASE WHEN P.estado = 'pagado' THEN P.id_prestamo END) as num_prestamos_pagados,
                 
                 -- Estadísticas generales
                 COUNT(DISTINCT M.id_miembro) as total_miembros,
-                COUNT(DISTINCT AF.id_ahorro) as total_registros_ahorro,
-                COUNT(DISTINCT MT.id_multa) as total_multas_registradas,
-                COUNT(DISTINCT P.id_prestamo) as total_prestamos_registrados
+                COUNT(DISTINCT AF.id_ahorro) as total_registros_ahorro
                 
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
             LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
             LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro
             LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro
-            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.estado = 'pagado'
             WHERE {where_clause}
         """
         
@@ -75,13 +69,11 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         # Calcular métricas adicionales
         if estadisticas:
+            # CORRECCIÓN: Calcular saldo neto correctamente
             estadisticas['saldo_neto'] = (
                 estadisticas['total_ahorros'] + 
-                estadisticas['total_actividades'] + 
-                estadisticas['total_multas'] +
-                estadisticas['total_pagos_prestamos'] -
-                estadisticas['total_retiros'] -
-                estadisticas['prestamos_activos']
+                estadisticas['total_actividades'] - 
+                estadisticas['total_retiros']
             )
             
             # Calcular total egresos
@@ -91,15 +83,15 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
             )
             
             # Porcentajes
-            if estadisticas['total_multas'] > 0:
+            total_multas = estadisticas['multas_pagadas'] + estadisticas['multas_pendientes']
+            if total_multas > 0:
                 estadisticas['porcentaje_multas_pagadas'] = (
-                    estadisticas['multas_pagadas'] / 
-                    (estadisticas['multas_pagadas'] + estadisticas['multas_pendientes']) * 100
+                    estadisticas['multas_pagadas'] / total_multas * 100
                 )
             else:
                 estadisticas['porcentaje_multas_pagadas'] = 0
                 
-            # CORRECCIÓN: Lógica mejorada para préstamos pagados
+            # CORRECCIÓN MEJORADA: Lógica para préstamos pagados
             total_prestamos = estadisticas['num_prestamos_activos'] + estadisticas['num_prestamos_pagados']
             if total_prestamos > 0:
                 estadisticas['porcentaje_prestamos_pagados'] = (
@@ -108,9 +100,14 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
             else:
                 estadisticas['porcentaje_prestamos_pagados'] = 0
             
-            # Si hay préstamos pagados y no hay préstamos activos, forzar 100%
+            # Si no hay préstamos activos pero sí hay préstamos pagados, forzar 100%
             if estadisticas['num_prestamos_pagados'] > 0 and estadisticas['num_prestamos_activos'] == 0:
                 estadisticas['porcentaje_prestamos_pagados'] = 100.0
+            
+            # Para debug: mostrar información de préstamos
+            print(f"DEBUG - Préstamos activos: {estadisticas['num_prestamos_activos']}")
+            print(f"DEBUG - Préstamos pagados: {estadisticas['num_prestamos_pagados']}")
+            print(f"DEBUG - Porcentaje préstamos: {estadisticas['porcentaje_prestamos_pagados']}%")
         
         return estadisticas or {}
         
@@ -138,8 +135,8 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
         params = [id_grupo]
         
         if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s OR PP.fecha BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 4)
+            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s)")
+            params.extend([fecha_inicio, fecha_fin] * 3)
         
         where_clause = " AND ".join(condiciones)
         
@@ -157,24 +154,12 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
                 -- Multas del miembro
                 COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas,
                 COUNT(DISTINCT CASE WHEN MT.pagada = 1 THEN MT.id_multa END) as multas_pagadas,
-                COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
-                
-                -- Préstamos del miembro
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_activos,
-                COALESCE(SUM(CASE WHEN P.estado = 'pagado' THEN P.monto ELSE 0 END), 0) as prestamos_pagados,
-                COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos,
-                
-                -- Estadísticas de actividad
-                COUNT(DISTINCT AF.id_ahorro) as num_registros_ahorro,
-                COUNT(DISTINCT MT.id_multa) as num_multas,
-                COUNT(DISTINCT P.id_prestamo) as num_prestamos
+                COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes
                 
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
             LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
             LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro
-            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro
-            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.estado = 'pagado'
             WHERE {where_clause}
             GROUP BY M.id_miembro, M.Nombre
             ORDER BY saldo_ahorro DESC
@@ -262,8 +247,8 @@ def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
         params = [id_grupo]
         
         if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 3)
+            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s)")
+            params.extend([fecha_inicio, fecha_fin] * 2)
         
         where_clause = " AND ".join(condiciones)
         
@@ -275,17 +260,11 @@ def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
                 COALESCE(SUM(AF.retiros), 0) as retiros,
                 
                 -- Multas
-                COALESCE(SUM(MT.monto_a_pagar), 0) as multas,
-                
-                -- Préstamos
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_activos,
-                COALESCE(SUM(PP.capital + PP.interes), 0) as pagos_prestamos
+                COALESCE(SUM(MT.monto_a_pagar), 0) as multas
                 
             FROM Grupomiembros GM
             LEFT JOIN ahorro_final AF ON GM.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
             LEFT JOIN Multas MT ON GM.id_miembro = MT.id_miembro
-            LEFT JOIN prestamos P ON GM.id_miembro = P.id_miembro
-            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.estado = 'pagado'
             WHERE {where_clause}
         """
         
@@ -391,7 +370,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "💰 Saldo Total", 
                 f"${stats.get('saldo_neto', 0):,.2f}",
-                help="Saldo neto del grupo (entradas - salidas)"
+                help="Saldo neto del grupo (ahorros + actividades - retiros)"
             )
         
         with col2:
@@ -436,18 +415,11 @@ def mostrar_estadisticas(id_grupo):
                 help="Número total de miembros en el grupo"
             )
 
-        # SEGUNDA FILA - 4 columnas (CORREGIDA LA UBICACIÓN)
+        # SEGUNDA FILA - 4 columnas (CORREGIDA - SIN REGISTROS DE AHORRO)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.metric(
-                "📊 Registros de Ahorro", 
-                f"{stats.get('total_registros_ahorro', 0)}",
-                help="Total de operaciones de ahorro registradas"
-            )
-        
-        with col2:
-            # NUEVA MÉTRICA: Total Egresos al lado de Actividades
+            # NUEVA MÉTRICA: Total Egresos
             total_egresos = stats.get('total_egresos', 0)
             st.metric(
                 "📉 Total Egresos", 
@@ -455,15 +427,16 @@ def mostrar_estadisticas(id_grupo):
                 help="Total de retiros y préstamos activos"
             )
         
-        with col3:
+        with col2:
             porcentaje_multas = stats.get('porcentaje_multas_pagadas', 0)
+            total_multas = stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)
             st.metric(
                 "🎯 Multas Pagadas", 
                 f"{porcentaje_multas:.1f}%",
-                help=f"{stats.get('multas_pagadas', 0)} de {stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)} multas"
+                help=f"{stats.get('multas_pagadas', 0)} de {total_multas} multas"
             )
         
-        with col4:
+        with col3:
             # CORRECCIÓN: Lógica mejorada para préstamos pagados
             porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
             num_prestamos_pagados = stats.get('num_prestamos_pagados', 0)
@@ -472,12 +445,44 @@ def mostrar_estadisticas(id_grupo):
             
             # Texto de ayuda
             texto_ayuda = f"{num_prestamos_pagados} de {total_prestamos} préstamos"
+            if total_prestamos == 0:
+                texto_ayuda = "No hay préstamos registrados"
             
             st.metric(
                 "✅ Préstamos Pagados", 
                 f"{porcentaje_prestamos:.1f}%",
                 help=texto_ayuda
             )
+        
+        with col4:
+            # Consulta adicional para verificar préstamos
+            conn = obtener_conexion()
+            if conn:
+                try:
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute("""
+                        SELECT estado, COUNT(*) as cantidad 
+                        FROM prestamos 
+                        WHERE id_grupo = %s
+                        GROUP BY estado
+                    """, (id_grupo,))
+                    prestamos_estado = cursor.fetchall()
+                    cursor.close()
+                    
+                    # Debug info
+                    with st.expander("🔍 Debug Préstamos"):
+                        st.write("Estado de préstamos en BD:", prestamos_estado)
+                        st.write("Estadísticas calculadas:", {
+                            'activos': stats.get('num_prestamos_activos', 0),
+                            'pagados': stats.get('num_prestamos_pagados', 0),
+                            'porcentaje': stats.get('porcentaje_prestamos_pagados', 0)
+                        })
+                        
+                except Exception as e:
+                    st.error(f"Error en debug: {e}")
+                finally:
+                    if conn.is_connected():
+                        conn.close()
 
     # ===============================
     # 3. GRÁFICOS Y VISUALIZACIONES
@@ -530,12 +535,11 @@ def mostrar_estadisticas(id_grupo):
         distribucion = obtener_distribucion_por_tipo(id_grupo, fecha_inicio, fecha_fin)
         
         if distribucion and any(distribucion.values()):
-            labels = ['Ahorros', 'Actividades', 'Multas', 'Pagos Préstamos']
+            labels = ['Ahorros', 'Actividades', 'Multas']
             values = [
                 distribucion.get('ahorros', 0),
                 distribucion.get('actividades', 0),
-                distribucion.get('multas', 0),
-                distribucion.get('pagos_prestamos', 0)
+                distribucion.get('multas', 0)
             ]
             
             # Filtrar categorías con valores > 0
@@ -550,7 +554,6 @@ def mostrar_estadisticas(id_grupo):
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 
-                # CORRECCIÓN: update_trace -> update_traces
                 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
             else:
@@ -559,13 +562,13 @@ def mostrar_estadisticas(id_grupo):
             st.info("🥧 No hay datos de distribución para mostrar en el período seleccionado.")
     
     with tab3:
-        # Ranking de miembros - CORREGIDO
+        # Ranking de miembros
         stats_miembros = obtener_estadisticas_por_miembro(id_grupo, fecha_inicio, fecha_fin)
         
         if stats_miembros:
             df_miembros = pd.DataFrame(stats_miembros)
             
-            # CORRECCIÓN: Asegurar que la columna 'saldo_ahorro' sea numérica
+            # Asegurar que la columna 'saldo_ahorro' sea numérica
             df_miembros['saldo_ahorro'] = pd.to_numeric(df_miembros['saldo_ahorro'], errors='coerce').fillna(0)
             
             # Filtrar miembros con saldo positivo y ordenar
@@ -623,8 +626,8 @@ def mostrar_estadisticas(id_grupo):
             st.write(f"**Ahorros:** ${stats.get('total_ahorros', 0):,.2f}")
             st.write(f"**Actividades:** ${stats.get('total_actividades', 0):,.2f}")
             st.write(f"**Multas:** ${stats.get('total_multas', 0):,.2f}")
-            st.write(f"**Pagos de Préstamos:** ${stats.get('total_pagos_prestamos', 0):,.2f}")
-            st.write(f"**Total Entradas:** ${stats.get('total_ahorros', 0) + stats.get('total_actividades', 0) + stats.get('total_multas', 0) + stats.get('total_pagos_prestamos', 0):,.2f}")
+            total_entradas = stats.get('total_ahorros', 0) + stats.get('total_actividades', 0) + stats.get('total_multas', 0)
+            st.write(f"**Total Entradas:** ${total_entradas:,.2f}")
         
         with col2:
             st.markdown("#### 🟥 Salidas de Dinero")
