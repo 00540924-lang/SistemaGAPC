@@ -99,17 +99,18 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
             else:
                 estadisticas['porcentaje_multas_pagadas'] = 0
                 
-            if estadisticas['total_prestamos_registrados'] > 0:
+            # CORRECCIÓN: Lógica mejorada para préstamos pagados
+            total_prestamos = estadisticas['num_prestamos_activos'] + estadisticas['num_prestamos_pagados']
+            if total_prestamos > 0:
                 estadisticas['porcentaje_prestamos_pagados'] = (
-                    estadisticas['num_prestamos_pagados'] / 
-                    estadisticas['total_prestamos_registrados'] * 100
+                    estadisticas['num_prestamos_pagados'] / total_prestamos * 100
                 )
             else:
-                # Si no hay préstamos registrados pero sí hay pagos, considerar como 100%
-                if estadisticas['prestamos_pagados'] > 0:
-                    estadisticas['porcentaje_prestamos_pagados'] = 100
-                else:
-                    estadisticas['porcentaje_prestamos_pagados'] = 0
+                estadisticas['porcentaje_prestamos_pagados'] = 0
+            
+            # Si hay préstamos pagados y no hay préstamos activos, forzar 100%
+            if estadisticas['num_prestamos_pagados'] > 0 and estadisticas['num_prestamos_activos'] == 0:
+                estadisticas['porcentaje_prestamos_pagados'] = 100.0
         
         return estadisticas or {}
         
@@ -383,7 +384,7 @@ def mostrar_estadisticas(id_grupo):
     stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
     
     if stats:
-        # KPIs en 4 columnas
+        # PRIMERA FILA - 4 columnas
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -435,7 +436,7 @@ def mostrar_estadisticas(id_grupo):
                 help="Número total de miembros en el grupo"
             )
 
-        # Segunda fila de KPIs - CORREGIDA
+        # SEGUNDA FILA - 4 columnas (CORREGIDA LA UBICACIÓN)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -446,6 +447,15 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col2:
+            # NUEVA MÉTRICA: Total Egresos al lado de Actividades
+            total_egresos = stats.get('total_egresos', 0)
+            st.metric(
+                "📉 Total Egresos", 
+                f"${total_egresos:,.2f}",
+                help="Total de retiros y préstamos activos"
+            )
+        
+        with col3:
             porcentaje_multas = stats.get('porcentaje_multas_pagadas', 0)
             st.metric(
                 "🎯 Multas Pagadas", 
@@ -453,26 +463,20 @@ def mostrar_estadisticas(id_grupo):
                 help=f"{stats.get('multas_pagadas', 0)} de {stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)} multas"
             )
         
-        with col3:
-            # CORRECCIÓN: Forzar 100% si todos los préstamos están pagados
+        with col4:
+            # CORRECCIÓN: Lógica mejorada para préstamos pagados
             porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
-            # Si hay préstamos pagados y no hay préstamos activos, mostrar 100%
-            if stats.get('prestamos_pagados', 0) > 0 and stats.get('prestamos_activos', 0) == 0:
-                porcentaje_prestamos = 100.0
-                
+            num_prestamos_pagados = stats.get('num_prestamos_pagados', 0)
+            num_prestamos_activos = stats.get('num_prestamos_activos', 0)
+            total_prestamos = num_prestamos_pagados + num_prestamos_activos
+            
+            # Texto de ayuda
+            texto_ayuda = f"{num_prestamos_pagados} de {total_prestamos} préstamos"
+            
             st.metric(
                 "✅ Préstamos Pagados", 
                 f"{porcentaje_prestamos:.1f}%",
-                help=f"{stats.get('num_prestamos_pagados', 0)} de {stats.get('total_prestamos_registrados', 0)} préstamos"
-            )
-        
-        with col4:
-            # NUEVA MÉTRICA: Total Egresos
-            total_egresos = stats.get('total_egresos', 0)
-            st.metric(
-                "📉 Total Egresos", 
-                f"${total_egresos:,.2f}",
-                help="Total de retiros y préstamos activos"
+                help=texto_ayuda
             )
 
     # ===============================
@@ -546,7 +550,7 @@ def mostrar_estadisticas(id_grupo):
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 
-                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                fig_pie.update_trace(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
             else:
                 st.info("🥧 No hay datos suficientes para mostrar la distribución.")
