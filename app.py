@@ -159,7 +159,12 @@ elif pagina == "estadisticas":
         else:
             from modulos.estadisticas import mostrar_estadisticas
             mostrar_estadisticas(id_grupo)
+# En la sección de imports
+from modulos.cierre_ciclo import vista_cierre_ciclo
 
+# En la sección de navegación (donde manejas st.session_state.page)
+elif st.session_state.page == "cierre_ciclo":
+    vista_cierre_ciclo()
 # ---- ERROR SI NO EXISTE ----
 else:
     st.error("❌ Página no encontrada.")
