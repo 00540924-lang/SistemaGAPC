@@ -142,7 +142,7 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             
         cursor = conn.cursor()
         
-        # 1. Registrar el cierre de ciclo
+        # 1. Registrar el cierre de ciclo - Asegurar tipos float
         cursor.execute("""
             INSERT INTO cierre_ciclo 
             (id_grupo, fecha_cierre, total_ahorro, total_fondo, usuario_cierre, fecha_registro)
@@ -150,14 +150,14 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
         """, (
             datos_cierre['grupo_info']['id_grupo'],
             fecha_cierre,
-            datos_cierre['totales']['total_ahorro_grupo'],
-            datos_cierre['totales']['total_fondo_grupo'],
+            float(datos_cierre['totales']['total_ahorro_grupo']),  # Convertir a float
+            float(datos_cierre['totales']['total_fondo_grupo']),   # Convertir a float
             usuario
         ))
         
         id_cierre = cursor.lastrowid
         
-        # 2. Registrar detalle por miembro
+        # 2. Registrar detalle por miembro - Asegurar tipos float
         for miembro in datos_cierre['miembros']:
             cursor.execute("""
                 INSERT INTO cierre_ciclo_detalle 
@@ -167,10 +167,10 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             """, (
                 id_cierre,
                 miembro['id_miembro'],
-                miembro['saldo_ahorros'],
-                miembro.get('proporcion_redondeada', 0),
-                miembro.get('retiro', 0),
-                miembro.get('saldo_inicial_siguiente', 0)
+                float(miembro['saldo_ahorros']),                    # Convertir a float
+                float(miembro.get('proporcion_redondeada', 0)),     # Convertir a float
+                float(miembro.get('retiro', 0)),                    # Convertir a float
+                float(miembro.get('saldo_inicial_siguiente', 0))    # Convertir a float
             ))
             
             # 3. Actualizar saldo de ahorros para el siguiente ciclo
@@ -183,7 +183,7 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
                     datos_cierre['grupo_info']['id_grupo'],
                     miembro['id_miembro'],
                     fecha_cierre,
-                    miembro.get('retiro', 0)
+                    float(miembro.get('retiro', 0))  # Convertir a float
                 ))
         
         conn.commit()
