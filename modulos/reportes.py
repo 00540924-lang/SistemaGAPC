@@ -665,30 +665,68 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
         st.warning("No se encontraron datos para el período seleccionado.")
         return
     
-    # Mostrar KPIs
-    mostrar_kpis_institucional(estadisticas_distritos)
+    # Título principal
+    st.markdown("### 📊 Métricas por Distrito")
     
-    # AGREGADO: Filtro de distritos
-    st.markdown("---")
-    st.subheader("🎛️ Filtro por Distrito")
-    
+    # SELECTOR DE DISTRITOS INMEDIATAMENTE DESPUÉS DEL TÍTULO
     # Crear lista de distritos disponibles
     distritos_disponibles = ["Todos"] + [stats['distrito'] for stats in estadisticas_distritos]
     
     # Selectbox para filtrar por distrito
     distrito_seleccionado = st.selectbox(
-        "📍 Seleccione un distrito para filtrar:",
+        "📍 Seleccione un distrito:",
         options=distritos_disponibles,
-        help="Seleccione 'Todos' para ver todos los distritos"
+        help="Seleccione 'Todos' para ver todos los distritos",
+        key="selector_distrito"
     )
     
     # Filtrar datos según el distrito seleccionado
     if distrito_seleccionado == "Todos":
         datos_filtrados = estadisticas_distritos
-        titulo_filtro = "Todos los Distritos"
+        # Calcular totales generales
+        total_ingresos = sum(stats['ingresos']['total'] for stats in estadisticas_distritos)
+        total_egresos = sum(stats['egresos']['total'] for stats in estadisticas_distritos)
+        total_saldo = total_ingresos - total_egresos
     else:
         datos_filtrados = [stats for stats in estadisticas_distritos if stats['distrito'] == distrito_seleccionado]
-        titulo_filtro = f"Distrito: {distrito_seleccionado}"
+        if datos_filtrados:
+            stats = datos_filtrados[0]
+            total_ingresos = stats['ingresos']['total']
+            total_egresos = stats['egresos']['total']
+            total_saldo = stats['saldo_neto']
+        else:
+            total_ingresos = 0
+            total_egresos = 0
+            total_saldo = 0
+    
+    # MOSTRAR LOS KPIs CON LOS VALORES DEL DISTRITO SELECCIONADO
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "💰 Ingresos Totales", 
+            f"${total_ingresos:,.2f}",
+            help="Suma de todos los ingresos" + (" del distrito seleccionado" if distrito_seleccionado != "Todos" else " de todos los distritos")
+        )
+    
+    with col2:
+        st.metric(
+            "💸 Egresos Totales", 
+            f"${total_egresos:,.2f}",
+            help="Suma de todos los egresos" + (" del distrito seleccionado" if distrito_seleccionado != "Todos" else " de todos los distritos"),
+            delta=f"-${total_egresos:,.2f}",
+            delta_color="inverse"
+        )
+    
+    with col3:
+        color_saldo = "normal" if total_saldo >= 0 else "inverse"
+        st.metric(
+            "🏦 Saldo Neto Total", 
+            f"${total_saldo:,.2f}",
+            help="Saldo neto (Ingresos - Egresos)" + (" del distrito seleccionado" if distrito_seleccionado != "Todos" else " de todos los distritos"),
+            delta=f"{total_saldo:,.2f}",
+            delta_color=color_saldo
+        )
     
     st.markdown("---")
     
@@ -699,9 +737,10 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
         if datos_filtrados:
             # Gráfico de tendencias
             fig_tendencias = crear_grafico_tendencias_distritos(datos_filtrados)
+            titulo_grafico = f'📈 Tendencias Financieras - {distrito_seleccionado}' if distrito_seleccionado != "Todos" else '📈 Tendencias Financieras por Distrito'
             fig_tendencias.update_layout(
                 title=dict(
-                    text=f'📈 Tendencias Financieras - {titulo_filtro}',
+                    text=titulo_grafico,
                     font=dict(size=20, color='#4C3A60')
                 )
             )
@@ -711,9 +750,10 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
             col1, col2 = st.columns(2)
             with col1:
                 fig_distribucion = crear_grafico_distribucion(datos_filtrados, es_distrito=True)
+                titulo_distribucion = f'🥧 Distribución de Ingresos - {distrito_seleccionado}' if distrito_seleccionado != "Todos" else '🥧 Distribución de Ingresos por Distrito'
                 fig_distribucion.update_layout(
                     title=dict(
-                        text=f'🥧 Distribución de Ingresos - {titulo_filtro}',
+                        text=titulo_distribucion,
                         font=dict(size=16, color='#4C3A60')
                     )
                 )
@@ -723,7 +763,7 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
     
     with tab2:
         if datos_filtrados:
-            # Crear DataFrame consolidado por distrito
+            # Crear DataFrame consolidado
             datos_consolidados = []
             for stats in datos_filtrados:
                 datos_consolidados.append({
@@ -741,37 +781,20 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
             df_display['Egresos'] = df_display['Egresos'].apply(lambda x: f"${x:,.2f}")
             df_display['Saldo Neto'] = df_display['Saldo Neto'].apply(lambda x: f"${x:,.2f}")
             
-            st.markdown(f"### 📋 Resumen - {titulo_filtro}")
+            titulo_resumen = f"### 📋 Resumen - {distrito_seleccionado}" if distrito_seleccionado != "Todos" else "### 📋 Resumen General por Distrito"
+            st.markdown(titulo_resumen)
             st.dataframe(df_display, use_container_width=True)
             
-            # Mostrar totales generales
-            st.markdown("---")
-            st.markdown("### 📊 Resumen General")
-            
+            # Mostrar detalles expandibles por distrito
             if distrito_seleccionado == "Todos":
-                # Calcular totales para todos los distritos
-                total_ingresos = sum(stats['ingresos']['total'] for stats in datos_filtrados)
-                total_egresos = sum(stats['egresos']['total'] for stats in datos_filtrados)
-                total_saldo = total_ingresos - total_egresos
-                
-                col1, col2, col3 = st.columns(3)
+                st.markdown("### 📊 Detalles por Distrito")
+                col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("💰 Ingresos Totales", f"${total_ingresos:,.2f}")
-                with col2:
-                    st.metric("💸 Egresos Totales", f"${total_egresos:,.2f}")
-                with col3:
-                    color_saldo = "normal" if total_saldo >= 0 else "inverse"
-                    st.metric("🏦 Saldo Neto Total", f"${total_saldo:,.2f}", delta_color=color_saldo)
-            
-            # Mostrar detalles por distrito
-            st.markdown("### 📊 Detalles por Distrito")
-            col1, col2 = st.columns(2)
-            with col1:
-                for stats in datos_filtrados:
-                    with st.expander(f"📁 {stats['distrito']}"):
-                        st.write(f"**Ingresos:** ${stats['ingresos']['total']:,.2f}")
-                        st.write(f"**Egresos:** ${stats['egresos']['total']:,.2f}")
-                        st.write(f"**Saldo Neto:** ${stats['saldo_neto']:,.2f}")
+                    for stats in datos_filtrados:
+                        with st.expander(f"📁 {stats['distrito']}"):
+                            st.write(f"**Ingresos:** ${stats['ingresos']['total']:,.2f}")
+                            st.write(f"**Egresos:** ${stats['egresos']['total']:,.2f}")
+                            st.write(f"**Saldo Neto:** ${stats['saldo_neto']:,.2f}")
         else:
             st.info("📋 No hay datos para el distrito seleccionado.")
 
