@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 
 def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
     """
-    Obtiene todos los datos necesarios para el cierre de ciclo de un grupo
+    Obtiene todos los datos necesarios para el cierre de ciclo con la nueva lógica
     """
     try:
         conn = obtener_conexion()
@@ -34,106 +34,245 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
         """, (id_grupo,))
         miembros = cursor.fetchall()
         
-        # 3. Obtener saldos finales de ahorros por miembro
+        # 3. Obtener TOTALES GRUPALES (para dividir entre todos)
+        # 3.1 Total de multas pagadas del grupo
+        cursor.execute("""
+            SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha BETWEEN '1900-01-01' AND %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha_cierre))
+        total_multas_grupo = float(cursor.fetchone()['total_multas'])
+        
+        # 3.2 Total de intereses de préstamos pagados del grupo
+        cursor.execute("""
+            SELECT COALESCE(SUM(PP.interes), 0) as total_intereses
+            FROM prestamo_pagos PP
+            JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND PP.fecha BETWEEN '1900-01-01' AND %s
+            AND PP.estado = 'pagado'
+        """, (id_grupo, fecha_cierre))
+        total_intereses_grupo = float(cursor.fetchone()['total_intereses'])
+        
+        # 3.3 Total de actividades del grupo
+        cursor.execute("""
+            SELECT COALESCE(SUM(actividades), 0) as total_actividades
+            FROM ahorro_final 
+            WHERE id_grupo = %s 
+            AND fecha_registro BETWEEN '1900-01-01' AND %s
+        """, (id_grupo, fecha_cierre))
+        total_actividades_grupo = float(cursor.fetchone()['total_actividades'])
+        
+        # 4. Calcular FONDO GRUPAL TOTAL (lo que se divide entre todos)
+        fondo_grupal_total = total_multas_grupo + total_intereses_grupo + total_actividades_grupo
+        
+        # 5. Calcular lo que le corresponde a CADA socia
+        num_miembros = len(miembros)
+        monto_por_socia = fondo_grupal_total / num_miembros if num_miembros > 0 else 0
+        
+        # 6. Obtener ahorros individuales de cada socia
         datos_cierre = []
         total_ahorro_grupo = 0
-        total_fondo_grupo = 0
         
         for miembro in miembros:
-            # Saldo final de ahorros individual
+            # Saldo de ahorros individual (solo lo que ahorró, sin retiros)
             cursor.execute("""
-                SELECT COALESCE(SUM(ahorros - retiros), 0) as saldo_ahorros
+                SELECT COALESCE(SUM(ahorros), 0) as total_ahorros
                 FROM ahorro_final 
                 WHERE id_grupo = %s AND id_miembro = %s
-                AND fecha_registro <= %s
+                AND fecha_registro BETWEEN '1900-01-01' AND %s
             """, (id_grupo, miembro['id_miembro'], fecha_cierre))
-            resultado_ahorro = cursor.fetchone()
-            saldo_ahorro = float(resultado_ahorro['saldo_ahorros'])  # Convertir a float
+            total_ahorros = float(cursor.fetchone()['total_ahorros'])
             
-            # Aportes al fondo del grupo (actividades)
-            cursor.execute("""
-                SELECT COALESCE(SUM(actividades), 0) as aporte_fondo
-                FROM ahorro_final 
-                WHERE id_grupo = %s AND id_miembro = %s
-                AND fecha_registro <= %s
-            """, (id_grupo, miembro['id_miembro'], fecha_cierre))
-            resultado_fondo = cursor.fetchone()
-            aporte_fondo = float(resultado_fondo['aporte_fondo'])  # Convertir a float
+            # Lo que le corresponde del fondo grupal
+            monto_fondo_socia = monto_por_socia
+            
+            # Total a entregar a la socia
+            total_a_entregar = total_ahorros + monto_fondo_socia
             
             datos_cierre.append({
                 'id_miembro': miembro['id_miembro'],
                 'nombre_completo': miembro['Nombre'],
-                'saldo_ahorros': saldo_ahorro,
-                'aporte_fondo': aporte_fondo
+                'ahorros_individuales': total_ahorros,
+                'monto_fondo_grupal': monto_fondo_socia,
+                'total_a_entregar': total_a_entregar,
+                'entregado': False  # Para marcar cuando se entregue
             })
             
-            total_ahorro_grupo += saldo_ahorro
-            total_fondo_grupo += aporte_fondo
-        
-        # 4. Calcular distribución proporcional del fondo - CORREGIDO: asegurar tipos float
-        if total_fondo_grupo > 0:
-            for dato in datos_cierre:
-                # Asegurar que ambos sean float
-                aporte = float(dato['aporte_fondo'])
-                fondo_total = float(total_fondo_grupo)
-                
-                proporcion = (aporte / fondo_total) if fondo_total > 0 else 0
-                proporcion_redondeada = round(proporcion, 4)
-                
-                dato['proporcion_fondo'] = float(proporcion)
-                dato['proporcion_redondeada'] = float(proporcion_redondeada)
-                dato['retiro'] = 0.0  # Inicializar retiro en 0
-                dato['saldo_inicial_siguiente'] = float(dato['saldo_ahorros'])  # Inicialmente igual al saldo final
+            total_ahorro_grupo += total_ahorros
         
         conn.close()
         
         return {
             'grupo_info': grupo_info,
             'miembros': datos_cierre,
-            'totales': {
-                'total_ahorro_grupo': float(total_ahorro_grupo),
-                'total_fondo_grupo': float(total_fondo_grupo)
+            'totales_grupales': {
+                'total_multas': total_multas_grupo,
+                'total_intereses': total_intereses_grupo,
+                'total_actividades': total_actividades_grupo,
+                'fondo_grupal_total': fondo_grupal_total,
+                'total_ahorro_grupo': total_ahorro_grupo,
+                'num_miembros': num_miembros,
+                'monto_por_socia': monto_por_socia
             }
         }
         
     except Exception as e:
         st.error(f"Error al obtener datos para cierre de ciclo: {e}")
         return None
+
+def mostrar_resumen_cierre(datos_cierre):
+    """
+    Muestra un resumen visual del cierre de ciclo con la nueva lógica
+    """
+    st.markdown("### 📊 Resumen del Cierre de Ciclo")
+    
+    # KPIs principales
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "👥 Total Miembros",
+            datos_cierre['totales_grupales']['num_miembros'],
+            help="Número de miembros en el grupo"
+        )
+    
+    with col2:
+        st.metric(
+            "💰 Total Ahorros del Grupo",
+            f"${datos_cierre['totales_grupales']['total_ahorro_grupo']:,.2f}",
+            help="Suma de ahorros individuales de todas las socias"
+        )
+    
+    with col3:
+        st.metric(
+            "🏦 Fondo Grupal a Repartir",
+            f"${datos_cierre['totales_grupales']['fondo_grupal_total']:,.2f}",
+            help="Multas + Intereses + Actividades"
+        )
+    
+    # Desglose del fondo grupal
+    st.markdown("---")
+    st.subheader("🥧 Composición del Fondo Grupal")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "💰 Multas",
+            f"${datos_cierre['totales_grupales']['total_multas']:,.2f}"
+        )
+    
+    with col2:
+        st.metric(
+            "💸 Intereses Préstamos",
+            f"${datos_cierre['totales_grupales']['total_intereses']:,.2f}"
+        )
+    
+    with col3:
+        st.metric(
+            "📊 Actividades",
+            f"${datos_cierre['totales_grupales']['total_actividades']:,.2f}"
+        )
+    
+    # Gráfico de distribución del fondo grupal
+    labels = ['Multas', 'Intereses', 'Actividades']
+    values = [
+        datos_cierre['totales_grupales']['total_multas'],
+        datos_cierre['totales_grupales']['total_intereses'],
+        datos_cierre['totales_grupales']['total_actividades']
+    ]
+    
+    fig = px.pie(
+        values=values,
+        names=labels,
+        title='Distribución del Fondo Grupal',
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+def mostrar_formulario_cierre(datos_cierre):
+    """
+    Muestra el formulario de cierre de ciclo con la nueva lógica
+    """
+    st.markdown("---")
+    st.markdown("### 📋 Liquidación por Socia")
+    st.markdown(f"**Grupo:** {datos_cierre['grupo_info']['Nombre_grupo']} | **Distrito:** {datos_cierre['grupo_info']['distrito']}")
+    st.info(f"💡 **Monto por socia del fondo grupal:** ${datos_cierre['totales_grupales']['monto_por_socia']:,.2f}")
+    
+    # Crear DataFrame para mostrar
+    datos_liquidacion = []
+    for i, socia in enumerate(datos_cierre['miembros']):
+        datos_liquidacion.append({
+            'Nº': i + 1,
+            'Socia': socia['nombre_completo'],
+            'Ahorros Individuales': f"${socia['ahorros_individuales']:,.2f}",
+            'Parte Fondo Grupal': f"${socia['monto_fondo_grupal']:,.2f}",
+            'Total a Entregar': f"${socia['total_a_entregar']:,.2f}",
+            'Entregado': '✅ Sí' if socia.get('entregado', False) else '❌ No'
+        })
+    
+    df = pd.DataFrame(datos_liquidacion)
+    st.dataframe(df, use_container_width=True)
+    
+    # Sección para marcar entregas
+    st.markdown("#### ✅ Confirmar Entregas")
+    st.warning("Marque cada socia como entregada una vez que reciba su dinero.")
+    
+    for i, socia in enumerate(datos_cierre['miembros']):
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.write(f"**{socia['nombre_completo']}**")
+            st.write(f"Ahorros: ${socia['ahorros_individuales']:,.2f} + Fondo: ${socia['monto_fondo_grupal']:,.2f}")
+            st.write(f"**Total: ${socia['total_a_entregar']:,.2f}**")
+        
+        with col2:
+            entregado = st.checkbox(
+                "Dinero entregado",
+                value=socia.get('entregado', False),
+                key=f"entregado_{i}"
+            )
+            datos_cierre['miembros'][i]['entregado'] = entregado
+        
+        with col3:
+            if entregado:
+                st.success("✅ Entregado")
+            else:
+                st.error("⏳ Pendiente")
+    
+    return datos_cierre
+
 def validar_cierre_ciclo(datos_cierre):
     """
-    Valida que los datos estén completos para proceder con el cierre
+    Valida que el cierre esté listo para ejecutar
     """
     errores = []
     
     if not datos_cierre or not datos_cierre['miembros']:
-        errores.append("No hay miembros activos en el grupo")
+        errores.append("No hay miembros en el grupo")
         return errores
     
-    # Verificar que todos los retiros sean válidos
-    total_retiros = 0
-    for miembro in datos_cierre['miembros']:
-        retiro = miembro.get('retiro', 0)
-        saldo_ahorros = miembro.get('saldo_ahorros', 0)
-        
-        if retiro < 0:
-            errores.append(f"Retiro no puede ser negativo para {miembro['nombre_completo']}")
-        
-        if retiro > saldo_ahorros:
-            errores.append(f"Retiro excede el saldo disponible para {miembro['nombre_completo']}")
-        
-        total_retiros += retiro
+    # Verificar que todas las socias estén marcadas como entregadas
+    socias_pendientes = [socia['nombre_completo'] for socia in datos_cierre['miembros'] if not socia.get('entregado', False)]
     
-    # Verificar que la suma de proporciones sea aproximadamente 1
-    if datos_cierre['totales']['total_fondo_grupo'] > 0:
-        suma_proporciones = sum(miembro.get('proporcion_redondeada', 0) for miembro in datos_cierre['miembros'])
-        if abs(suma_proporciones - 1.0) > 0.01:  # Tolerancia del 1%
-            errores.append(f"La suma de proporciones ({suma_proporciones}) no es igual a 1")
+    if socias_pendientes:
+        errores.append(f"Socias pendientes de entrega: {', '.join(socias_pendientes)}")
     
     return errores
 
 def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
     """
-    Ejecuta el cierre de ciclo en la base de datos
+    Ejecuta el cierre de ciclo en la base de datos con la nueva lógica
     """
     try:
         conn = obtener_conexion()
@@ -142,49 +281,37 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             
         cursor = conn.cursor()
         
-        # 1. Registrar el cierre de ciclo - Asegurar tipos float
+        # 1. Registrar el cierre de ciclo
         cursor.execute("""
             INSERT INTO cierre_ciclo 
-            (id_grupo, fecha_cierre, total_ahorro, total_fondo, usuario_cierre, fecha_registro)
-            VALUES (%s, %s, %s, %s, %s, NOW())
+            (id_grupo, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre, fecha_registro)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """, (
             datos_cierre['grupo_info']['id_grupo'],
             fecha_cierre,
-            float(datos_cierre['totales']['total_ahorro_grupo']),  # Convertir a float
-            float(datos_cierre['totales']['total_fondo_grupo']),   # Convertir a float
+            float(datos_cierre['totales_grupales']['total_ahorro_grupo']),
+            float(datos_cierre['totales_grupales']['fondo_grupal_total']),
+            float(datos_cierre['totales_grupales']['monto_por_socia']),
             usuario
         ))
         
         id_cierre = cursor.lastrowid
         
-        # 2. Registrar detalle por miembro - Asegurar tipos float
-        for miembro in datos_cierre['miembros']:
+        # 2. Registrar detalle por socia
+        for socia in datos_cierre['miembros']:
             cursor.execute("""
                 INSERT INTO cierre_ciclo_detalle 
-                (id_cierre, id_miembro, saldo_final_ahorros, proporcion_fondo, 
-                 retiro, saldo_inicial_siguiente, fecha_registro)
+                (id_cierre, id_miembro, ahorros_individuales, monto_fondo_grupal, 
+                 total_entregado, entregado, fecha_registro)
                 VALUES (%s, %s, %s, %s, %s, %s, NOW())
             """, (
                 id_cierre,
-                miembro['id_miembro'],
-                float(miembro['saldo_ahorros']),                    # Convertir a float
-                float(miembro.get('proporcion_redondeada', 0)),     # Convertir a float
-                float(miembro.get('retiro', 0)),                    # Convertir a float
-                float(miembro.get('saldo_inicial_siguiente', 0))    # Convertir a float
+                socia['id_miembro'],
+                float(socia['ahorros_individuales']),
+                float(socia['monto_fondo_grupal']),
+                float(socia['total_a_entregar']),
+                1 if socia.get('entregado', False) else 0
             ))
-            
-            # 3. Actualizar saldo de ahorros para el siguiente ciclo
-            if miembro.get('retiro', 0) > 0:
-                cursor.execute("""
-                    INSERT INTO ahorro_final 
-                    (id_grupo, id_miembro, fecha_registro, ahorros, retiros, actividades)
-                    VALUES (%s, %s, %s, 0, %s, 0)
-                """, (
-                    datos_cierre['grupo_info']['id_grupo'],
-                    miembro['id_miembro'],
-                    fecha_cierre,
-                    float(miembro.get('retiro', 0))  # Convertir a float
-                ))
         
         conn.commit()
         conn.close()
@@ -196,112 +323,9 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             conn.rollback()
             conn.close()
         return False, f"Error al ejecutar cierre de ciclo: {e}"
-def mostrar_resumen_cierre(datos_cierre):
-    """
-    Muestra un resumen visual del cierre de ciclo
-    """
-    st.markdown("### 📊 Resumen del Cierre de Ciclo")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "👥 Total Miembros",
-            len(datos_cierre['miembros']),
-            help="Número de miembros activos en el grupo"
-        )
-    
-    with col2:
-        st.metric(
-            "💰 Total Ahorro del Grupo",
-            f"${datos_cierre['totales']['total_ahorro_grupo']:,.2f}",
-            help="Suma total de ahorros de todos los miembros"
-        )
-    
-    with col3:
-        st.metric(
-            "🏦 Total Fondo del Grupo",
-            f"${datos_cierre['totales']['total_fondo_grupo']:,.2f}",
-            help="Suma total del fondo grupal"
-        )
-    
-    # Gráfico de distribución del fondo
-    if datos_cierre['totales']['total_fondo_grupo'] > 0:
-        st.markdown("---")
-        st.subheader("🥧 Distribución Proporcional del Fondo")
-        
-        # Preparar datos para el gráfico
-        nombres = [m['nombre_completo'] for m in datos_cierre['miembros']]
-        proporciones = [m.get('proporcion_redondeada', 0) * 100 for m in datos_cierre['miembros']]  # En porcentaje
-        
-        fig = px.pie(
-            values=proporciones,
-            names=nombres,
-            title='Distribución del Fondo Grupal por Miembro (%)',
-            hover_data={'Proporción': [f'{p:.2f}%' for p in proporciones]}
-        )
-        
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
 
-def mostrar_formulario_cierre(datos_cierre):
-    """
-    Muestra el formulario de cierre de ciclo similar al PDF
-    """
-    st.markdown("---")
-    st.markdown("### 📋 Formulario de Cierre de Ciclo")
-    st.markdown(f"**Grupo:** {datos_cierre['grupo_info']['Nombre_grupo']} | **Distrito:** {datos_cierre['grupo_info']['distrito']}")
-    
-    # Crear DataFrame para edición
-    datos_edicion = []
-    for i, miembro in enumerate(datos_cierre['miembros']):
-        datos_edicion.append({
-            'Nº': i + 1,
-            'Socia': miembro['nombre_completo'],
-            'Saldo Final de Ahorros': miembro['saldo_ahorros'],
-            'Aporte al Fondo': miembro.get('aporte_fondo', 0),
-            'Proporción del Fondo': f"{miembro.get('proporcion_redondeada', 0) * 100:.2f}%" if miembro.get('proporcion_redondeada') else "0%",
-            'Retiro': miembro.get('retiro', 0),
-            'Saldo Inicial (Siguiente Ciclo)': miembro.get('saldo_inicial_siguiente', miembro['saldo_ahorros'])
-        })
-    
-    df = pd.DataFrame(datos_edicion)
-    
-    # Mostrar tabla estática con datos principales
-    columnas_estaticas = ['Nº', 'Socia', 'Saldo Final de Ahorros', 'Aporte al Fondo', 'Proporción del Fondo']
-    st.dataframe(df[columnas_estaticas], use_container_width=True)
-    
-    # Sección para editar retiros
-    st.markdown("#### 💰 Definir Retiros por Socia")
-    
-    for i, miembro in enumerate(datos_cierre['miembros']):
-        col1, col2, col3 = st.columns([3, 2, 2])
-        
-        with col1:
-            st.write(f"**{miembro['nombre_completo']}**")
-            st.write(f"Saldo disponible: ${miembro['saldo_ahorros']:,.2f}")
-        
-        with col2:
-            retiro = st.number_input(
-                f"Monto a retirar",
-                min_value=0.0,
-                max_value=float(miembro['saldo_ahorros']),
-                value=float(miembro.get('retiro', 0)),
-                step=10.0,
-                key=f"retiro_{i}"
-            )
-            datos_cierre['miembros'][i]['retiro'] = retiro
-        
-        with col3:
-            saldo_inicial = miembro['saldo_ahorros'] - retiro
-            datos_cierre['miembros'][i]['saldo_inicial_siguiente'] = saldo_inicial
-            st.metric(
-                "Saldo Inicial Siguiente Ciclo",
-                f"${saldo_inicial:,.2f}"
-            )
-    
-    return datos_cierre
+# Las funciones vista_cierre_ciclo(), obtener_todos_los_grupos() y obtener_nombre_grupo() 
+# se mantienen igual que en la versión anterior
 
 def vista_cierre_ciclo():
     """
