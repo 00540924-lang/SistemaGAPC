@@ -5,7 +5,7 @@ from datetime import date, datetime
 import plotly.express as px
 import plotly.graph_objects as go
 
-def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
+def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
     """
     Obtiene todos los datos necesarios para el cierre de ciclo con la nueva lógica
     """
@@ -42,9 +42,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
             JOIN Miembros M ON MT.id_miembro = M.id_miembro
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s
-            AND MT.fecha BETWEEN '1900-01-01' AND %s
+            AND MT.fecha BETWEEN %s AND %s
             AND MT.pagada = 1
-        """, (id_grupo, fecha_cierre))
+        """, (id_grupo, fecha_inicio, fecha_fin))
         total_multas_grupo = float(cursor.fetchone()['total_multas'])
         
         # 3.2 Total de intereses de préstamos pagados del grupo
@@ -55,9 +55,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
             JOIN Miembros M ON P.id_miembro = M.id_miembro
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s 
-            AND PP.fecha BETWEEN '1900-01-01' AND %s
+            AND PP.fecha BETWEEN %s AND %s
             AND PP.estado = 'pagado'
-        """, (id_grupo, fecha_cierre))
+        """, (id_grupo, fecha_inicio, fecha_fin))
         total_intereses_grupo = float(cursor.fetchone()['total_intereses'])
         
         # 3.3 Total de actividades del grupo
@@ -65,8 +65,8 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
             SELECT COALESCE(SUM(actividades), 0) as total_actividades
             FROM ahorro_final 
             WHERE id_grupo = %s 
-            AND fecha_registro BETWEEN '1900-01-01' AND %s
-        """, (id_grupo, fecha_cierre))
+            AND fecha_registro BETWEEN %s AND %s
+        """, (id_grupo, fecha_inicio, fecha_fin))
         total_actividades_grupo = float(cursor.fetchone()['total_actividades'])
         
         # 4. Calcular FONDO GRUPAL TOTAL (lo que se divide entre todos)
@@ -86,8 +86,8 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
                 SELECT COALESCE(SUM(ahorros), 0) as total_ahorros
                 FROM ahorro_final 
                 WHERE id_grupo = %s AND id_miembro = %s
-                AND fecha_registro BETWEEN '1900-01-01' AND %s
-            """, (id_grupo, miembro['id_miembro'], fecha_cierre))
+                AND fecha_registro BETWEEN %s AND %s
+            """, (id_grupo, miembro['id_miembro'], fecha_inicio, fecha_fin))
             total_ahorros = float(cursor.fetchone()['total_ahorros'])
             
             # Lo que le corresponde del fondo grupal
@@ -119,7 +119,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
                 'fondo_grupal_total': fondo_grupal_total,
                 'total_ahorro_grupo': total_ahorro_grupo,
                 'num_miembros': num_miembros,
-                'monto_por_socia': monto_por_socia
+                'monto_por_socia': monto_por_socia,
+                'fecha_inicio': fecha_inicio,
+                'fecha_fin': fecha_fin
             }
         }
         
@@ -132,6 +134,13 @@ def mostrar_resumen_cierre(datos_cierre):
     Muestra un resumen visual del cierre de ciclo con la nueva lógica
     """
     st.markdown("### 📊 Resumen del Cierre de Ciclo")
+    
+    # Mostrar intervalo de fechas
+    col_fechas = st.columns(2)
+    with col_fechas[0]:
+        st.info(f"**Fecha de inicio:** {datos_cierre['totales_grupales']['fecha_inicio']}")
+    with col_fechas[1]:
+        st.info(f"**Fecha de cierre:** {datos_cierre['totales_grupales']['fecha_fin']}")
     
     # KPIs principales
     col1, col2, col3 = st.columns(3)
@@ -189,16 +198,20 @@ def mostrar_resumen_cierre(datos_cierre):
         datos_cierre['totales_grupales']['total_actividades']
     ]
     
-    fig = px.pie(
-        values=values,
-        names=labels,
-        title='Distribución del Fondo Grupal',
-        color_discrete_sequence=px.colors.qualitative.Set3
-    )
-    
-    fig.update_traces(textposition='inside', textinfo='percent+label')
-    fig.update_layout(height=400)
-    st.plotly_chart(fig, use_container_width=True)
+    # Solo mostrar gráfico si hay datos
+    if sum(values) > 0:
+        fig = px.pie(
+            values=values,
+            names=labels,
+            title='Distribución del Fondo Grupal',
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        
+        fig.update_traces(textposition='inside', textinfo='percent+label')
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No hay datos para mostrar en el gráfico de distribución del fondo grupal.")
 
 def mostrar_formulario_cierre(datos_cierre):
     """
@@ -207,6 +220,7 @@ def mostrar_formulario_cierre(datos_cierre):
     st.markdown("---")
     st.markdown("### 📋 Liquidación por Socia")
     st.markdown(f"**Grupo:** {datos_cierre['grupo_info']['Nombre_grupo']} | **Distrito:** {datos_cierre['grupo_info']['distrito']}")
+    st.markdown(f"**Período:** {datos_cierre['totales_grupales']['fecha_inicio']} al {datos_cierre['totales_grupales']['fecha_fin']}")
     st.info(f"💡 **Monto por socia del fondo grupal:** ${datos_cierre['totales_grupales']['monto_por_socia']:,.2f}")
     
     # Crear DataFrame para mostrar
@@ -303,7 +317,7 @@ def mostrar_estado_caja_antes_despues(id_grupo, total_entregado):
     Muestra el estado de la caja antes y después del cierre
     """
     saldo_actual = obtener_saldo_caja_actual(id_grupo)
-    saldo_final = 0.00  # Después del cierre
+    saldo_final = saldo_actual - total_entregado  # Saldo después del cierre
     
     st.markdown("### 💰 Estado de la Caja")
     
@@ -328,13 +342,13 @@ def mostrar_estado_caja_antes_despues(id_grupo, total_entregado):
         st.metric(
             "Saldo Final",
             f"${saldo_final:,.2f}",
-            delta=f"-${saldo_actual:,.2f}",
+            delta=f"-${total_entregado:,.2f}",
             delta_color="inverse"
         )
 
-def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
+def ejecutar_cierre_ciclo(datos_cierre, fecha_inicio, fecha_fin, usuario):
     """
-    Ejecuta el cierre de ciclo en la base de datos y pone la caja en cero
+    Ejecuta el cierre de ciclo en la base de datos
     """
     try:
         conn = obtener_conexion()
@@ -349,11 +363,12 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
         # 1. Registrar el cierre de ciclo en la tabla principal
         cursor.execute("""
             INSERT INTO cierre_ciclo 
-            (id_grupo, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre, total_entregado)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (id_grupo, fecha_inicio, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre, total_entregado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             datos_cierre['grupo_info']['id_grupo'],
-            fecha_cierre,
+            fecha_inicio,
+            fecha_fin,
             float(datos_cierre['totales_grupales']['total_ahorro_grupo']),
             float(datos_cierre['totales_grupales']['fondo_grupal_total']),
             float(datos_cierre['totales_grupales']['monto_por_socia']),
@@ -389,22 +404,25 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
                 """, (
                     datos_cierre['grupo_info']['id_grupo'],
                     socia['id_miembro'],
-                    fecha_cierre,
+                    fecha_fin,
                     float(socia['total_a_entregar'])  # Retiro total
                 ))
         
-        # 4. PONER CAJA EN CERO: Registrar egreso total en la tabla caja
+        # 4. Registrar movimiento en caja (sin poner en cero)
+        saldo_actual = obtener_saldo_caja_actual(datos_cierre['grupo_info']['id_grupo'])
+        nuevo_saldo = saldo_actual - total_entregado_grupo
+        
         cursor.execute("""
             INSERT INTO caja 
             (id_grupo, fecha, descripcion, ingreso, egreso, saldo, tipo_movimiento, usuario)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             datos_cierre['grupo_info']['id_grupo'],
-            fecha_cierre,
-            f"CIERRE DE CICLO - Entrega total a socias (ID: {id_cierre})",
+            fecha_fin,
+            f"CIERRE DE CICLO - Entrega a socias (ID: {id_cierre})",
             0.00,  # Ingreso = 0
             float(total_entregado_grupo),  # Egreso = total entregado
-            0.00,  # Saldo final = 0 (caja en cero)
+            float(nuevo_saldo),  # Saldo actualizado
             "cierre_ciclo",
             usuario
         ))
@@ -425,7 +443,7 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
         conn.commit()
         conn.close()
         
-        return True, f"✅ Cierre de ciclo ejecutado exitosamente. ID: {id_cierre}. Caja puesta en cero."
+        return True, f"✅ Cierre de ciclo ejecutado exitosamente. ID: {id_cierre}"
         
     except Exception as e:
         # Si hay error, revertir los cambios
@@ -451,6 +469,7 @@ def obtener_historial_cierres(id_grupo=None):
                 SELECT 
                     cc.id_cierre,
                     g.Nombre_grupo,
+                    cc.fecha_inicio,
                     cc.fecha_cierre,
                     cc.total_ahorro,
                     cc.total_fondo,
@@ -472,6 +491,7 @@ def obtener_historial_cierres(id_grupo=None):
                 SELECT 
                     cc.id_cierre,
                     g.Nombre_grupo,
+                    cc.fecha_inicio,
                     cc.fecha_cierre,
                     cc.total_ahorro,
                     cc.total_fondo,
@@ -521,6 +541,7 @@ def mostrar_historial_cierres():
         datos_historial.append({
             'ID': cierre['id_cierre'],
             'Grupo': cierre['Nombre_grupo'],
+            'Fecha Inicio': cierre['fecha_inicio'],
             'Fecha Cierre': cierre['fecha_cierre'],
             'Total Ahorro': f"${cierre['total_ahorro']:,.2f}",
             'Total Fondo': f"${cierre['total_fondo']:,.2f}",
@@ -578,29 +599,49 @@ def vista_cierre_ciclo():
             st.info(f"**Grupo asignado:** {grupo_seleccionado}")
         
         with col_config2:
-            fecha_cierre = st.date_input(
-                "📅 Fecha de cierre del ciclo",
-                date.today(),
-                key="cierre_fecha_input"
+            # Calcular fechas por defecto (último mes)
+            hoy = date.today()
+            primer_dia_mes_actual = date(hoy.year, hoy.month, 1)
+            ultimo_dia_mes_anterior = primer_dia_mes_actual - pd.Timedelta(days=1)
+            primer_dia_mes_anterior = date(ultimo_dia_mes_anterior.year, ultimo_dia_mes_anterior.month, 1)
+            
+            fecha_inicio = st.date_input(
+                "📅 Fecha de inicio del ciclo",
+                primer_dia_mes_anterior,
+                key="cierre_fecha_inicio"
             )
+            
+            fecha_fin = st.date_input(
+                "📅 Fecha de cierre del ciclo",
+                ultimo_dia_mes_anterior,
+                key="cierre_fecha_fin"
+            )
+            
+            # Validar que la fecha de inicio sea anterior a la fecha de fin
+            if fecha_inicio >= fecha_fin:
+                st.error("❌ La fecha de inicio debe ser anterior a la fecha de cierre")
         
         # ===============================
         # 2. OBTENER Y MOSTRAR DATOS
         # ===============================
         if st.button("🔄 Cargar Datos para Cierre", type="primary", key="btn_cargar_datos"):
-            with st.spinner("Cargando datos del ciclo..."):
-                datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_cierre)
-                
-                if datos_cierre:
-                    # Usar un diccionario temporal en lugar de session_state
-                    st.session_state.cierre_info = {
-                        'datos': datos_cierre,
-                        'fecha': fecha_cierre,
-                        'grupo': id_grupo_seleccionado
-                    }
-                    st.success("✅ Datos cargados exitosamente")
-                else:
-                    st.error("❌ No se pudieron cargar los datos para el cierre")
+            if fecha_inicio >= fecha_fin:
+                st.error("❌ Por favor, corrija las fechas antes de continuar")
+            else:
+                with st.spinner("Cargando datos del ciclo..."):
+                    datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_inicio, fecha_fin)
+                    
+                    if datos_cierre:
+                        # Usar un diccionario temporal en lugar de session_state
+                        st.session_state.cierre_info = {
+                            'datos': datos_cierre,
+                            'fecha_inicio': fecha_inicio,
+                            'fecha_fin': fecha_fin,
+                            'grupo': id_grupo_seleccionado
+                        }
+                        st.success("✅ Datos cargados exitosamente")
+                    else:
+                        st.error("❌ No se pudieron cargar los datos para el cierre")
         
         # ===============================
         # 3. PROCESAR CIERRE SI HAY DATOS
@@ -637,7 +678,7 @@ def vista_cierre_ciclo():
                             total_entregado
                         )
                         
-                        st.success("✅ Validación exitosa. La caja quedará en CERO después del cierre.")
+                        st.success("✅ Validación exitosa. La caja se actualizará con el egreso correspondiente.")
             
             with col_botones2:
                 if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True, key="btn_ejecutar_cierre"):
@@ -650,7 +691,8 @@ def vista_cierre_ciclo():
                         with st.spinner("Ejecutando cierre de ciclo..."):
                             exito, mensaje = ejecutar_cierre_ciclo(
                                 datos_cierre_actualizado, 
-                                st.session_state.cierre_info['fecha'],
+                                st.session_state.cierre_info['fecha_inicio'],
+                                st.session_state.cierre_info['fecha_fin'],
                                 usuario
                             )
                             
@@ -674,7 +716,7 @@ def vista_cierre_ciclo():
         st.session_state.page = "menu"
         st.rerun()
 
-# Función auxiliar necesaria (debe estar en tu código)
+# Funciones auxiliares que estaban en tu código original
 def obtener_todos_los_grupos():
     """Obtiene todos los grupos disponibles"""
     try:
