@@ -222,7 +222,7 @@ def mostrar_estadisticas(id_grupo):
     """, unsafe_allow_html=True)
 
     # ===============================
-    # 1. FILTROS PRINCIPALES
+    # 1. FILTROS PRINCIPALES - CON NÚMERO DE MIEMBROS EN "TODOS"
     # ===============================
     st.subheader("🎛️ Filtros de Análisis")
     
@@ -246,6 +246,7 @@ def mostrar_estadisticas(id_grupo):
         # Obtener miembros para el filtro
         conn = obtener_conexion()
         miembros = []
+        total_miembros = 0
         if conn:
             try:
                 cursor = conn.cursor(dictionary=True)
@@ -256,6 +257,7 @@ def mostrar_estadisticas(id_grupo):
                     WHERE GM.id_grupo = %s
                 """, (id_grupo,))
                 miembros = cursor.fetchall()
+                total_miembros = len(miembros)
                 cursor.close()
             except:
                 pass
@@ -264,15 +266,23 @@ def mostrar_estadisticas(id_grupo):
                     conn.close()
         
         opciones_miembros = {m['id_miembro']: m['Nombre'] for m in miembros}
+        
+        # Crear opciones con "Todos (X)" donde X es el número de miembros
+        opciones_formateadas = {
+            "Todos": f"Todos ({total_miembros})"
+        }
+        for id_miembro, nombre in opciones_miembros.items():
+            opciones_formateadas[id_miembro] = nombre
+        
         miembro_filtro = st.selectbox(
             "👤 Filtrar por miembro:",
             options=["Todos"] + list(opciones_miembros.keys()),
-            format_func=lambda x: "Todos" if x == "Todos" else opciones_miembros[x],
+            format_func=lambda x: opciones_formateadas[x],
             key="miembro_filtro"
         )
 
     # ===============================
-    # 2. KPI PRINCIPALES - REORGANIZADOS
+    # 2. KPI PRINCIPALES - SIN MIEMBROS ACTIVOS
     # ===============================
     st.subheader("📈 Métricas Principales")
     
@@ -281,7 +291,7 @@ def mostrar_estadisticas(id_grupo):
     stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
     
     if stats:
-        # PRIMERA FILA - 4 métricas principales
+        # SOLO 4 MÉTRICAS - SIN MIEMBROS ACTIVOS
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -312,42 +322,11 @@ def mostrar_estadisticas(id_grupo):
                 help="Total de retiros y préstamos activos"
             )
 
-        # SEGUNDA FILA - Solo Miembros Activos centrado
-        col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-        
-        with col3:  # Columna central para centrar
-            # Obtener el número real de miembros del grupo
-            conn = obtener_conexion()
-            total_miembros_real = 0
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        SELECT COUNT(*) 
-                        FROM Grupomiembros 
-                        WHERE id_grupo = %s
-                    """, (id_grupo,))
-                    total_miembros_real = cursor.fetchone()[0]
-                    cursor.close()
-                except:
-                    total_miembros_real = stats.get('total_miembros', 0)
-                finally:
-                    if conn.is_connected():
-                        conn.close()
-            else:
-                total_miembros_real = stats.get('total_miembros', 0)
-            
-            st.metric(
-                "👥 Miembros Activos", 
-                f"{total_miembros_real}",
-                help="Número total de miembros en el grupo"
-            )
-
     else:
         st.warning("No se pudieron cargar las estadísticas del grupo.")
 
     # ===============================
-    # 3. GRÁFICOS Y VISUALIZACIONES - SIN EVOLUCIÓN
+    # 3. GRÁFICOS Y VISUALIZACIONES
     # ===============================
     st.subheader("📊 Visualizaciones")
     
@@ -437,136 +416,7 @@ def mostrar_estadisticas(id_grupo):
             st.info("👥 No hay datos de miembros para mostrar.")
 
     # ===============================
-    # 4. REPORTE DETALLADO - MEJORADO VISUALMENTE
-    # ===============================
-    st.subheader("📋 Reporte Detallado")
-    
-    if stats:
-        # Estilo mejorado para el resumen general
-        st.markdown("""
-        <style>
-        .big-number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #4C3A60;
-            text-align: center;
-        }
-        .metric-card {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 5px solid #4C3A60;
-            margin: 10px 0;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 🟩 Entradas de Dinero")
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 1.2em; color: #666;">Ahorros</div>
-                <div class="big-number">${stats.get('total_ahorros', 0):,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 1.2em; color: #666;">Actividades</div>
-                <div class="big-number">${stats.get('total_actividades', 0):,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 1.2em; color: #666;">Multas</div>
-                <div class="big-number">${stats.get('total_multas', 0):,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            total_entradas = stats.get('total_ahorros', 0) + stats.get('total_actividades', 0) + stats.get('total_multas', 0)
-            st.markdown(f"""
-            <div class="metric-card" style="border-left-color: #28a745;">
-                <div style="font-size: 1.2em; color: #666; font-weight: bold;">Total Entradas</div>
-                <div class="big-number" style="color: #28a745;">${total_entradas:,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("#### 🟥 Salidas de Dinero")
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 1.2em; color: #666;">Retiros</div>
-                <div class="big-number">${stats.get('total_retiros', 0):,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 1.2em; color: #666;">Préstamos Activos</div>
-                <div class="big-number">${stats.get('prestamos_activos', 0):,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="metric-card" style="border-left-color: #dc3545;">
-                <div style="font-size: 1.2em; color: #666; font-weight: bold;">Total Egresos</div>
-                <div class="big-number" style="color: #dc3545;">${stats.get('total_egresos', 0):,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        # Resumen General Mejorado
-        st.markdown("#### 📊 Resumen General")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card" style="text-align: center; border-left-color: #4C3A60;">
-                <div style="font-size: 1.2em; color: #666;">Período</div>
-                <div style="font-size: 1.1em; font-weight: bold; color: #4C3A60;">
-                    {fecha_inicio} al {fecha_fin}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            if id_miembro_filtro:
-                miembro_nombre = opciones_miembros.get(id_miembro_filtro, 'N/A')
-                st.markdown(f"""
-                <div class="metric-card" style="text-align: center; border-left-color: #4C3A60;">
-                    <div style="font-size: 1.2em; color: #666;">Miembro Filtrado</div>
-                    <div style="font-size: 1.1em; font-weight: bold; color: #4C3A60;">
-                        {miembro_nombre}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class="metric-card" style="text-align: center; border-left-color: #4C3A60;">
-                    <div style="font-size: 1.2em; color: #666;">Miembros</div>
-                    <div style="font-size: 1.1em; font-weight: bold; color: #4C3A60;">
-                        Todos los miembros
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown(f"""
-            <div class="metric-card" style="text-align: center; border-left-color: #007bff;">
-                <div style="font-size: 1.2em; color: #666;">Saldo Neto Final</div>
-                <div class="big-number" style="color: #007bff;">
-                    ${stats.get('saldo_neto', 0):,.2f}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    # ===============================
-    # 5. BOTÓN REGRESAR
+    # 4. BOTÓN REGRESAR
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
