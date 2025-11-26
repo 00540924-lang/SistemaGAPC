@@ -119,7 +119,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
                 'fondo_grupal_total': fondo_grupal_total,
                 'total_ahorro_grupo': total_ahorro_grupo,
                 'num_miembros': num_miembros,
-                'monto_por_socia': monto_por_socia,
+                'monto_por_socia': monto_por_socia
+            },
+            'fechas': {
                 'fecha_inicio': fecha_inicio,
                 'fecha_fin': fecha_fin
             }
@@ -135,34 +137,40 @@ def mostrar_resumen_cierre(datos_cierre):
     """
     st.markdown("### 📊 Resumen del Cierre de Ciclo")
     
-    # Mostrar intervalo de fechas
+    # Mostrar intervalo de fechas de forma segura
     col_fechas = st.columns(2)
     with col_fechas[0]:
-        st.info(f"**Fecha de inicio:** {datos_cierre['totales_grupales']['fecha_inicio']}")
-    with col_fechas[1]:
-        st.info(f"**Fecha de cierre:** {datos_cierre['totales_grupales']['fecha_fin']}")
+        # Usar get() para evitar KeyError
+        fecha_inicio = datos_cierre.get('fechas', {}).get('fecha_inicio', 'No disponible')
+        st.info(f"**Fecha de inicio:** {fecha_inicio}")
     
-    # KPIs principales
+    with col_fechas[1]:
+        fecha_fin = datos_cierre.get('fechas', {}).get('fecha_fin', 'No disponible')
+        st.info(f"**Fecha de cierre:** {fecha_fin}")
+    
+    # KPIs principales - usar get() para evitar errores
+    totales = datos_cierre.get('totales_grupales', {})
+    
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric(
             "👥 Total Miembros",
-            datos_cierre['totales_grupales']['num_miembros'],
+            totales.get('num_miembros', 0),
             help="Número de miembros en el grupo"
         )
     
     with col2:
         st.metric(
             "💰 Total Ahorros del Grupo",
-            f"${datos_cierre['totales_grupales']['total_ahorro_grupo']:,.2f}",
+            f"${totales.get('total_ahorro_grupo', 0):,.2f}",
             help="Suma de ahorros individuales de todas las socias"
         )
     
     with col3:
         st.metric(
             "🏦 Fondo Grupal a Repartir",
-            f"${datos_cierre['totales_grupales']['fondo_grupal_total']:,.2f}",
+            f"${totales.get('fondo_grupal_total', 0):,.2f}",
             help="Multas + Intereses + Actividades"
         )
     
@@ -175,27 +183,27 @@ def mostrar_resumen_cierre(datos_cierre):
     with col1:
         st.metric(
             "💰 Multas",
-            f"${datos_cierre['totales_grupales']['total_multas']:,.2f}"
+            f"${totales.get('total_multas', 0):,.2f}"
         )
     
     with col2:
         st.metric(
             "💸 Intereses Préstamos",
-            f"${datos_cierre['totales_grupales']['total_intereses']:,.2f}"
+            f"${totales.get('total_intereses', 0):,.2f}"
         )
     
     with col3:
         st.metric(
             "📊 Actividades",
-            f"${datos_cierre['totales_grupales']['total_actividades']:,.2f}"
+            f"${totales.get('total_actividades', 0):,.2f}"
         )
     
     # Gráfico de distribución del fondo grupal
     labels = ['Multas', 'Intereses', 'Actividades']
     values = [
-        datos_cierre['totales_grupales']['total_multas'],
-        datos_cierre['totales_grupales']['total_intereses'],
-        datos_cierre['totales_grupales']['total_actividades']
+        totales.get('total_multas', 0),
+        totales.get('total_intereses', 0),
+        totales.get('total_actividades', 0)
     ]
     
     # Solo mostrar gráfico si hay datos
@@ -219,19 +227,27 @@ def mostrar_formulario_cierre(datos_cierre):
     """
     st.markdown("---")
     st.markdown("### 📋 Liquidación por Socia")
-    st.markdown(f"**Grupo:** {datos_cierre['grupo_info']['Nombre_grupo']} | **Distrito:** {datos_cierre['grupo_info']['distrito']}")
-    st.markdown(f"**Período:** {datos_cierre['totales_grupales']['fecha_inicio']} al {datos_cierre['totales_grupales']['fecha_fin']}")
-    st.info(f"💡 **Monto por socia del fondo grupal:** ${datos_cierre['totales_grupales']['monto_por_socia']:,.2f}")
+    
+    # Usar get() para evitar errores
+    grupo_info = datos_cierre.get('grupo_info', {})
+    totales = datos_cierre.get('totales_grupales', {})
+    fechas = datos_cierre.get('fechas', {})
+    
+    st.markdown(f"**Grupo:** {grupo_info.get('Nombre_grupo', 'No disponible')} | **Distrito:** {grupo_info.get('distrito', 'No disponible')}")
+    st.markdown(f"**Período:** {fechas.get('fecha_inicio', 'No disponible')} al {fechas.get('fecha_fin', 'No disponible')}")
+    st.info(f"💡 **Monto por socia del fondo grupal:** ${totales.get('monto_por_socia', 0):,.2f}")
     
     # Crear DataFrame para mostrar
     datos_liquidacion = []
-    for i, socia in enumerate(datos_cierre['miembros']):
+    miembros = datos_cierre.get('miembros', [])
+    
+    for i, socia in enumerate(miembros):
         datos_liquidacion.append({
             'Nº': i + 1,
-            'Socia': socia['nombre_completo'],
-            'Ahorros Individuales': f"${socia['ahorros_individuales']:,.2f}",
-            'Parte Fondo Grupal': f"${socia['monto_fondo_grupal']:,.2f}",
-            'Total a Entregar': f"${socia['total_a_entregar']:,.2f}",
+            'Socia': socia.get('nombre_completo', 'No disponible'),
+            'Ahorros Individuales': f"${socia.get('ahorros_individuales', 0):,.2f}",
+            'Parte Fondo Grupal': f"${socia.get('monto_fondo_grupal', 0):,.2f}",
+            'Total a Entregar': f"${socia.get('total_a_entregar', 0):,.2f}",
             'Entregado': '✅ Sí' if socia.get('entregado', False) else '❌ No'
         })
     
@@ -242,13 +258,13 @@ def mostrar_formulario_cierre(datos_cierre):
     st.markdown("#### ✅ Confirmar Entregas")
     st.warning("Marque cada socia como entregada una vez que reciba su dinero.")
     
-    for i, socia in enumerate(datos_cierre['miembros']):
+    for i, socia in enumerate(miembros):
         col_socia1, col_socia2, col_socia3 = st.columns([3, 2, 1])
         
         with col_socia1:
-            st.write(f"**{socia['nombre_completo']}**")
-            st.write(f"Ahorros: ${socia['ahorros_individuales']:,.2f} + Fondo: ${socia['monto_fondo_grupal']:,.2f}")
-            st.write(f"**Total: ${socia['total_a_entregar']:,.2f}**")
+            st.write(f"**{socia.get('nombre_completo', 'No disponible')}**")
+            st.write(f"Ahorros: ${socia.get('ahorros_individuales', 0):,.2f} + Fondo: ${socia.get('monto_fondo_grupal', 0):,.2f}")
+            st.write(f"**Total: ${socia.get('total_a_entregar', 0):,.2f}**")
         
         with col_socia2:
             entregado = st.checkbox(
@@ -272,12 +288,16 @@ def validar_cierre_ciclo(datos_cierre):
     """
     errores = []
     
-    if not datos_cierre or not datos_cierre['miembros']:
+    if not datos_cierre or not datos_cierre.get('miembros'):
         errores.append("No hay miembros en el grupo")
         return errores
     
     # Verificar que todas las socias estén marcadas como entregadas
-    socias_pendientes = [socia['nombre_completo'] for socia in datos_cierre['miembros'] if not socia.get('entregado', False)]
+    socias_pendientes = [
+        socia.get('nombre_completo', 'Socia sin nombre') 
+        for socia in datos_cierre['miembros'] 
+        if not socia.get('entregado', False)
+    ]
     
     if socias_pendientes:
         errores.append(f"Socias pendientes de entrega: {', '.join(socias_pendientes)}")
@@ -358,7 +378,7 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_inicio, fecha_fin, usuario):
         cursor = conn.cursor()
         
         # Calcular el total entregado a todas las socias
-        total_entregado_grupo = sum(socia['total_a_entregar'] for socia in datos_cierre['miembros'])
+        total_entregado_grupo = sum(socia.get('total_a_entregar', 0) for socia in datos_cierre.get('miembros', []))
         
         # 1. Registrar el cierre de ciclo en la tabla principal
         cursor.execute("""
@@ -670,7 +690,7 @@ def vista_cierre_ciclo():
                             st.error(f"❌ {error}")
                     else:
                         # Calcular total a entregar
-                        total_entregado = sum(socia['total_a_entregar'] for socia in datos_cierre_actualizado['miembros'])
+                        total_entregado = sum(socia.get('total_a_entregar', 0) for socia in datos_cierre_actualizado.get('miembros', []))
                         
                         # Mostrar estado de la caja
                         mostrar_estado_caja_antes_despues(
