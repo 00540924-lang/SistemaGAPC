@@ -216,7 +216,7 @@ def mostrar_estadisticas(id_grupo):
     # Título principal
     st.markdown("""
     <div style='text-align: center;'>
-        <h1>📊 Dashboard de Estadísticas</h1>
+        <h1>📊 Estadísticas</h1>
         <h3 style='color: #4C3A60; margin-top: -10px;'>Resumen completo del grupo</h3>
     </div>
     """, unsafe_allow_html=True)
