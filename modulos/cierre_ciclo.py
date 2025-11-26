@@ -24,12 +24,12 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
         """, (id_grupo,))
         grupo_info = cursor.fetchone()
         
-        # 2. Obtener miembros del grupo - CORREGIDO: usar Nombre (con N mayúscula)
+        # 2. Obtener miembros del grupo - CORREGIDO: eliminar filtro de estado
         cursor.execute("""
             SELECT M.id_miembro, M.Nombre
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
-            WHERE GM.id_grupo = %s AND GM.estado = 'activo'
+            WHERE GM.id_grupo = %s
             ORDER BY M.Nombre
         """, (id_grupo,))
         miembros = cursor.fetchall()
@@ -58,10 +58,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
             """, (id_grupo, miembro['id_miembro'], fecha_cierre))
             aporte_fondo = cursor.fetchone()['aporte_fondo']
             
-            # CORREGIDO: Usar Nombre (con N mayúscula)
             datos_cierre.append({
                 'id_miembro': miembro['id_miembro'],
-                'nombre_completo': miembro['Nombre'],  # Columna correcta
+                'nombre_completo': miembro['Nombre'],
                 'saldo_ahorros': float(saldo_ahorro),
                 'aporte_fondo': float(aporte_fondo)
             })
