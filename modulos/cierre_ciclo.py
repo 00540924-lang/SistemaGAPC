@@ -272,7 +272,7 @@ def validar_cierre_ciclo(datos_cierre):
 
 def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
     """
-    Ejecuta el cierre de ciclo en la base de datos con la nueva lógica
+    Ejecuta el cierre de ciclo en la base de datos
     """
     try:
         conn = obtener_conexion()
@@ -281,11 +281,11 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             
         cursor = conn.cursor()
         
-        # 1. Registrar el cierre de ciclo
+        # 1. Registrar el cierre de ciclo en la tabla principal
         cursor.execute("""
             INSERT INTO cierre_ciclo 
-            (id_grupo, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre, fecha_registro)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            (id_grupo, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """, (
             datos_cierre['grupo_info']['id_grupo'],
             fecha_cierre,
@@ -295,15 +295,16 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             usuario
         ))
         
+        # Obtener el ID del cierre recién insertado
         id_cierre = cursor.lastrowid
         
-        # 2. Registrar detalle por socia
+        # 2. Registrar detalle por cada socia
         for socia in datos_cierre['miembros']:
             cursor.execute("""
                 INSERT INTO cierre_ciclo_detalle 
                 (id_cierre, id_miembro, ahorros_individuales, monto_fondo_grupal, 
-                 total_entregado, entregado, fecha_registro)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                 total_entregado, entregado)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 id_cierre,
                 socia['id_miembro'],
@@ -313,17 +314,116 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
                 1 if socia.get('entregado', False) else 0
             ))
         
+        # Confirmar los cambios en la base de datos
         conn.commit()
         conn.close()
         
-        return True, "Cierre de ciclo ejecutado exitosamente"
+        return True, f"✅ Cierre de ciclo ejecutado exitosamente. ID: {id_cierre}"
         
     except Exception as e:
+        # Si hay error, revertir los cambios
         if conn:
             conn.rollback()
             conn.close()
-        return False, f"Error al ejecutar cierre de ciclo: {e}"
+        return False, f"❌ Error al ejecutar cierre de ciclo: {str(e)}"
+def obtener_historial_cierres(id_grupo=None):
+    """
+    Obtiene el historial de cierres de ciclo
+    """
+    try:
+        conn = obtener_conexion()
+        if not conn:
+            return None
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        if id_grupo:
+            # Obtener cierres de un grupo específico
+            cursor.execute("""
+                SELECT 
+                    cc.id_cierre,
+                    g.Nombre_grupo,
+                    cc.fecha_cierre,
+                    cc.total_ahorro,
+                    cc.total_fondo,
+                    cc.monto_por_socia,
+                    cc.usuario_cierre,
+                    cc.fecha_registro,
+                    COUNT(ccd.id_detalle) as total_socias,
+                    SUM(ccd.entregado) as socias_entregadas
+                FROM cierre_ciclo cc
+                JOIN Grupos g ON cc.id_grupo = g.id_grupo
+                LEFT JOIN cierre_ciclo_detalle ccd ON cc.id_cierre = ccd.id_cierre
+                WHERE cc.id_grupo = %s
+                GROUP BY cc.id_cierre
+                ORDER BY cc.fecha_cierre DESC
+            """, (id_grupo,))
+        else:
+            # Obtener todos los cierres
+            cursor.execute("""
+                SELECT 
+                    cc.id_cierre,
+                    g.Nombre_grupo,
+                    cc.fecha_cierre,
+                    cc.total_ahorro,
+                    cc.total_fondo,
+                    cc.monto_por_socia,
+                    cc.usuario_cierre,
+                    cc.fecha_registro,
+                    COUNT(ccd.id_detalle) as total_socias,
+                    SUM(ccd.entregado) as socias_entregadas
+                FROM cierre_ciclo cc
+                JOIN Grupos g ON cc.id_grupo = g.id_grupo
+                LEFT JOIN cierre_ciclo_detalle ccd ON cc.id_cierre = ccd.id_cierre
+                GROUP BY cc.id_cierre
+                ORDER BY cc.fecha_cierre DESC
+            """)
+        
+        historial = cursor.fetchall()
+        conn.close()
+        
+        return historial
+        
+    except Exception as e:
+        st.error(f"Error al obtener historial de cierres: {e}")
+        return None
 
+def mostrar_historial_cierres():
+    """
+    Muestra el historial de cierres de ciclo
+    """
+    st.markdown("### 📋 Historial de Cierres de Ciclo")
+    
+    rol = st.session_state.get("rol", "").lower()
+    id_grupo = st.session_state.get("id_grupo")
+    
+    # Obtener historial según el rol
+    if rol == "miembro":
+        historial = obtener_historial_cierres(id_grupo)
+    else:
+        historial = obtener_historial_cierres()
+    
+    if not historial:
+        st.info("No hay cierres de ciclo registrados.")
+        return
+    
+    # Preparar datos para mostrar
+    datos_historial = []
+    for cierre in historial:
+        datos_historial.append({
+            'ID': cierre['id_cierre'],
+            'Grupo': cierre['Nombre_grupo'],
+            'Fecha Cierre': cierre['fecha_cierre'],
+            'Total Ahorro': f"${cierre['total_ahorro']:,.2f}",
+            'Total Fondo': f"${cierre['total_fondo']:,.2f}",
+            'Monto por Socia': f"${cierre['monto_por_socia']:,.2f}",
+            'Socias': f"{cierre['socias_entregadas']}/{cierre['total_socias']}",
+            'Usuario': cierre['usuario_cierre'],
+            'Fecha Registro': cierre['fecha_registro'].strftime('%Y-%m-%d %H:%M')
+        })
+    
+    df = pd.DataFrame(datos_historial)
+    st.dataframe(df, use_container_width=True)
 
 def vista_cierre_ciclo():
     """
