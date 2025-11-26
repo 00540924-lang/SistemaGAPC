@@ -18,13 +18,14 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         
-        # Construir condiciones WHERE dinámicas
+        # Construir condiciones WHERE dinámicas - CORREGIDO: sin PP.fecha
         condiciones = ["GM.id_grupo = %s"]
         params = [id_grupo]
         
         if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s OR PP.fecha BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 4)
+            # Solo usar fechas de tablas existentes
+            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s)")
+            params.extend([fecha_inicio, fecha_fin] * 3)
         
         if id_miembro:
             condiciones.append("M.id_miembro = %s")
@@ -32,7 +33,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         where_clause = " AND ".join(condiciones)
         
-        # Consulta principal para estadísticas
+        # Consulta principal para estadísticas - CORREGIDA
         query = f"""
             SELECT 
                 -- Estadísticas de ahorros
@@ -103,11 +104,6 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
             # Si no hay préstamos activos pero sí hay préstamos pagados, forzar 100%
             if estadisticas['num_prestamos_pagados'] > 0 and estadisticas['num_prestamos_activos'] == 0:
                 estadisticas['porcentaje_prestamos_pagados'] = 100.0
-            
-            # Para debug: mostrar información de préstamos
-            print(f"DEBUG - Préstamos activos: {estadisticas['num_prestamos_activos']}")
-            print(f"DEBUG - Préstamos pagados: {estadisticas['num_prestamos_pagados']}")
-            print(f"DEBUG - Porcentaje préstamos: {estadisticas['porcentaje_prestamos_pagados']}%")
         
         return estadisticas or {}
         
@@ -130,13 +126,13 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         
-        # Construir condiciones WHERE dinámicas
+        # Construir condiciones WHERE dinámicas - CORREGIDO
         condiciones = ["GM.id_grupo = %s"]
         params = [id_grupo]
         
         if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 3)
+            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s)")
+            params.extend([fecha_inicio, fecha_fin] * 2)
         
         where_clause = " AND ".join(condiciones)
         
@@ -455,34 +451,38 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col4:
-            # Consulta adicional para verificar préstamos
-            conn = obtener_conexion()
-            if conn:
-                try:
-                    cursor = conn.cursor(dictionary=True)
-                    cursor.execute("""
-                        SELECT estado, COUNT(*) as cantidad 
-                        FROM prestamos 
-                        WHERE id_grupo = %s
-                        GROUP BY estado
-                    """, (id_grupo,))
-                    prestamos_estado = cursor.fetchall()
-                    cursor.close()
-                    
-                    # Debug info
-                    with st.expander("🔍 Debug Préstamos"):
-                        st.write("Estado de préstamos en BD:", prestamos_estado)
-                        st.write("Estadísticas calculadas:", {
-                            'activos': stats.get('num_prestamos_activos', 0),
-                            'pagados': stats.get('num_prestamos_pagados', 0),
-                            'porcentaje': stats.get('porcentaje_prestamos_pagados', 0)
-                        })
+            # Consulta adicional para verificar préstamos (solo si hay problemas)
+            if porcentaje_prestamos == 0 and num_prestamos_pagados > 0:
+                conn = obtener_conexion()
+                if conn:
+                    try:
+                        cursor = conn.cursor(dictionary=True)
+                        cursor.execute("""
+                            SELECT estado, COUNT(*) as cantidad 
+                            FROM prestamos 
+                            WHERE id_grupo = %s
+                            GROUP BY estado
+                        """, (id_grupo,))
+                        prestamos_estado = cursor.fetchall()
+                        cursor.close()
                         
-                except Exception as e:
-                    st.error(f"Error en debug: {e}")
-                finally:
-                    if conn.is_connected():
-                        conn.close()
+                        # Solo mostrar debug si hay discrepancia
+                        if prestamos_estado:
+                            with st.expander("🔍 Debug Préstamos"):
+                                st.write("Estado de préstamos en BD:", prestamos_estado)
+                                st.write("Estadísticas calculadas:", {
+                                    'activos': stats.get('num_prestamos_activos', 0),
+                                    'pagados': stats.get('num_prestamos_pagados', 0),
+                                    'porcentaje': stats.get('porcentaje_prestamos_pagados', 0)
+                                })
+                    except:
+                        pass
+                    finally:
+                        if conn.is_connected():
+                            conn.close()
+
+    else:
+        st.warning("No se pudieron cargar las estadísticas del grupo.")
 
     # ===============================
     # 3. GRÁFICOS Y VISUALIZACIONES
