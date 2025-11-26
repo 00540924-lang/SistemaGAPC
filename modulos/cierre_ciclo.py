@@ -24,13 +24,13 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
         """, (id_grupo,))
         grupo_info = cursor.fetchone()
         
-        # 2. Obtener miembros del grupo
+        # 2. Obtener miembros del grupo - CORREGIDO: usar Nombre (con N mayúscula)
         cursor.execute("""
-            SELECT M.id_miembro, M.nombre, M.apellido
+            SELECT M.id_miembro, M.Nombre
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
             WHERE GM.id_grupo = %s AND GM.estado = 'activo'
-            ORDER BY M.nombre
+            ORDER BY M.Nombre
         """, (id_grupo,))
         miembros = cursor.fetchall()
         
@@ -58,9 +58,10 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_cierre):
             """, (id_grupo, miembro['id_miembro'], fecha_cierre))
             aporte_fondo = cursor.fetchone()['aporte_fondo']
             
+            # CORREGIDO: Usar Nombre (con N mayúscula)
             datos_cierre.append({
                 'id_miembro': miembro['id_miembro'],
-                'nombre_completo': f"{miembro['nombre']} {miembro['apellido']}",
+                'nombre_completo': miembro['Nombre'],  # Columna correcta
                 'saldo_ahorros': float(saldo_ahorro),
                 'aporte_fondo': float(aporte_fondo)
             })
@@ -191,7 +192,6 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             conn.rollback()
             conn.close()
         return False, f"Error al ejecutar cierre de ciclo: {e}"
-
 def mostrar_resumen_cierre(datos_cierre):
     """
     Muestra un resumen visual del cierre de ciclo
