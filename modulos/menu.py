@@ -134,25 +134,29 @@ div.stButton > button:hover {
         ("💾 Ahorro", "ahorro_final", "ahorro_final_btn"),
         ("💰 Caja", "caja", "caja_btn"),
         ("📈 Estadísticas", "estadisticas", "estadisticas_btn"),
-        ("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"),  # NUEVO MÓDULO
+        ("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"),
     ]
 
     # -----------------------------------------------------
-    #          FILTRO POR ROL
+    #          FILTRO POR ROL (CORREGIDO - SIN DUPLICADOS)
     # -----------------------------------------------------
     if usuario == "dark":
         modulos = modulos_base
     elif rol_l == "institucional":
-        modulos = [m for m in modulos_base if m[1] not in ["caja","multas","prestamos","reglamento","asistencia","registrar_miembros","reuniones","ahorro_final","estadisticas"]]
-        # Agregar cierre de ciclo para institucional
-        modulos.append(("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"))
+        # Para institucional: excluir módulos específicos pero INCLUIR cierre_ciclo desde la lista base
+        modulos = [m for m in modulos_base if m[1] not in [
+            "caja", "multas", "prestamos", "reglamento", "asistencia", 
+            "registrar_miembros", "reuniones", "ahorro_final", "estadisticas"
+        ]]
     elif rol_l == "promotor":
-        modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes"]]
-        # Agregar cierre de ciclo para promotor
-        modulos.append(("📅 Cierre de Ciclo", "cierre_ciclo", "cierre_ciclo_btn"))
+        # Para promotor: solo los módulos específicos + cierre_ciclo
+        modulos = [m for m in modulos_base if m[1] in ["grupos", "credenciales", "reportes", "cierre_ciclo"]]
     elif rol_l == "miembro":
-        modulos = [m for m in modulos_base if m[1] in ["reglamento", "caja", "multas", "prestamos", "ahorro_final", "reuniones", "registrar_miembros", "estadisticas"]]
-        # Los miembros NO tienen acceso al cierre de ciclo
+        # Para miembro: módulos específicos (sin cierre_ciclo)
+        modulos = [m for m in modulos_base if m[1] in [
+            "reglamento", "caja", "multas", "prestamos", "ahorro_final", 
+            "reuniones", "registrar_miembros", "estadisticas"
+        ]]
     else:
         st.warning(f"⚠️ El rol '{rol}' no tiene módulos asignados.")
         return
