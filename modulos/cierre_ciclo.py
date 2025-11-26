@@ -272,7 +272,7 @@ def validar_cierre_ciclo(datos_cierre):
 
 def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
     """
-    Ejecuta el cierre de ciclo en la base de datos
+    Ejecuta el cierre de ciclo en la base de datos y pone la caja en cero
     """
     try:
         conn = obtener_conexion()
@@ -281,18 +281,22 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             
         cursor = conn.cursor()
         
+        # Calcular el total entregado a todas las socias
+        total_entregado_grupo = sum(socia['total_a_entregar'] for socia in datos_cierre['miembros'])
+        
         # 1. Registrar el cierre de ciclo en la tabla principal
         cursor.execute("""
             INSERT INTO cierre_ciclo 
-            (id_grupo, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            (id_grupo, fecha_cierre, total_ahorro, total_fondo, monto_por_socia, usuario_cierre, total_entregado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (
             datos_cierre['grupo_info']['id_grupo'],
             fecha_cierre,
             float(datos_cierre['totales_grupales']['total_ahorro_grupo']),
             float(datos_cierre['totales_grupales']['fondo_grupal_total']),
             float(datos_cierre['totales_grupales']['monto_por_socia']),
-            usuario
+            usuario,
+            float(total_entregado_grupo)
         ))
         
         # Obtener el ID del cierre recién insertado
@@ -313,12 +317,53 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
                 float(socia['total_a_entregar']),
                 1 if socia.get('entregado', False) else 0
             ))
+            
+            # 3. ACTUALIZAR SALDOS: Registrar retiro total en ahorro_final
+            if socia['total_a_entregar'] > 0:
+                cursor.execute("""
+                    INSERT INTO ahorro_final 
+                    (id_grupo, id_miembro, fecha_registro, ahorros, retiros, actividades)
+                    VALUES (%s, %s, %s, 0, %s, 0)
+                """, (
+                    datos_cierre['grupo_info']['id_grupo'],
+                    socia['id_miembro'],
+                    fecha_cierre,
+                    float(socia['total_a_entregar'])  # Retiro total
+                ))
+        
+        # 4. PONER CAJA EN CERO: Registrar egreso total en la tabla caja
+        cursor.execute("""
+            INSERT INTO caja 
+            (id_grupo, fecha, descripcion, ingreso, egreso, saldo, tipo_movimiento, usuario)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            datos_cierre['grupo_info']['id_grupo'],
+            fecha_cierre,
+            f"CIERRE DE CICLO - Entrega total a socias (ID: {id_cierre})",
+            0.00,  # Ingreso = 0
+            float(total_entregado_grupo),  # Egreso = total entregado
+            0.00,  # Saldo final = 0 (caja en cero)
+            "cierre_ciclo",
+            usuario
+        ))
+        
+        # 5. OPCIONAL: Resetear multas pendientes (marcar como pagadas si es necesario)
+        cursor.execute("""
+            UPDATE Multas 
+            SET pagada = 1 
+            WHERE id_miembro IN (
+                SELECT M.id_miembro 
+                FROM Miembros M 
+                JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro 
+                WHERE GM.id_grupo = %s
+            ) AND pagada = 0
+        """, (datos_cierre['grupo_info']['id_grupo'],))
         
         # Confirmar los cambios en la base de datos
         conn.commit()
         conn.close()
         
-        return True, f"✅ Cierre de ciclo ejecutado exitosamente. ID: {id_cierre}"
+        return True, f"✅ Cierre de ciclo ejecutado exitosamente. ID: {id_cierre}. Caja puesta en cero."
         
     except Exception as e:
         # Si hay error, revertir los cambios
@@ -326,6 +371,67 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             conn.rollback()
             conn.close()
         return False, f"❌ Error al ejecutar cierre de ciclo: {str(e)}"
+def obtener_saldo_caja_actual(id_grupo):
+    """
+    Obtiene el saldo actual de la caja del grupo
+    """
+    try:
+        conn = obtener_conexion()
+        if not conn:
+            return None
+            
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT saldo 
+            FROM caja 
+            WHERE id_grupo = %s 
+            ORDER BY fecha DESC, id_caja DESC 
+            LIMIT 1
+        """, (id_grupo,))
+        
+        resultado = cursor.fetchone()
+        conn.close()
+        
+        return float(resultado[0]) if resultado else 0.00
+        
+    except Exception as e:
+        st.error(f"Error al obtener saldo de caja: {e}")
+        return 0.00
+
+def mostrar_estado_caja_antes_despues(id_grupo, total_entregado):
+    """
+    Muestra el estado de la caja antes y después del cierre
+    """
+    saldo_actual = obtener_saldo_caja_actual(id_grupo)
+    saldo_final = 0.00  # Después del cierre
+    
+    st.markdown("### 💰 Estado de la Caja")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "Saldo Actual",
+            f"${saldo_actual:,.2f}",
+            delta=None
+        )
+    
+    with col2:
+        st.metric(
+            "Total a Entregar",
+            f"${total_entregado:,.2f}",
+            delta=f"-${total_entregado:,.2f}",
+            delta_color="inverse"
+        )
+    
+    with col3:
+        st.metric(
+            "Saldo Final",
+            f"${saldo_final:,.2f}",
+            delta=f"-${saldo_actual:,.2f}",
+            delta_color="inverse"
+        )
 def obtener_historial_cierres(id_grupo=None):
     """
     Obtiene el historial de cierres de ciclo
