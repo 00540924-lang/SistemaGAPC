@@ -229,22 +229,22 @@ def mostrar_formulario_cierre(datos_cierre):
     st.warning("Marque cada socia como entregada una vez que reciba su dinero.")
     
     for i, socia in enumerate(datos_cierre['miembros']):
-        col1, col2, col3 = st.columns([3, 2, 1])
+        col_socia1, col_socia2, col_socia3 = st.columns([3, 2, 1])  # Nombres únicos
         
-        with col1:
+        with col_socia1:
             st.write(f"**{socia['nombre_completo']}**")
             st.write(f"Ahorros: ${socia['ahorros_individuales']:,.2f} + Fondo: ${socia['monto_fondo_grupal']:,.2f}")
             st.write(f"**Total: ${socia['total_a_entregar']:,.2f}**")
         
-        with col2:
+        with col_socia2:
             entregado = st.checkbox(
                 "Dinero entregado",
                 value=socia.get('entregado', False),
-                key=f"entregado_{i}"
+                key=f"entregado_checkbox_{i}"
             )
             datos_cierre['miembros'][i]['entregado'] = entregado
         
-        with col3:
+        with col_socia3:
             if entregado:
                 st.success("✅ Entregado")
             else:
@@ -324,14 +324,12 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_cierre, usuario):
             conn.close()
         return False, f"Error al ejecutar cierre de ciclo: {e}"
 
-# Las funciones vista_cierre_ciclo(), obtener_todos_los_grupos() y obtener_nombre_grupo() 
-# se mantienen igual que en la versión anterior
 
 def vista_cierre_ciclo():
     """
     Módulo de Cierre de Ciclo - Dashboard principal
     """
-    # Verificar permisos - CORREGIDO: Solo miembros pueden acceder
+    # Verificar permisos - Solo miembros pueden acceder
     rol = st.session_state.get("rol", "").lower()
     usuario = st.session_state.get("usuario", "")
     id_grupo = st.session_state.get("id_grupo")
@@ -358,32 +356,36 @@ def vista_cierre_ciclo():
     # ===============================
     st.subheader("🎛️ Configuración del Cierre")
     
-    col1, col2 = st.columns(2)
+    # Usar claves únicas para evitar conflictos
+    col_config1, col_config2 = st.columns(2)
     
-    with col1:
+    with col_config1:
         # Para miembros, usar su grupo asignado automáticamente
         id_grupo_seleccionado = id_grupo
         grupo_seleccionado = obtener_nombre_grupo(id_grupo)
         st.info(f"**Grupo asignado:** {grupo_seleccionado}")
     
-    with col2:
+    with col_config2:
         fecha_cierre = st.date_input(
             "📅 Fecha de cierre del ciclo",
             date.today(),
-            key="fecha_cierre"
+            key="cierre_fecha_input"
         )
     
     # ===============================
     # 2. OBTENER Y MOSTRAR DATOS
     # ===============================
-    if st.button("🔄 Cargar Datos para Cierre", type="primary"):
+    if st.button("🔄 Cargar Datos para Cierre", type="primary", key="btn_cargar_datos"):
         with st.spinner("Cargando datos del ciclo..."):
             datos_cierre = obtener_datos_cierre_ciclo(id_grupo_seleccionado, fecha_cierre)
             
             if datos_cierre:
-                st.session_state.datos_cierre = datos_cierre
-                st.session_state.fecha_cierre = fecha_cierre
-                st.session_state.id_grupo_cierre = id_grupo_seleccionado
+                # Usar un diccionario temporal en lugar de session_state
+                st.session_state.cierre_info = {
+                    'datos': datos_cierre,
+                    'fecha': fecha_cierre,
+                    'grupo': id_grupo_seleccionado
+                }
                 st.success("✅ Datos cargados exitosamente")
             else:
                 st.error("❌ No se pudieron cargar los datos para el cierre")
@@ -391,8 +393,8 @@ def vista_cierre_ciclo():
     # ===============================
     # 3. PROCESAR CIERRE SI HAY DATOS
     # ===============================
-    if 'datos_cierre' in st.session_state:
-        datos_cierre = st.session_state.datos_cierre
+    if 'cierre_info' in st.session_state:
+        datos_cierre = st.session_state.cierre_info['datos']
         
         # Mostrar resumen
         mostrar_resumen_cierre(datos_cierre)
@@ -404,10 +406,10 @@ def vista_cierre_ciclo():
         st.markdown("---")
         st.subheader("✅ Confirmar y Ejecutar Cierre")
         
-        col1, col2 = st.columns([1, 1])
+        col_botones1, col_botones2 = st.columns([1, 1])
         
-        with col1:
-            if st.button("🔍 Validar Cierre", use_container_width=True):
+        with col_botones1:
+            if st.button("🔍 Validar Cierre", use_container_width=True, key="btn_validar_cierre"):
                 errores = validar_cierre_ciclo(datos_cierre_actualizado)
                 if errores:
                     for error in errores:
@@ -415,8 +417,8 @@ def vista_cierre_ciclo():
                 else:
                     st.success("✅ Validación exitosa. Puede proceder con el cierre.")
         
-        with col2:
-            if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True):
+        with col_botones2:
+            if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True, key="btn_ejecutar_cierre"):
                 # Validar antes de ejecutar
                 errores = validar_cierre_ciclo(datos_cierre_actualizado)
                 if errores:
@@ -426,7 +428,7 @@ def vista_cierre_ciclo():
                     with st.spinner("Ejecutando cierre de ciclo..."):
                         exito, mensaje = ejecutar_cierre_ciclo(
                             datos_cierre_actualizado, 
-                            st.session_state.fecha_cierre,
+                            st.session_state.cierre_info['fecha'],
                             usuario
                         )
                         
@@ -434,8 +436,8 @@ def vista_cierre_ciclo():
                             st.success(f"✅ {mensaje}")
                             st.balloons()
                             # Limpiar datos de sesión
-                            if 'datos_cierre' in st.session_state:
-                                del st.session_state.datos_cierre
+                            if 'cierre_info' in st.session_state:
+                                del st.session_state.cierre_info
                         else:
                             st.error(f"❌ {mensaje}")
     
@@ -443,7 +445,7 @@ def vista_cierre_ciclo():
     # 4. BOTÓN REGRESAR
     # ===============================
     st.markdown("---")
-    if st.button("⬅️ Regresar al Menú Principal"):
+    if st.button("⬅️ Regresar al Menú Principal", key="btn_regresar_cierre"):
         st.session_state.page = "menu"
         st.rerun()
 
