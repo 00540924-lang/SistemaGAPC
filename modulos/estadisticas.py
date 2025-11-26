@@ -151,62 +151,6 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
         if conn and conn.is_connected():
             conn.close()
 
-def obtener_evolucion_ahorros(id_grupo, fecha_inicio=None, fecha_fin=None, id_miembro=None):
-    """Obtiene la evolución de ahorros en el tiempo"""
-    conn = obtener_conexion()
-    if not conn:
-        return []
-    
-    cursor = None
-    try:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        
-        condiciones = ["AF.id_grupo = %s"]
-        params = [id_grupo]
-        
-        if fecha_inicio and fecha_fin:
-            condiciones.append("AF.fecha_registro BETWEEN %s AND %s")
-            params.extend([fecha_inicio, fecha_fin])
-        
-        if id_miembro:
-            condiciones.append("AF.id_miembro = %s")
-            params.append(id_miembro)
-        
-        where_clause = " AND ".join(condiciones)
-        
-        query = f"""
-            SELECT 
-                DATE(AF.fecha_registro) as fecha,
-                SUM(AF.ahorros) as ahorros,
-                SUM(AF.actividades) as actividades,
-                SUM(AF.retiros) as retiros,
-                SUM(AF.saldo_final) as saldo_dia
-            FROM ahorro_final AF
-            WHERE {where_clause}
-            GROUP BY DATE(AF.fecha_registro)
-            ORDER BY fecha ASC
-        """
-        
-        cursor.execute(query, tuple(params))
-        datos = cursor.fetchall()
-        
-        # Calcular saldo acumulado
-        saldo_acumulado = 0
-        for dato in datos:
-            saldo_acumulado += dato['ahorros'] + dato['actividades'] - dato['retiros']
-            dato['saldo_acumulado'] = saldo_acumulado
-        
-        return datos
-        
-    except Exception as e:
-        st.error(f"Error al obtener evolución de ahorros: {e}")
-        return []
-    finally:
-        if cursor:
-            cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
-
 def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
     """Obtiene la distribución de fondos por tipo"""
     conn = obtener_conexion()
@@ -369,9 +313,9 @@ def mostrar_estadisticas(id_grupo):
             )
 
         # SEGUNDA FILA - Solo Miembros Activos centrado
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
         
-        with col2:  # Columna 2 para centrar
+        with col3:  # Columna central para centrar
             # Obtener el número real de miembros del grupo
             conn = obtener_conexion()
             total_miembros_real = 0
@@ -403,52 +347,13 @@ def mostrar_estadisticas(id_grupo):
         st.warning("No se pudieron cargar las estadísticas del grupo.")
 
     # ===============================
-    # 3. GRÁFICOS Y VISUALIZACIONES
+    # 3. GRÁFICOS Y VISUALIZACIONES - SIN EVOLUCIÓN
     # ===============================
     st.subheader("📊 Visualizaciones")
     
-    tab1, tab2, tab3 = st.tabs(["📈 Evolución de Ahorros", "🥧 Distribución", "👥 Ranking Miembros"])
+    tab1, tab2 = st.tabs(["🥧 Distribución", "👥 Ranking Miembros"])
     
     with tab1:
-        # Gráfico de evolución de ahorros
-        datos_evolucion = obtener_evolucion_ahorros(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
-        
-        if datos_evolucion:
-            df_evolucion = pd.DataFrame(datos_evolucion)
-            df_evolucion['fecha'] = pd.to_datetime(df_evolucion['fecha'])
-            
-            fig = go.Figure()
-            
-            fig.add_trace(go.Scatter(
-                x=df_evolucion['fecha'], 
-                y=df_evolucion['saldo_acumulado'],
-                mode='lines+markers',
-                name='Saldo Acumulado',
-                line=dict(color='#4CAF50', width=3),
-                marker=dict(size=6)
-            ))
-            
-            fig.add_trace(go.Bar(
-                x=df_evolucion['fecha'], 
-                y=df_evolucion['ahorros'],
-                name='Ahorros Diarios',
-                marker_color='#2196F3',
-                opacity=0.6
-            ))
-            
-            fig.update_layout(
-                title='Evolución del Saldo de Ahorros',
-                xaxis_title='Fecha',
-                yaxis_title='Monto ($)',
-                hovermode='x unified',
-                height=400
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("📈 No hay datos de evolución para mostrar en el período seleccionado.")
-    
-    with tab2:
         # Gráfico de distribución
         distribucion = obtener_distribucion_por_tipo(id_grupo, fecha_inicio, fecha_fin)
         
@@ -479,7 +384,7 @@ def mostrar_estadisticas(id_grupo):
         else:
             st.info("🥧 No hay datos de distribución para mostrar en el período seleccionado.")
     
-    with tab3:
+    with tab2:
         # Ranking de miembros
         stats_miembros = obtener_estadisticas_por_miembro(id_grupo, fecha_inicio, fecha_fin)
         
@@ -532,33 +437,133 @@ def mostrar_estadisticas(id_grupo):
             st.info("👥 No hay datos de miembros para mostrar.")
 
     # ===============================
-    # 4. REPORTE DETALLADO
+    # 4. REPORTE DETALLADO - MEJORADO VISUALMENTE
     # ===============================
     st.subheader("📋 Reporte Detallado")
     
     if stats:
+        # Estilo mejorado para el resumen general
+        st.markdown("""
+        <style>
+        .big-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #4C3A60;
+            text-align: center;
+        }
+        .metric-card {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #4C3A60;
+            margin: 10px 0;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("#### 🟩 Entradas de Dinero")
-            st.write(f"**Ahorros:** ${stats.get('total_ahorros', 0):,.2f}")
-            st.write(f"**Actividades:** ${stats.get('total_actividades', 0):,.2f}")
-            st.write(f"**Multas:** ${stats.get('total_multas', 0):,.2f}")
+            st.markdown(f"""
+            <div class="metric-card">
+                <div style="font-size: 1.2em; color: #666;">Ahorros</div>
+                <div class="big-number">${stats.get('total_ahorros', 0):,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div class="metric-card">
+                <div style="font-size: 1.2em; color: #666;">Actividades</div>
+                <div class="big-number">${stats.get('total_actividades', 0):,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div class="metric-card">
+                <div style="font-size: 1.2em; color: #666;">Multas</div>
+                <div class="big-number">${stats.get('total_multas', 0):,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             total_entradas = stats.get('total_ahorros', 0) + stats.get('total_actividades', 0) + stats.get('total_multas', 0)
-            st.write(f"**Total Entradas:** ${total_entradas:,.2f}")
+            st.markdown(f"""
+            <div class="metric-card" style="border-left-color: #28a745;">
+                <div style="font-size: 1.2em; color: #666; font-weight: bold;">Total Entradas</div>
+                <div class="big-number" style="color: #28a745;">${total_entradas:,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
         
         with col2:
             st.markdown("#### 🟥 Salidas de Dinero")
-            st.write(f"**Retiros:** ${stats.get('total_retiros', 0):,.2f}")
-            st.write(f"**Préstamos Activos:** ${stats.get('prestamos_activos', 0):,.2f}")
-            st.write(f"**Total Egresos:** ${stats.get('total_egresos', 0):,.2f}")
+            st.markdown(f"""
+            <div class="metric-card">
+                <div style="font-size: 1.2em; color: #666;">Retiros</div>
+                <div class="big-number">${stats.get('total_retiros', 0):,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div class="metric-card">
+                <div style="font-size: 1.2em; color: #666;">Préstamos Activos</div>
+                <div class="big-number">${stats.get('prestamos_activos', 0):,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div class="metric-card" style="border-left-color: #dc3545;">
+                <div style="font-size: 1.2em; color: #666; font-weight: bold;">Total Egresos</div>
+                <div class="big-number" style="color: #dc3545;">${stats.get('total_egresos', 0):,.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown(f"#### 📊 Resumen General")
-        st.write(f"**Período analizado:** {fecha_inicio} al {fecha_fin}")
-        if id_miembro_filtro:
-            st.write(f"**Miembro filtrado:** {opciones_miembros.get(id_miembro_filtro, 'N/A')}")
-        st.write(f"**Saldo Neto:** ${stats.get('saldo_neto', 0):,.2f}")
+        
+        # Resumen General Mejorado
+        st.markdown("#### 📊 Resumen General")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card" style="text-align: center; border-left-color: #4C3A60;">
+                <div style="font-size: 1.2em; color: #666;">Período</div>
+                <div style="font-size: 1.1em; font-weight: bold; color: #4C3A60;">
+                    {fecha_inicio} al {fecha_fin}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            if id_miembro_filtro:
+                miembro_nombre = opciones_miembros.get(id_miembro_filtro, 'N/A')
+                st.markdown(f"""
+                <div class="metric-card" style="text-align: center; border-left-color: #4C3A60;">
+                    <div style="font-size: 1.2em; color: #666;">Miembro Filtrado</div>
+                    <div style="font-size: 1.1em; font-weight: bold; color: #4C3A60;">
+                        {miembro_nombre}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="metric-card" style="text-align: center; border-left-color: #4C3A60;">
+                    <div style="font-size: 1.2em; color: #666;">Miembros</div>
+                    <div style="font-size: 1.1em; font-weight: bold; color: #4C3A60;">
+                        Todos los miembros
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"""
+            <div class="metric-card" style="text-align: center; border-left-color: #007bff;">
+                <div style="font-size: 1.2em; color: #666;">Saldo Neto Final</div>
+                <div class="big-number" style="color: #007bff;">
+                    ${stats.get('saldo_neto', 0):,.2f}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # ===============================
     # 5. BOTÓN REGRESAR
