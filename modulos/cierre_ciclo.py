@@ -304,68 +304,6 @@ def validar_cierre_ciclo(datos_cierre):
     
     return errores
 
-def obtener_saldo_caja_actual(id_grupo):
-    """
-    Obtiene el saldo actual de la caja del grupo
-    """
-    try:
-        conn = obtener_conexion()
-        if not conn:
-            return None
-            
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT saldo 
-            FROM caja 
-            WHERE id_grupo = %s 
-            ORDER BY fecha DESC, id_caja DESC 
-            LIMIT 1
-        """, (id_grupo,))
-        
-        resultado = cursor.fetchone()
-        conn.close()
-        
-        return float(resultado[0]) if resultado else 0.00
-        
-    except Exception as e:
-        st.error(f"Error al obtener saldo de caja: {e}")
-        return 0.00
-
-def mostrar_estado_caja_antes_despues(id_grupo, total_entregado):
-    """
-    Muestra el estado de la caja antes y después del cierre
-    """
-    saldo_actual = obtener_saldo_caja_actual(id_grupo)
-    saldo_final = saldo_actual - total_entregado  # Saldo después del cierre
-    
-    st.markdown("### 💰 Estado de la Caja")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "Saldo Actual",
-            f"${saldo_actual:,.2f}",
-            delta=None
-        )
-    
-    with col2:
-        st.metric(
-            "Total a Entregar",
-            f"${total_entregado:,.2f}",
-            delta=f"-${total_entregado:,.2f}",
-            delta_color="inverse"
-        )
-    
-    with col3:
-        st.metric(
-            "Saldo Final",
-            f"${saldo_final:,.2f}",
-            delta=f"-${total_entregado:,.2f}",
-            delta_color="inverse"
-        )
-
 def ejecutar_cierre_ciclo(datos_cierre, fecha_inicio, fecha_fin, usuario):
     """
     Ejecuta el cierre de ciclo en la base de datos
@@ -428,26 +366,7 @@ def ejecutar_cierre_ciclo(datos_cierre, fecha_inicio, fecha_fin, usuario):
                     float(socia['total_a_entregar'])  # Retiro total
                 ))
         
-        # 4. Registrar movimiento en caja (sin poner en cero)
-        saldo_actual = obtener_saldo_caja_actual(datos_cierre['grupo_info']['id_grupo'])
-        nuevo_saldo = saldo_actual - total_entregado_grupo
-        
-        cursor.execute("""
-            INSERT INTO caja 
-            (id_grupo, fecha, descripcion, ingreso, egreso, saldo, tipo_movimiento, usuario)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            datos_cierre['grupo_info']['id_grupo'],
-            fecha_fin,
-            f"CIERRE DE CICLO - Entrega a socias (ID: {id_cierre})",
-            0.00,  # Ingreso = 0
-            float(total_entregado_grupo),  # Egreso = total entregado
-            float(nuevo_saldo),  # Saldo actualizado
-            "cierre_ciclo",
-            usuario
-        ))
-        
-        # 5. OPCIONAL: Resetear multas pendientes (marcar como pagadas si es necesario)
+        # 4. OPCIONAL: Resetear multas pendientes (marcar como pagadas si es necesario)
         cursor.execute("""
             UPDATE Multas 
             SET pagada = 1 
@@ -689,16 +608,7 @@ def vista_cierre_ciclo():
                         for error in errores:
                             st.error(f"❌ {error}")
                     else:
-                        # Calcular total a entregar
-                        total_entregado = sum(socia.get('total_a_entregar', 0) for socia in datos_cierre_actualizado.get('miembros', []))
-                        
-                        # Mostrar estado de la caja
-                        mostrar_estado_caja_antes_despues(
-                            datos_cierre_actualizado['grupo_info']['id_grupo'], 
-                            total_entregado
-                        )
-                        
-                        st.success("✅ Validación exitosa. La caja se actualizará con el egreso correspondiente.")
+                        st.success("✅ Validación exitosa. Todas las socias han sido marcadas como entregadas.")
             
             with col_botones2:
                 if st.button("🚀 Ejecutar Cierre de Ciclo", type="primary", use_container_width=True, key="btn_ejecutar_cierre"):
