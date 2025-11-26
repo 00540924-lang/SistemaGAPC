@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from modulos.config.conexion import obtener_conexion
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -12,6 +12,7 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
     try:
         conn = obtener_conexion()
         if not conn:
+            st.error("❌ No se pudo conectar a la base de datos")
             return None
             
         cursor = conn.cursor(dictionary=True)
@@ -24,6 +25,11 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
         """, (id_grupo,))
         grupo_info = cursor.fetchone()
         
+        if not grupo_info:
+            st.error("❌ No se encontró el grupo especificado")
+            conn.close()
+            return None
+        
         # 2. Obtener miembros del grupo
         cursor.execute("""
             SELECT M.id_miembro, M.Nombre
@@ -33,6 +39,8 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
             ORDER BY M.Nombre
         """, (id_grupo,))
         miembros = cursor.fetchall()
+        
+        st.info(f"👥 Se encontraron {len(miembros)} miembros en el grupo")
         
         # 3. Obtener TOTALES GRUPALES (para dividir entre todos)
         # 3.1 Total de multas pagadas del grupo
@@ -45,7 +53,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
             AND MT.fecha BETWEEN %s AND %s
             AND MT.pagada = 1
         """, (id_grupo, fecha_inicio, fecha_fin))
-        total_multas_grupo = float(cursor.fetchone()['total_multas'])
+        resultado_multas = cursor.fetchone()
+        total_multas_grupo = float(resultado_multas['total_multas'])
+        st.info(f"💰 Multas encontradas: ${total_multas_grupo:,.2f}")
         
         # 3.2 Total de intereses de préstamos pagados del grupo
         cursor.execute("""
@@ -58,7 +68,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
             AND PP.fecha BETWEEN %s AND %s
             AND PP.estado = 'pagado'
         """, (id_grupo, fecha_inicio, fecha_fin))
-        total_intereses_grupo = float(cursor.fetchone()['total_intereses'])
+        resultado_intereses = cursor.fetchone()
+        total_intereses_grupo = float(resultado_intereses['total_intereses'])
+        st.info(f"💸 Intereses encontrados: ${total_intereses_grupo:,.2f}")
         
         # 3.3 Total de actividades del grupo
         cursor.execute("""
@@ -67,7 +79,9 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
             WHERE id_grupo = %s 
             AND fecha_registro BETWEEN %s AND %s
         """, (id_grupo, fecha_inicio, fecha_fin))
-        total_actividades_grupo = float(cursor.fetchone()['total_actividades'])
+        resultado_actividades = cursor.fetchone()
+        total_actividades_grupo = float(resultado_actividades['total_actividades'])
+        st.info(f"📊 Actividades encontradas: ${total_actividades_grupo:,.2f}")
         
         # 4. Calcular FONDO GRUPAL TOTAL (lo que se divide entre todos)
         fondo_grupal_total = total_multas_grupo + total_intereses_grupo + total_actividades_grupo
@@ -88,7 +102,8 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
                 WHERE id_grupo = %s AND id_miembro = %s
                 AND fecha_registro BETWEEN %s AND %s
             """, (id_grupo, miembro['id_miembro'], fecha_inicio, fecha_fin))
-            total_ahorros = float(cursor.fetchone()['total_ahorros'])
+            resultado_ahorro = cursor.fetchone()
+            total_ahorros = float(resultado_ahorro['total_ahorros'])
             
             # Lo que le corresponde del fondo grupal
             monto_fondo_socia = monto_por_socia
@@ -106,6 +121,8 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
             })
             
             total_ahorro_grupo += total_ahorros
+        
+        st.info(f"🏦 Total de ahorros del grupo: ${total_ahorro_grupo:,.2f}")
         
         conn.close()
         
@@ -128,7 +145,7 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
         }
         
     except Exception as e:
-        st.error(f"Error al obtener datos para cierre de ciclo: {e}")
+        st.error(f"❌ Error al obtener datos para cierre de ciclo: {str(e)}")
         return None
 
 def mostrar_resumen_cierre(datos_cierre):
@@ -345,21 +362,21 @@ def vista_cierre_ciclo():
         st.info(f"**Grupo asignado:** {grupo_seleccionado}")
     
     with col_config2:
-        # Calcular fechas por defecto (último mes)
+        # Calcular fechas por defecto (últimos 6 meses para tener más datos)
         hoy = date.today()
         primer_dia_mes_actual = date(hoy.year, hoy.month, 1)
-        ultimo_dia_mes_anterior = primer_dia_mes_actual - pd.Timedelta(days=1)
-        primer_dia_mes_anterior = date(ultimo_dia_mes_anterior.year, ultimo_dia_mes_anterior.month, 1)
+        fecha_fin_default = primer_dia_mes_actual - timedelta(days=1)  # Último día del mes anterior
+        fecha_inicio_default = fecha_fin_default - timedelta(days=180)  # 6 meses atrás
         
         fecha_inicio = st.date_input(
             "📅 Fecha de inicio del ciclo",
-            primer_dia_mes_anterior,
+            fecha_inicio_default,
             key="cierre_fecha_inicio"
         )
         
         fecha_fin = st.date_input(
             "📅 Fecha de cierre del ciclo",
-            ultimo_dia_mes_anterior,
+            fecha_fin_default,
             key="cierre_fecha_fin"
         )
         
