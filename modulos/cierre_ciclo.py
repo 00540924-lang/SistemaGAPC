@@ -40,8 +40,6 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
         """, (id_grupo,))
         miembros = cursor.fetchall()
         
-        st.info(f"👥 Se encontraron {len(miembros)} miembros en el grupo")
-        
         # 3. Obtener TOTALES GRUPALES (para dividir entre todos)
         # 3.1 Total de multas pagadas del grupo
         cursor.execute("""
@@ -55,7 +53,6 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
         """, (id_grupo, fecha_inicio, fecha_fin))
         resultado_multas = cursor.fetchone()
         total_multas_grupo = float(resultado_multas['total_multas'])
-        st.info(f"💰 Multas encontradas: ${total_multas_grupo:,.2f}")
         
         # 3.2 Total de intereses de préstamos pagados del grupo
         cursor.execute("""
@@ -70,7 +67,6 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
         """, (id_grupo, fecha_inicio, fecha_fin))
         resultado_intereses = cursor.fetchone()
         total_intereses_grupo = float(resultado_intereses['total_intereses'])
-        st.info(f"💸 Intereses encontrados: ${total_intereses_grupo:,.2f}")
         
         # 3.3 Total de actividades del grupo
         cursor.execute("""
@@ -81,7 +77,6 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
         """, (id_grupo, fecha_inicio, fecha_fin))
         resultado_actividades = cursor.fetchone()
         total_actividades_grupo = float(resultado_actividades['total_actividades'])
-        st.info(f"📊 Actividades encontradas: ${total_actividades_grupo:,.2f}")
         
         # 4. Calcular FONDO GRUPAL TOTAL (lo que se divide entre todos)
         fondo_grupal_total = total_multas_grupo + total_intereses_grupo + total_actividades_grupo
@@ -121,8 +116,6 @@ def obtener_datos_cierre_ciclo(id_grupo, fecha_inicio, fecha_fin):
             })
             
             total_ahorro_grupo += total_ahorros
-        
-        st.info(f"🏦 Total de ahorros del grupo: ${total_ahorro_grupo:,.2f}")
         
         conn.close()
         
