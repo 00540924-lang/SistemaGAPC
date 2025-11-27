@@ -146,7 +146,7 @@ div.stButton > button:hover {
         # Para institucional: excluir módulos específicos pero INCLUIR cierre_ciclo desde la lista base
         modulos = [m for m in modulos_base if m[1] not in [
             "caja", "multas", "prestamos", "reglamento","cierre_ciclo", "asistencia", 
-            "registrar_miembros", "reuniones", "ahorro_final", "estadisticas"
+            "registrar_miembros", "reuniones", "ahorro_final", "estadisticas","grupos"
         ]]
     elif rol_l == "promotor":
         # Para promotor: solo los módulos específicos + cierre_ciclo
