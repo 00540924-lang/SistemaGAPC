@@ -206,7 +206,113 @@ def prestamos_modulo():
         return
 
     # =====================================================
-    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON ACTUALIZACIÓN AUTOMÁTICA
+    #   SECCIÓN DE SALDO DISPONIBLE - FUERA DEL FORMULARIO
+    # =====================================================
+    st.subheader("💰 Saldo Disponible para Préstamos")
+    
+    # FECHA DE DESEMBOLSO - FUERA DEL FORMULARIO PARA ACTUALIZACIÓN AUTOMÁTICA
+    fecha_desembolso = st.date_input("Fecha de desembolso para cálculo de saldo", datetime.date.today(), key="fecha_desembolso_saldo")
+    
+    # OBTENER SALDO NETO DISPONIBLE EN CAJA PARA LA FECHA DE DESEMBOLSO
+    # Usar session_state para forzar la actualización
+    saldo_key = f"saldo_{fecha_desembolso}"
+    if saldo_key not in st.session_state:
+        st.session_state[saldo_key] = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
+    
+    saldo_disponible = st.session_state[saldo_key]
+    
+    # Mostrar información del saldo neto disponible
+    st.info(f"💰 **Saldo neto disponible en caja para {fecha_desembolso}:** ${saldo_disponible:,.2f}")
+    
+    # Botón para actualizar manualmente
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("🔄 Actualizar saldo", use_container_width=True):
+            st.session_state[saldo_key] = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
+            st.rerun()
+    
+    # Mostrar desglose del cálculo (siempre visible)
+    with st.expander("🔍 Ver desglose del cálculo del saldo"):
+        try:
+            con = obtener_conexion()
+            cursor = con.cursor()
+            
+            # Obtener todos los datos para el desglose
+            cursor.execute("""
+                SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
+                FROM Multas MT
+                JOIN Miembros M ON MT.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s AND MT.fecha <= %s AND MT.pagada = 1
+            """, (id_grupo, fecha_desembolso))
+            total_multas = float(cursor.fetchone()[0] or 0.0)
+
+            cursor.execute("""
+                SELECT 
+                    COALESCE(SUM(ahorros), 0) as total_ahorros,
+                    COALESCE(SUM(actividades), 0) as total_actividades,
+                    COALESCE(SUM(retiros), 0) as total_retiros
+                FROM ahorro_final 
+                WHERE id_grupo = %s AND fecha_registro <= %s
+            """, (id_grupo, fecha_desembolso))
+            ahorros_data = cursor.fetchone()
+            total_ahorros = float(ahorros_data[0] or 0.0)
+            total_actividades = float(ahorros_data[1] or 0.0)
+            total_retiros = float(ahorros_data[2] or 0.0)
+
+            cursor.execute("""
+                SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos
+                FROM prestamo_pagos PP
+                JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+                JOIN Miembros M ON P.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s AND PP.fecha <= %s AND PP.estado = 'pagado'
+            """, (id_grupo, fecha_desembolso))
+            total_pagos_prestamos = float(cursor.fetchone()[0] or 0.0)
+
+            cursor.execute("""
+                SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+                FROM prestamos P
+                JOIN Miembros M ON P.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s AND P.fecha_desembolso <= %s
+            """, (id_grupo, fecha_desembolso))
+            total_desembolsos = float(cursor.fetchone()[0] or 0.0)
+
+            con.close()
+
+            # Calcular totales
+            total_ingresos = total_multas + total_ahorros + total_actividades + total_pagos_prestamos
+            total_egresos = total_retiros + total_desembolsos
+            saldo_neto = total_ingresos - total_egresos
+
+            # Mostrar desglose
+            st.write(f"**Desglose para {fecha_desembolso}:**")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**INGRESOS:**")
+                st.write(f"- Multas: ${total_multas:,.2f}")
+                st.write(f"- Ahorros: ${total_ahorros:,.2f}")
+                st.write(f"- Actividades: ${total_actividades:,.2f}")
+                st.write(f"- Pagos préstamos: ${total_pagos_prestamos:,.2f}")
+                st.write(f"**Total ingresos: ${total_ingresos:,.2f}**")
+            
+            with col2:
+                st.write("**EGRESOS:**")
+                st.write(f"- Retiros: ${total_retiros:,.2f}")
+                st.write(f"- Desembolsos: ${total_desembolsos:,.2f}")
+                st.write(f"**Total egresos: ${total_egresos:,.2f}**")
+            
+            st.write(f"**SALDO NETO: ${saldo_neto:,.2f}**")
+            
+        except Exception as e:
+            st.error(f"Error al obtener desglose: {str(e)}")
+
+    st.write("---")
+
+    # =====================================================
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO
     # =====================================================
     with st.form("form_nuevo_prestamo"):
         st.subheader("📄 Nuevo Préstamo")
@@ -214,102 +320,8 @@ def prestamos_modulo():
         miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
         proposito = st.text_input("Propósito del préstamo")
         
-        # FECHA DE DESEMBOLSO - CON ACTUALIZACIÓN AUTOMÁTICA
-        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
-        
-        # OBTENER SALDO NETO DISPONIBLE EN CAJA PARA LA FECHA DE DESEMBOLSO
-        # Usar session_state para forzar la actualización
-        saldo_key = f"saldo_{fecha_desembolso}"
-        if saldo_key not in st.session_state:
-            st.session_state[saldo_key] = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
-        
-        saldo_disponible = st.session_state[saldo_key]
-        
-        # Mostrar información del saldo neto disponible
-        st.info(f"💰 **Saldo neto disponible en caja:** ${saldo_disponible:,.2f}")
-        
-        # Botón para actualizar manualmente si es necesario
-        if st.button("🔄 Actualizar saldo"):
-            st.session_state[saldo_key] = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
-            st.rerun()
-        
-        # Mostrar desglose del cálculo (siempre visible)
-        with st.expander("🔍 Ver desglose del cálculo del saldo"):
-            try:
-                con = obtener_conexion()
-                cursor = con.cursor()
-                
-                # Obtener todos los datos para el desglose
-                cursor.execute("""
-                    SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
-                    FROM Multas MT
-                    JOIN Miembros M ON MT.id_miembro = M.id_miembro
-                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                    WHERE GM.id_grupo = %s AND MT.fecha <= %s AND MT.pagada = 1
-                """, (id_grupo, fecha_desembolso))
-                total_multas = float(cursor.fetchone()[0] or 0.0)
-
-                cursor.execute("""
-                    SELECT 
-                        COALESCE(SUM(ahorros), 0) as total_ahorros,
-                        COALESCE(SUM(actividades), 0) as total_actividades,
-                        COALESCE(SUM(retiros), 0) as total_retiros
-                    FROM ahorro_final 
-                    WHERE id_grupo = %s AND fecha_registro <= %s
-                """, (id_grupo, fecha_desembolso))
-                ahorros_data = cursor.fetchone()
-                total_ahorros = float(ahorros_data[0] or 0.0)
-                total_actividades = float(ahorros_data[1] or 0.0)
-                total_retiros = float(ahorros_data[2] or 0.0)
-
-                cursor.execute("""
-                    SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos
-                    FROM prestamo_pagos PP
-                    JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
-                    JOIN Miembros M ON P.id_miembro = M.id_miembro
-                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                    WHERE GM.id_grupo = %s AND PP.fecha <= %s AND PP.estado = 'pagado'
-                """, (id_grupo, fecha_desembolso))
-                total_pagos_prestamos = float(cursor.fetchone()[0] or 0.0)
-
-                cursor.execute("""
-                    SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
-                    FROM prestamos P
-                    JOIN Miembros M ON P.id_miembro = M.id_miembro
-                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                    WHERE GM.id_grupo = %s AND P.fecha_desembolso <= %s
-                """, (id_grupo, fecha_desembolso))
-                total_desembolsos = float(cursor.fetchone()[0] or 0.0)
-
-                con.close()
-
-                # Calcular totales
-                total_ingresos = total_multas + total_ahorros + total_actividades + total_pagos_prestamos
-                total_egresos = total_retiros + total_desembolsos
-                saldo_neto = total_ingresos - total_egresos
-
-                # Mostrar desglose
-                st.write(f"**Desglose para {fecha_desembolso}:**")
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**INGRESOS:**")
-                    st.write(f"- Multas: ${total_multas:,.2f}")
-                    st.write(f"- Ahorros: ${total_ahorros:,.2f}")
-                    st.write(f"- Actividades: ${total_actividades:,.2f}")
-                    st.write(f"- Pagos préstamos: ${total_pagos_prestamos:,.2f}")
-                    st.write(f"**Total ingresos: ${total_ingresos:,.2f}**")
-                
-                with col2:
-                    st.write("**EGRESOS:**")
-                    st.write(f"- Retiros: ${total_retiros:,.2f}")
-                    st.write(f"- Desembolsos: ${total_desembolsos:,.2f}")
-                    st.write(f"**Total egresos: ${total_egresos:,.2f}**")
-                
-                st.write(f"**SALDO NETO: ${saldo_neto:,.2f}**")
-                
-            except Exception as e:
-                st.error(f"Error al obtener desglose: {str(e)}")
+        # Usar la misma fecha del cálculo de saldo
+        st.write(f"**Fecha de desembolso:** {fecha_desembolso}")
         
         # MONTO CON LÍMITE BASADO EN EL SALDO DISPONIBLE
         monto_maximo_permitido = float(saldo_disponible) if saldo_disponible > 0 else 0.01
