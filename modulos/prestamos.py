@@ -6,11 +6,11 @@ import time
 from decimal import Decimal
 
 # =====================================================
-#   FUNCIÓN PARA OBTENER SALDO DISPONIBLE EN CAJA - CORREGIDA
+#   FUNCIÓN CORREGIDA PARA OBTENER SALDO NETO DISPONIBLE
 # =====================================================
 def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
     """
-    Obtiene el saldo neto disponible en caja hasta una fecha específica
+    Obtiene el saldo neto acumulado en caja hasta una fecha específica
     """
     if fecha_consulta is None:
         fecha_consulta = datetime.date.today()
@@ -19,7 +19,7 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
         con = obtener_conexion()
         cursor = con.cursor()
         
-        # Obtener todas las entradas de dinero (hasta la fecha de consulta)
+        # Obtener TODAS las entradas de dinero acumuladas hasta la fecha de consulta
         cursor.execute("""
             SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
             FROM Multas MT
@@ -32,6 +32,7 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
         total_multas_result = cursor.fetchone()[0]
         total_multas = float(total_multas_result) if total_multas_result else 0.0
 
+        # Obtener TODOS los ahorros acumulados hasta la fecha
         cursor.execute("""
             SELECT 
                 COALESCE(SUM(ahorros), 0) as total_ahorros,
@@ -45,7 +46,7 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
         total_actividades = float(ahorros_data[1]) if ahorros_data[1] else 0.0
         total_retiros = float(ahorros_data[2]) if ahorros_data[2] else 0.0
 
-        # CORREGIDO: Sumar capital + interés para los pagos de préstamos
+        # Obtener TODOS los pagos de préstamos acumulados hasta la fecha
         cursor.execute("""
             SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
             FROM prestamo_pagos PP
@@ -59,7 +60,7 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
         total_pago_prestamos_result = cursor.fetchone()[0]
         total_pago_prestamos = float(total_pago_prestamos_result) if total_pago_prestamos_result else 0.0
 
-        # Obtener DESEMBOLSOS de préstamos (dinero que SALE de la caja)
+        # Obtener TODOS los desembolsos de préstamos acumulados hasta la fecha
         cursor.execute("""
             SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
             FROM prestamos P
@@ -67,14 +68,13 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s 
             AND P.fecha_desembolso <= %s
-            AND P.estado IN ('activo', 'pendiente')
         """, (id_grupo, fecha_consulta))
         total_desembolsos_result = cursor.fetchone()[0]
         total_desembolsos = float(total_desembolsos_result) if total_desembolsos_result else 0.0
 
         con.close()
 
-        # Calcular saldo neto - TODOS LOS VALORES SON FLOAT
+        # Calcular saldo neto acumulado
         total_entradas = total_multas + total_ahorros + total_actividades + total_pago_prestamos
         total_salidas = total_retiros + total_desembolsos
         saldo_neto = total_entradas - total_salidas
@@ -204,13 +204,13 @@ def prestamos_modulo():
         
         fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
         
-        # OBTENER SALDO DISPONIBLE EN CAJA PARA LA FECHA DE DESEMBOLSO
+        # OBTENER SALDO NETO DISPONIBLE EN CAJA PARA LA FECHA DE DESEMBOLSO
         saldo_disponible = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
         
-        # Mostrar información del capital disponible
-        st.info(f"💰 **Capital disponible en caja:** ${saldo_disponible:,.2f}")
+        # Mostrar información del saldo neto disponible
+        st.info(f"💰 **Saldo neto disponible en caja:** ${saldo_disponible:,.2f}")
         
-        # MONTO CON LÍMITE BASADO EN EL CAPITAL DISPONIBLE
+        # MONTO CON LÍMITE BASADO EN EL SALDO DISPONIBLE
         monto_maximo_permitido = float(saldo_disponible) if saldo_disponible > 0 else 0.01
         
         monto = st.number_input(
@@ -218,7 +218,7 @@ def prestamos_modulo():
             min_value=0.01, 
             max_value=monto_maximo_permitido,
             step=0.01,
-            help=f"Monto máximo según reglamento: {monto_maximo_texto} | Capital disponible: ${saldo_disponible:,.2f}"
+            help=f"Monto máximo según reglamento: {monto_maximo_texto} | Saldo neto disponible: ${saldo_disponible:,.2f}"
         )
         
         fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
@@ -278,14 +278,14 @@ def prestamos_modulo():
         except:
             pass  # Si no es numérico, no validar
         
-        # 2. Validar capital disponible en caja
+        # 2. Validar saldo disponible en caja
         if monto > saldo_disponible:
-            st.error(f"❌ Fondos insuficientes. El monto solicitado (${monto:,.2f}) excede el capital disponible en caja (${saldo_disponible:,.2f})")
+            st.error(f"❌ Fondos insuficientes. El monto solicitado (${monto:,.2f}) excede el saldo neto disponible en caja (${saldo_disponible:,.2f})")
             validacion_ok = False
         
-        # 3. Validar que haya capital disponible
+        # 3. Validar que haya saldo disponible
         if saldo_disponible <= 0:
-            st.error("❌ No hay capital disponible en caja para realizar préstamos")
+            st.error("❌ No hay saldo neto disponible en caja para realizar préstamos")
             validacion_ok = False
 
         if validacion_ok:
@@ -314,7 +314,7 @@ def prestamos_modulo():
                 
                 # Mostrar nuevo saldo disponible después del préstamo
                 nuevo_saldo = saldo_disponible - monto
-                st.info(f"💰 **Nuevo capital disponible en caja:** ${nuevo_saldo:,.2f}")
+                st.info(f"💰 **Nuevo saldo neto disponible en caja:** ${nuevo_saldo:,.2f}")
                 
                 time.sleep(2)
                 st.rerun()
@@ -330,11 +330,10 @@ def prestamos_modulo():
     # Mostrar lista de préstamos y formulario de pagos
     mostrar_lista_prestamos(id_grupo)
 
-# =====================================================
-#   LAS FUNCIONES mostrar_lista_prestamos, mostrar_formulario_pagos 
-#   y mostrar_historial_pagos SE MANTIENEN IGUAL
-# =====================================================
 
+# =====================================================
+#   TABLA DE PRÉSTAMOS CON CONTROL DE PAGOS
+# =====================================================
 def mostrar_lista_prestamos(id_grupo):
     try:
         con = obtener_conexion()
@@ -433,6 +432,10 @@ def mostrar_lista_prestamos(id_grupo):
     except Exception as e:
         st.error(f"❌ Error al cargar la lista de préstamos: {str(e)}")
 
+
+# =====================================================
+#   FORMULARIO MEJORADO DE PAGOS - UNIFICADO (CORREGIDO)
+# =====================================================
 def mostrar_formulario_pagos(id_prestamo):
     try:
         # Obtener información actual del préstamo
@@ -600,6 +603,10 @@ def mostrar_formulario_pagos(id_prestamo):
     except Exception as e:
         st.error(f"❌ Error al cargar formulario de pagos: {str(e)}")
 
+
+# =====================================================
+#   HISTORIAL DE PAGOS - SIN COLUMNA DE INTERÉS
+# =====================================================
 def mostrar_historial_pagos(id_prestamo):
     try:
         con = obtener_conexion()
@@ -693,3 +700,4 @@ def mostrar_historial_pagos(id_prestamo):
             
     except Exception as e:
         st.error(f"❌ Error al cargar el historial de pagos: {str(e)}")
+
