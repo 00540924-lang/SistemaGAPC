@@ -217,7 +217,7 @@ def mostrar_reglamento():
         deposito_minimo = st.number_input("Depósito mínimo:", value=float(val("deposito_minimo", 0)))
 
         st.subheader("💰 Préstamos")
-        interes_por_10 = st.number_input("Interés por cada $10 (%):", value=float(val("interes_por_10", 0)))
+        interes_por_10 = st.number_input("Interés sobre el monto total (%):", value=float(val("interes_por_10", 0)))
         max_prestamo = st.number_input("Monto máximo:", value=float(val("max_prestamo", 0)))
         max_plazo = st.text_input("Plazo máximo:", val("max_plazo"))
         un_solo_prestamo = st.checkbox("Un solo préstamo activo", value=bool(val("un_solo_prestamo", 0)))
