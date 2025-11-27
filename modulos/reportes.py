@@ -752,3 +752,137 @@ def mostrar_reporte_institucional(fecha_inicio, fecha_fin):
                 fig_distribucion = crear_grafico_distribucion(datos_filtrados, es_distrito=True)
                 titulo_distribucion = f'🥧 Distribución de Ingresos - {distrito_seleccionado}' if distrito_seleccionado != "Todos" else '🥧 Distribución de Ingresos por Distrito'
                 fig_distribucion.update_layout(
+                    title=dict(
+                        text=titulo_distribucion,
+                        font=dict(size=16, color='#4C3A60')
+                    )
+                )
+                st.plotly_chart(fig_distribucion, use_container_width=True)
+        else:
+            st.info("📊 No hay datos para el distrito seleccionado.")
+    
+    with tab2:
+        if datos_filtrados:
+            # Crear DataFrame consolidado
+            datos_consolidados = []
+            for stats in datos_filtrados:
+                datos_consolidados.append({
+                    'Distrito': stats['distrito'],
+                    'Ingresos': stats['ingresos']['total'],
+                    'Egresos': stats['egresos']['total'],
+                    'Saldo Neto': stats['saldo_neto']
+                })
+            
+            df_consolidado = pd.DataFrame(datos_consolidados)
+            
+            # Formatear columnas monetarias
+            df_display = df_consolidado.copy()
+            df_display['Ingresos'] = df_display['Ingresos'].apply(lambda x: f"${x:,.2f}")
+            df_display['Egresos'] = df_display['Egresos'].apply(lambda x: f"${x:,.2f}")
+            df_display['Saldo Neto'] = df_display['Saldo Neto'].apply(lambda x: f"${x:,.2f}")
+            
+            titulo_resumen = f"### 📋 Resumen - {distrito_seleccionado}" if distrito_seleccionado != "Todos" else "### 📋 Resumen General por Distrito"
+            st.markdown(titulo_resumen)
+            st.dataframe(df_display, use_container_width=True)
+            
+            # Mostrar detalles expandibles por distrito
+            if distrito_seleccionado == "Todos":
+                st.markdown("### 📊 Detalles por Distrito")
+                col1, col2 = st.columns(2)
+                with col1:
+                    for stats in datos_filtrados:
+                        with st.expander(f"📁 {stats['distrito']}"):
+                            st.write(f"**Ingresos:** ${stats['ingresos']['total']:,.2f}")
+                            st.write(f"**Egresos:** ${stats['egresos']['total']:,.2f}")
+                            st.write(f"**Saldo Neto:** ${stats['saldo_neto']:,.2f}")
+        else:
+            st.info("📋 No hay datos para el distrito seleccionado.")
+
+def vista_reportes():
+    """
+    Módulo de Reportes - Dashboard financiero mejorado
+    """
+    # ===============================
+    # 0. Verificar acceso y permisos
+    # ===============================
+    rol = st.session_state.get("rol", "").lower()
+    usuario = st.session_state.get("usuario", "").lower()
+    id_grupo = st.session_state.get("id_grupo")
+
+    # ✅ CORREGIDO: Promotores e institucionales no necesitan grupo asignado
+    if rol not in ["promotor", "institucional"] and usuario != "dark":
+        st.error("❌ No tiene permisos para acceder a este módulo.")
+        return
+
+    # ✅ CORREGIDO: Solo miembros necesitan grupo asignado
+    if rol == "miembro" and not id_grupo:
+        st.error("❌ No tiene un grupo asignado. Contacte al administrador.")
+        return
+
+    # Título principal con diseño mejorado
+    st.markdown("""
+    <div style='text-align: center;'>
+        <h1>📊 Dashboard de Reportes Financieros</h1>
+        <h3 style='color: #4C3A60; margin-top: -10px;'>Análisis completo de ingresos y egresos</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ===============================
+    # 1. FILTROS PRINCIPALES
+    # ===============================
+    st.subheader("🎛️ Configurar Período de Análisis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fecha_inicio = st.date_input(
+            "📅 Fecha inicio", 
+            date.today() - timedelta(days=30),
+            key="fecha_inicio_reportes"
+        )
+    
+    with col2:
+        fecha_fin = st.date_input(
+            "📅 Fecha fin", 
+            date.today(),
+            key="fecha_fin_reportes"
+        )
+    
+    # Validar fechas
+    if fecha_inicio > fecha_fin:
+        st.error("❌ La fecha de inicio no puede ser mayor que la fecha fin")
+        return
+
+    st.markdown("---")
+
+    # ===============================
+    # 2. MOSTRAR REPORTES SEGÚN ROL
+    # ===============================
+    if rol == "promotor":
+        # Promotor: puede seleccionar grupo individual y ver ranking
+        mostrar_reporte_promotor(fecha_inicio, fecha_fin)
+        
+    elif rol == "institucional" or usuario == "dark":
+        # Institucional: ve estadísticas por distrito
+        mostrar_reporte_institucional(fecha_inicio, fecha_fin)
+
+    # ===============================
+    # 3. INFORMACIÓN DEL PERÍODO EN SIDEBAR
+    # ===============================
+    st.sidebar.markdown("---")
+    st.sidebar.info(f"""
+    **📅 Período Analizado:**
+    - Inicio: {fecha_inicio}
+    - Fin: {fecha_fin}
+    - Rol: {rol.title()}
+    """)
+
+    # ===============================
+    # 4. BOTÓN REGRESAR
+    # ===============================
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("⬅️ Regresar al Menú Principal", use_container_width=True):
+            st.session_state.page = "menu"
+            st.rerun()
