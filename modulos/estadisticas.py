@@ -70,11 +70,12 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         # Calcular métricas adicionales
         if estadisticas:
-            # Calcular saldo neto correctamente
+            # CORRECCIÓN: Calcular saldo neto INCLUYENDO préstamos activos
             estadisticas['saldo_neto'] = (
                 estadisticas['total_ahorros'] + 
                 estadisticas['total_actividades'] - 
-                estadisticas['total_retiros']
+                estadisticas['total_retiros'] +
+                estadisticas['prestamos_activos']  # ¡AGREGAR PRÉSTAMOS ACTIVOS!
             )
             
             # Calcular total egresos
@@ -82,6 +83,9 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                 estadisticas['total_retiros'] + 
                 estadisticas['prestamos_activos']
             )
+            
+            # Agregar métrica adicional para préstamos activos
+            estadisticas['prestamos_activos_formateado'] = f"${estadisticas['prestamos_activos']:,.2f}"
         
         return estadisticas or {}
         
@@ -282,7 +286,7 @@ def mostrar_estadisticas(id_grupo):
         )
 
     # ===============================
-    # 2. KPI PRINCIPALES - SIN MIEMBROS ACTIVOS
+    # 2. KPI PRINCIPALES - INCLUYENDO PRÉSTAMOS ACTIVOS
     # ===============================
     st.subheader("📈 Métricas Principales")
     
@@ -291,14 +295,14 @@ def mostrar_estadisticas(id_grupo):
     stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
     
     if stats:
-        # SOLO 4 MÉTRICAS - SIN MIEMBROS ACTIVOS
-        col1, col2, col3, col4 = st.columns(4)
+        # 5 MÉTRICAS - INCLUYENDO PRÉSTAMOS ACTIVOS
+        col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
             st.metric(
                 "💰 Saldo Total", 
                 f"${stats.get('saldo_neto', 0):,.2f}",
-                help="Saldo neto del grupo (ahorros + actividades - retiros)"
+                help="Saldo neto del grupo (ahorros + actividades - retiros + préstamos activos)"
             )
         
         with col2:
@@ -320,6 +324,13 @@ def mostrar_estadisticas(id_grupo):
                 "📉 Total Egresos", 
                 f"${stats.get('total_egresos', 0):,.2f}",
                 help="Total de retiros y préstamos activos"
+            )
+        
+        with col5:
+            st.metric(
+                "💰 Préstamos Activos", 
+                f"${stats.get('prestamos_activos', 0):,.2f}",
+                help="Total de préstamos activos en el grupo"
             )
 
     else:
