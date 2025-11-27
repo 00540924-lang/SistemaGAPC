@@ -129,7 +129,6 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
             cursor.close()
         if conn and conn.is_connected():
             conn.close()
-
 def obtener_totales_por_rango(id_grupo, fecha_inicio, fecha_fin):
     """
     Obtiene los totales acumulados consultando directamente las tablas origen
