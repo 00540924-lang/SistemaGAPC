@@ -106,7 +106,7 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
         resultado_pagos = cursor.fetchone()
         total_pagos = float(resultado_pagos['total_pagos']) if resultado_pagos else 0.0
         
-        # Obtener DESEMBOLSOS de préstamos (dinero que SALE de la caja)
+        # **CORRECCIÓN CRÍTICA**: Obtener TODOS los desembolsos sin filtrar por estado
         cursor.execute("""
             SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
             FROM prestamos P
@@ -114,11 +114,33 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
             JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
             WHERE GM.id_grupo = %s 
             AND P.fecha_desembolso BETWEEN %s AND %s
-            AND P.estado IN ('activo', 'pendiente')
+            # REMOVER FILTRO DE ESTADO - incluir TODOS los préstamos desembolsados
         """, (id_grupo, fecha_inicio, fecha_fin))
         
         resultado_desembolsos = cursor.fetchone()
         total_desembolsos = float(resultado_desembolsos['total_desembolsos']) if resultado_desembolsos else 0.0
+        
+        # DEBUG: Para verificar qué está pasando
+        print(f"DEBUG Caja - Fechas: {fecha_inicio} a {fecha_fin}")
+        print(f"DEBUG Caja - Total desembolsos: {total_desembolsos}")
+        
+        # Consulta adicional para debug - ver préstamos específicos en ese rango
+        cursor.execute("""
+            SELECT P.id_prestamo, P.monto, P.fecha_desembolso, P.estado, M.nombre
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND P.fecha_desembolso BETWEEN %s AND %s
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        prestamos_debug = cursor.fetchall()
+        if prestamos_debug:
+            print(f"DEBUG Caja - Préstamos encontrados: {len(prestamos_debug)}")
+            for p in prestamos_debug:
+                print(f"  - ID: {p[0]}, Monto: {p[1]}, Fecha: {p[2]}, Estado: {p[3]}, Miembro: {p[4]}")
+        else:
+            print("DEBUG Caja - No se encontraron préstamos en el rango de fechas")
         
         return total_pagos, total_desembolsos
         
