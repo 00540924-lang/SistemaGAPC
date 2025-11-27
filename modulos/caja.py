@@ -85,7 +85,6 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
     """Obtiene los datos de préstamos directamente de las tablas de préstamos"""
     conn = obtener_conexion()
     if not conn:
-        st.error("❌ No se pudo conectar a la base de datos")
         return 0.0, 0.0
     
     cursor = None
@@ -93,80 +92,37 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
         cursor = conn.cursor(dictionary=True, buffered=True)
         
         # 1. Obtener pagos de préstamos
-        try:
-            cursor.execute("""
-                SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
-                FROM prestamo_pagos PP
-                JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
-                JOIN Miembros M ON P.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s 
-                AND PP.fecha BETWEEN %s AND %s
-                AND PP.estado = 'pagado'
-            """, (id_grupo, fecha_inicio, fecha_fin))
-            
-            resultado_pagos = cursor.fetchone()
-            total_pagos = float(resultado_pagos['total_pagos']) if resultado_pagos else 0.0
-        except Exception as e:
-            st.error(f"Error en consulta de pagos: {e}")
-            total_pagos = 0.0
+        cursor.execute("""
+            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
+            FROM prestamo_pagos PP
+            JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND PP.fecha BETWEEN %s AND %s
+            AND PP.estado = 'pagado'
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        resultado_pagos = cursor.fetchone()
+        total_pagos = float(resultado_pagos['total_pagos']) if resultado_pagos else 0.0
         
         # 2. Obtener desembolsos de préstamos - SIN FILTRO DE ESTADO
-        try:
-            cursor.execute("""
-                SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
-                FROM prestamos P
-                JOIN Miembros M ON P.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s 
-                AND P.fecha_desembolso BETWEEN %s AND %s
-                -- SIN FILTRO DE ESTADO - incluir TODOS los préstamos
-            """, (id_grupo, fecha_inicio, fecha_fin))
-            
-            resultado_desembolsos = cursor.fetchone()
-            total_desembolsos = float(resultado_desembolsos['total_desembolsos']) if resultado_desembolsos else 0.0
-            
-            # Debug información
-            st.info(f"🔍 Debug - Consulta desembolsos: ID Grupo: {id_grupo}, Fechas: {fecha_inicio} a {fecha_fin}")
-            st.info(f"🔍 Debug - Total desembolsos encontrado: ${total_desembolsos:,.2f}")
-            
-        except Exception as e:
-            st.error(f"Error en consulta de desembolsos: {e}")
-            total_desembolsos = 0.0
+        cursor.execute("""
+            SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND P.fecha_desembolso BETWEEN %s AND %s
+        """, (id_grupo, fecha_inicio, fecha_fin))
         
-        # 3. Consulta de debug para ver qué préstamos hay en ese rango
-        try:
-            cursor.execute("""
-                SELECT 
-                    P.id_prestamo, 
-                    P.monto, 
-                    P.fecha_desembolso, 
-                    P.estado,
-                    M.nombre
-                FROM prestamos P
-                JOIN Miembros M ON P.id_miembro = M.id_miembro
-                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
-                WHERE GM.id_grupo = %s 
-                AND P.fecha_desembolso BETWEEN %s AND %s
-                ORDER BY P.fecha_desembolso DESC
-            """, (id_grupo, fecha_inicio, fecha_fin))
-            
-            prestamos_en_rango = cursor.fetchall()
-            
-            if prestamos_en_rango:
-                st.success(f"✅ Se encontraron {len(prestamos_en_rango)} préstamos en el rango de fechas:")
-                for prestamo in prestamos_en_rango:
-                    st.write(f"   - ID: {prestamo['id_prestamo']}, Monto: ${prestamo['monto']:,.2f}, Fecha: {prestamo['fecha_desembolso']}, Estado: {prestamo['estado']}, Miembro: {prestamo['nombre']}")
-            else:
-                st.warning("⚠️ No se encontraron préstamos en el rango de fechas especificado")
-                
-        except Exception as e:
-            st.error(f"Error en consulta de debug: {e}")
+        resultado_desembolsos = cursor.fetchone()
+        total_desembolsos = float(resultado_desembolsos['total_desembolsos']) if resultado_desembolsos else 0.0
         
         return total_pagos, total_desembolsos
         
     except Exception as e:
-        st.error(f"❌ Error general al obtener datos de préstamos: {str(e)}")
+        st.error(f"Error al obtener datos de préstamos: {e}")
         return 0.0, 0.0
     finally:
         if cursor:
