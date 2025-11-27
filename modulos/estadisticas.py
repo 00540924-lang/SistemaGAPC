@@ -8,131 +8,319 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+def obtener_multas_pagadas_rango(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene las multas pagadas directamente de la tabla Multas - MISMAS FUNCIONES QUE CAJA"""
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0
+    
+    cursor = None
+    try:
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        cursor.execute("""
+            SELECT COALESCE(SUM(MT.monto_a_pagar), 0) AS total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha BETWEEN %s AND %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha_inicio, fecha_fin))
+
+        resultado_multa = cursor.fetchone()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        return float(resultado_multa["total_multas"]) if resultado_multa else 0.0
+        
+    except Exception as e:
+        st.error(f"Error al obtener multas pagadas: {e}")
+        return 0.0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+def obtener_ahorros_rango(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene los datos de ahorro directamente del módulo de ahorro - MISMAS FUNCIONES QUE CAJA"""
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0, 0.0, 0.0
+    
+    cursor = None
+    try:
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(ahorros), 0) as total_ahorros,
+                COALESCE(SUM(actividades), 0) as total_actividades,
+                COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro BETWEEN %s AND %s
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        resultado = cursor.fetchone()
+        
+        # Asegurarse de que no hay más resultados
+        cursor.fetchall()
+        
+        if resultado:
+            return (
+                float(resultado['total_ahorros']),
+                float(resultado['total_actividades']),
+                float(resultado['total_retiros'])
+            )
+        return 0.0, 0.0, 0.0
+        
+    except Exception as e:
+        st.error(f"Error al obtener datos de ahorro: {e}")
+        return 0.0, 0.0, 0.0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
+    """Obtiene los datos de préstamos directamente de las tablas de préstamos - MISMAS FUNCIONES QUE CAJA"""
+    conn = obtener_conexion()
+    if not conn:
+        return 0.0, 0.0
+    
+    cursor = None
+    try:
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        
+        # 1. Obtener pagos de préstamos
+        cursor.execute("""
+            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
+            FROM prestamo_pagos PP
+            JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND PP.fecha BETWEEN %s AND %s
+            AND PP.estado = 'pagado'
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        resultado_pagos = cursor.fetchone()
+        total_pagos = float(resultado_pagos['total_pagos']) if resultado_pagos else 0.0
+        
+        # 2. Obtener desembolsos de préstamos - SIN FILTRO DE ESTADO
+        cursor.execute("""
+            SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND P.fecha_desembolso BETWEEN %s AND %s
+        """, (id_grupo, fecha_inicio, fecha_fin))
+        
+        resultado_desembolsos = cursor.fetchone()
+        total_desembolsos = float(resultado_desembolsos['total_desembolsos']) if resultado_desembolsos else 0.0
+        
+        return total_pagos, total_desembolsos
+        
+    except Exception as e:
+        st.error(f"Error al obtener datos de préstamos: {e}")
+        return 0.0, 0.0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
 def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_miembro=None):
-    """Obtiene estadísticas completas del grupo o de un miembro específico"""
+    """Obtiene estadísticas usando las MISMAS funciones que el módulo de caja"""
+    
+    # Si hay filtro de miembro, usar lógica diferente
+    if id_miembro:
+        return obtener_estadisticas_grupo_con_miembro(id_grupo, fecha_inicio, fecha_fin, id_miembro)
+    
+    # Obtener datos de cada módulo - EXACTAMENTE IGUAL QUE EN CAJA
+    total_multas = obtener_multas_pagadas_rango(id_grupo, fecha_inicio, fecha_fin)
+    total_ahorros, total_actividades, total_retiros = obtener_ahorros_rango(id_grupo, fecha_inicio, fecha_fin)
+    total_pago_prestamos, total_desembolso = obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin)
+    
+    # Valores por defecto para campos que no tenemos en otros módulos
+    total_otros_ingresos = 0.0
+    total_gastos_grupo = 0.0
+    
+    # Calcular totales - EXACTAMENTE IGUAL QUE EN CAJA
+    total_entrada = total_multas + total_ahorros + total_actividades + total_pago_prestamos + total_otros_ingresos
+    total_salida = total_retiros + total_desembolso + total_gastos_grupo
+    total_saldo_cierre = total_entrada - total_salida
+    
+    # Obtener estadísticas adicionales para el dashboard
+    conn = obtener_conexion()
+    total_miembros = 0
+    multas_pagadas_count = 0
+    multas_pendientes_count = 0
+    num_prestamos_activos = 0
+    num_prestamos_pagados = 0
+    
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Total de miembros
+            cursor.execute("SELECT COUNT(*) as total FROM Grupomiembros WHERE id_grupo = %s", (id_grupo,))
+            total_miembros = cursor.fetchone()['total']
+            
+            # Conteo de multas
+            cursor.execute("""
+                SELECT 
+                    COUNT(CASE WHEN MT.pagada = 1 THEN 1 END) as pagadas,
+                    COUNT(CASE WHEN MT.pagada = 0 THEN 1 END) as pendientes
+                FROM Multas MT
+                JOIN Miembros M ON MT.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s AND MT.fecha BETWEEN %s AND %s
+            """, (id_grupo, fecha_inicio, fecha_fin))
+            multas_counts = cursor.fetchone()
+            multas_pagadas_count = multas_counts['pagadas'] if multas_counts else 0
+            multas_pendientes_count = multas_counts['pendientes'] if multas_counts else 0
+            
+            # Conteo de préstamos
+            cursor.execute("""
+                SELECT 
+                    COUNT(CASE WHEN P.estado = 'activo' THEN 1 END) as activos,
+                    COUNT(CASE WHEN P.estado = 'pagado' THEN 1 END) as pagados
+                FROM prestamos P
+                JOIN Miembros M ON P.id_miembro = M.id_miembro
+                JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                WHERE GM.id_grupo = %s AND P.fecha_desembolso BETWEEN %s AND %s
+            """, (id_grupo, fecha_inicio, fecha_fin))
+            prestamos_counts = cursor.fetchone()
+            num_prestamos_activos = prestamos_counts['activos'] if prestamos_counts else 0
+            num_prestamos_pagados = prestamos_counts['pagados'] if prestamos_counts else 0
+            
+            cursor.close()
+        except Exception as e:
+            st.error(f"Error al obtener estadísticas adicionales: {e}")
+        finally:
+            if conn.is_connected():
+                conn.close()
+    
+    # Porcentajes
+    total_multas_count = multas_pagadas_count + multas_pendientes_count
+    porcentaje_multas_pagadas = (multas_pagadas_count / total_multas_count * 100) if total_multas_count > 0 else 0
+    
+    total_prestamos_count = num_prestamos_activos + num_prestamos_pagados
+    porcentaje_prestamos_pagados = (num_prestamos_pagados / total_prestamos_count * 100) if total_prestamos_count > 0 else 0
+    
+    return {
+        # Totales principales (IGUAL QUE CAJA)
+        'total_multas': total_multas,
+        'total_ahorros': total_ahorros,
+        'total_actividades': total_actividades,
+        'total_pago_prestamos': total_pago_prestamos,
+        'total_entrada': total_entrada,
+        'total_retiros': total_retiros,
+        'total_desembolso': total_desembolso,
+        'total_salida': total_salida,
+        'saldo_neto': total_saldo_cierre,  # Este es el saldo total correcto
+        
+        # Estadísticas adicionales para el dashboard
+        'total_miembros': total_miembros,
+        'multas_pagadas': multas_pagadas_count,
+        'multas_pendientes': multas_pendientes_count,
+        'porcentaje_multas_pagadas': porcentaje_multas_pagadas,
+        'num_prestamos_activos': num_prestamos_activos,
+        'num_prestamos_pagados': num_prestamos_pagados,
+        'porcentaje_prestamos_pagados': porcentaje_prestamos_pagados
+    }
+
+def obtener_estadisticas_grupo_con_miembro(id_grupo, fecha_inicio, fecha_fin, id_miembro):
+    """Obtiene estadísticas cuando hay filtro por miembro específico"""
     conn = obtener_conexion()
     if not conn:
         return {}
     
     cursor = None
     try:
-        cursor = conn.cursor(dictionary=True, buffered=True)
+        cursor = conn.cursor(dictionary=True)
         
-        # Construir condiciones WHERE dinámicas
-        condiciones = ["GM.id_grupo = %s"]
-        params = [id_grupo]
-        
-        if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s OR PP.fecha_pago BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 4)
-        
-        if id_miembro:
-            condiciones.append("M.id_miembro = %s")
-            params.append(id_miembro)
-        
-        where_clause = " AND ".join(condiciones)
-        
-        # Consulta principal para estadísticas - MEJORADA
-        query = f"""
+        # Consulta para un miembro específico
+        query = """
             SELECT 
-                -- ========== ENTRADAS ==========
-                -- Ahorros realizados en el período
+                -- Multas pagadas del miembro
+                COALESCE(SUM(CASE WHEN MT.pagada = 1 THEN MT.monto_a_pagar ELSE 0 END), 0) as total_multas,
+                
+                -- Ahorros del miembro
                 COALESCE(SUM(AF.ahorros), 0) as total_ahorros,
-                
-                -- Ingresos por actividades en el período
                 COALESCE(SUM(AF.actividades), 0) as total_actividades,
-                
-                -- Multas pagadas en el período (solo las que ya fueron pagadas)
-                COALESCE(SUM(CASE WHEN MT.pagada = 1 THEN MT.monto_a_pagar ELSE 0 END), 0) as multas_pagadas_monto,
-                
-                -- Pagos de préstamos recibidos en el período (capital + intereses)
-                COALESCE(SUM(PP.monto_pagado), 0) as total_pagos_prestamos,
-                
-                -- ========== SALIDAS ==========
-                -- Retiros realizados en el período
                 COALESCE(SUM(AF.retiros), 0) as total_retiros,
                 
-                -- Préstamos desembolsados en el período
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_desembolsados,
+                -- Pagos de préstamos del miembro
+                COALESCE(SUM(PP.capital + PP.interes), 0) as total_pago_prestamos,
                 
-                -- ========== ESTADÍSTICAS ADICIONALES ==========
-                -- Conteo de multas
+                -- Desembolsos de préstamos al miembro
+                COALESCE(SUM(P.monto), 0) as total_desembolso,
+                
+                -- Conteos
                 COUNT(DISTINCT CASE WHEN MT.pagada = 1 THEN MT.id_multa END) as multas_pagadas,
                 COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
-                COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas_registradas,
-                
-                -- Conteo de préstamos
                 COUNT(DISTINCT CASE WHEN P.estado = 'activo' THEN P.id_prestamo END) as num_prestamos_activos,
-                COUNT(DISTINCT CASE WHEN P.estado = 'pagado' THEN P.id_prestamo END) as num_prestamos_pagados,
-                COALESCE(SUM(CASE WHEN P.estado = 'pagado' THEN P.monto ELSE 0 END), 0) as prestamos_pagados_total,
-                
-                -- Estadísticas generales
-                COUNT(DISTINCT M.id_miembro) as total_miembros,
-                COUNT(DISTINCT AF.id_ahorro) as total_registros_ahorro
+                COUNT(DISTINCT CASE WHEN P.estado = 'pagado' THEN P.id_prestamo END) as num_prestamos_pagados
                 
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
-            LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
-            LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro
-            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro
-            LEFT JOIN PagosPrestamos PP ON P.id_prestamo = PP.id_prestamo
-            WHERE {where_clause}
+            LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro AND MT.fecha BETWEEN %s AND %s
+            LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo AND AF.fecha_registro BETWEEN %s AND %s
+            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro AND P.fecha_desembolso BETWEEN %s AND %s
+            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.fecha BETWEEN %s AND %s AND PP.estado = 'pagado'
+            WHERE GM.id_grupo = %s AND M.id_miembro = %s
         """
         
+        params = [fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, id_grupo, id_miembro]
         cursor.execute(query, tuple(params))
-        estadisticas = cursor.fetchone()
+        resultado = cursor.fetchone()
         
-        # Calcular métricas adicionales
-        if estadisticas:
-            # ========== CÁLCULO CORRECTO DEL SALDO NETO ==========
-            # TOTAL ENTRADAS: Ahorros + Actividades + Multas Pagadas + Pagos de Préstamos
-            total_entradas = (
-                estadisticas['total_ahorros'] + 
-                estadisticas['total_actividades'] + 
-                estadisticas['multas_pagadas_monto'] +
-                estadisticas['total_pagos_prestamos']
+        if resultado:
+            # Calcular totales (MISMA LÓGICA QUE CAJA)
+            total_entrada = (
+                resultado['total_multas'] + 
+                resultado['total_ahorros'] + 
+                resultado['total_actividades'] + 
+                resultado['total_pago_prestamos']
             )
-            
-            # TOTAL SALIDAS: Retiros + Préstamos Desembolsados
-            total_salidas = (
-                estadisticas['total_retiros'] + 
-                estadisticas['prestamos_desembolsados']
-            )
-            
-            # SALDO NETO = TOTAL ENTRADAS - TOTAL SALIDAS
-            estadisticas['saldo_neto'] = total_entradas - total_salidas
-            estadisticas['total_entradas'] = total_entradas
-            estadisticas['total_salidas'] = total_salidas
-            
-            # Calcular total egresos (para mostrar en métricas)
-            estadisticas['total_egresos'] = total_salidas
+            total_salida = resultado['total_retiros'] + resultado['total_desembolso']
+            saldo_neto = total_entrada - total_salida
             
             # Porcentajes
-            total_multas = estadisticas['multas_pagadas'] + estadisticas['multas_pendientes']
-            if total_multas > 0:
-                estadisticas['porcentaje_multas_pagadas'] = (
-                    estadisticas['multas_pagadas'] / total_multas * 100
-                )
-            else:
-                estadisticas['porcentaje_multas_pagadas'] = 0
-                
-            # Lógica para préstamos pagados
-            total_prestamos = estadisticas['num_prestamos_activos'] + estadisticas['num_prestamos_pagados']
-            if total_prestamos > 0:
-                estadisticas['porcentaje_prestamos_pagados'] = (
-                    estadisticas['num_prestamos_pagados'] / total_prestamos * 100
-                )
-            else:
-                estadisticas['porcentaje_prestamos_pagados'] = 0
+            total_multas_count = resultado['multas_pagadas'] + resultado['multas_pendientes']
+            porcentaje_multas_pagadas = (resultado['multas_pagadas'] / total_multas_count * 100) if total_multas_count > 0 else 0
             
-            # Si no hay préstamos activos pero sí hay préstamos pagados, forzar 100%
-            if estadisticas['num_prestamos_pagados'] > 0 and estadisticas['num_prestamos_activos'] == 0:
-                estadisticas['porcentaje_prestamos_pagados'] = 100.0
+            total_prestamos_count = resultado['num_prestamos_activos'] + resultado['num_prestamos_pagados']
+            porcentaje_prestamos_pagados = (resultado['num_prestamos_pagados'] / total_prestamos_count * 100) if total_prestamos_count > 0 else 0
+            
+            return {
+                'total_multas': resultado['total_multas'],
+                'total_ahorros': resultado['total_ahorros'],
+                'total_actividades': resultado['total_actividades'],
+                'total_pago_prestamos': resultado['total_pago_prestamos'],
+                'total_entrada': total_entrada,
+                'total_retiros': resultado['total_retiros'],
+                'total_desembolso': resultado['total_desembolso'],
+                'total_salida': total_salida,
+                'saldo_neto': saldo_neto,
+                'total_miembros': 1,  # Solo un miembro en el filtro
+                'multas_pagadas': resultado['multas_pagadas'],
+                'multas_pendientes': resultado['multas_pendientes'],
+                'porcentaje_multas_pagadas': porcentaje_multas_pagadas,
+                'num_prestamos_activos': resultado['num_prestamos_activos'],
+                'num_prestamos_pagados': resultado['num_prestamos_pagados'],
+                'porcentaje_prestamos_pagados': porcentaje_prestamos_pagados
+            }
         
-        return estadisticas or {}
+        return {}
         
     except Exception as e:
-        st.error(f"Error al obtener estadísticas: {e}")
+        st.error(f"Error al obtener estadísticas por miembro: {e}")
         return {}
     finally:
         if cursor:
@@ -148,66 +336,47 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
     
     cursor = None
     try:
-        cursor = conn.cursor(dictionary=True, buffered=True)
+        cursor = conn.cursor(dictionary=True)
         
-        # Construir condiciones WHERE dinámicas
-        condiciones = ["GM.id_grupo = %s"]
-        params = [id_grupo]
-        
-        if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s OR PP.fecha_pago BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 4)
-        
-        where_clause = " AND ".join(condiciones)
-        
-        query = f"""
+        query = """
             SELECT 
                 M.id_miembro,
                 M.Nombre,
                 
                 -- Entradas del miembro
+                COALESCE(SUM(CASE WHEN MT.pagada = 1 THEN MT.monto_a_pagar ELSE 0 END), 0) as total_multas,
                 COALESCE(SUM(AF.ahorros), 0) as total_ahorros,
                 COALESCE(SUM(AF.actividades), 0) as total_actividades,
-                COALESCE(SUM(CASE WHEN MT.pagada = 1 THEN MT.monto_a_pagar ELSE 0 END), 0) as multas_pagadas_monto,
-                COALESCE(SUM(PP.monto_pagado), 0) as total_pagos_prestamos,
+                COALESCE(SUM(PP.capital + PP.interes), 0) as total_pago_prestamos,
                 
                 -- Salidas del miembro
                 COALESCE(SUM(AF.retiros), 0) as total_retiros,
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_desembolsados,
-                
-                -- Estadísticas adicionales
-                COUNT(DISTINCT CASE WHEN MT.pagada = 1 THEN MT.id_multa END) as multas_pagadas,
-                COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
-                COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas_registradas
+                COALESCE(SUM(P.monto), 0) as total_desembolso
                 
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
-            LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
-            LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro
-            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro
-            LEFT JOIN PagosPrestamos PP ON P.id_prestamo = PP.id_prestamo
-            WHERE {where_clause}
+            LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro AND MT.fecha BETWEEN %s AND %s
+            LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo AND AF.fecha_registro BETWEEN %s AND %s
+            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro AND P.fecha_desembolso BETWEEN %s AND %s
+            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.fecha BETWEEN %s AND %s AND PP.estado = 'pagado'
+            WHERE GM.id_grupo = %s
             GROUP BY M.id_miembro, M.Nombre
             ORDER BY total_ahorros DESC
         """
         
+        params = [fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, id_grupo]
         cursor.execute(query, tuple(params))
         resultados = cursor.fetchall()
         
-        # Calcular saldo correcto para cada miembro
+        # Calcular saldo para cada miembro (MISMA LÓGICA QUE CAJA)
         for miembro in resultados:
             total_entradas = (
+                miembro['total_multas'] + 
                 miembro['total_ahorros'] + 
                 miembro['total_actividades'] + 
-                miembro['multas_pagadas_monto'] +
-                miembro['total_pagos_prestamos']
+                miembro['total_pago_prestamos']
             )
-            
-            total_salidas = (
-                miembro['total_retiros'] + 
-                miembro['prestamos_desembolsados']
-            )
-            
+            total_salidas = miembro['total_retiros'] + miembro['total_desembolso']
             miembro['saldo_ahorro'] = total_entradas - total_salidas
             miembro['total_entradas'] = total_entradas
             miembro['total_salidas'] = total_salidas
@@ -223,6 +392,7 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
         if conn and conn.is_connected():
             conn.close()
 
+# Las funciones obtener_evolucion_ahorros y obtener_distribucion_por_tipo se mantienen igual
 def obtener_evolucion_ahorros(id_grupo, fecha_inicio=None, fecha_fin=None, id_miembro=None):
     """Obtiene la evolución de ahorros en el tiempo"""
     conn = obtener_conexion()
@@ -281,54 +451,22 @@ def obtener_evolucion_ahorros(id_grupo, fecha_inicio=None, fecha_fin=None, id_mi
 
 def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
     """Obtiene la distribución de fondos por tipo"""
-    conn = obtener_conexion()
-    if not conn:
-        return {}
+    # Usar las mismas funciones que el módulo de caja para consistencia
+    total_multas = obtener_multas_pagadas_rango(id_grupo, fecha_inicio, fecha_fin)
+    total_ahorros, total_actividades, total_retiros = obtener_ahorros_rango(id_grupo, fecha_inicio, fecha_fin)
+    total_pago_prestamos, total_desembolso = obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin)
     
-    cursor = None
-    try:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        
-        condiciones = ["GM.id_grupo = %s"]
-        params = [id_grupo]
-        
-        if fecha_inicio and fecha_fin:
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s OR PP.fecha_pago BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 4)
-        
-        where_clause = " AND ".join(condiciones)
-        
-        query = f"""
-            SELECT 
-                -- Entradas
-                COALESCE(SUM(AF.ahorros), 0) as ahorros,
-                COALESCE(SUM(AF.actividades), 0) as actividades,
-                COALESCE(SUM(CASE WHEN MT.pagada = 1 THEN MT.monto_a_pagar ELSE 0 END), 0) as multas_pagadas,
-                COALESCE(SUM(PP.monto_pagado), 0) as pagos_prestamos,
-                
-                -- Salidas
-                COALESCE(SUM(AF.retiros), 0) as retiros,
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_desembolsados
-                
-            FROM Grupomiembros GM
-            LEFT JOIN ahorro_final AF ON GM.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
-            LEFT JOIN Multas MT ON GM.id_miembro = MT.id_miembro
-            LEFT JOIN prestamos P ON GM.id_miembro = P.id_miembro
-            LEFT JOIN PagosPrestamos PP ON P.id_prestamo = PP.id_prestamo
-            WHERE {where_clause}
-        """
-        
-        cursor.execute(query, tuple(params))
-        return cursor.fetchone() or {}
-        
-    except Exception as e:
-        st.error(f"Error al obtener distribución por tipo: {e}")
-        return {}
-    finally:
-        if cursor:
-            cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
+    return {
+        'ahorros': total_ahorros,
+        'actividades': total_actividades,
+        'multas_pagadas': total_multas,
+        'pagos_prestamos': total_pago_prestamos,
+        'retiros': total_retiros,
+        'prestamos_desembolsados': total_desembolso
+    }
+
+# La función mostrar_estadisticas se mantiene igual que en la versión anterior
+# Solo asegúrate de que use 'saldo_neto' para mostrar el Saldo Total
 
 def mostrar_estadisticas(id_grupo):
     """
@@ -420,7 +558,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "💰 Saldo Total", 
                 f"${stats.get('saldo_neto', 0):,.2f}",
-                help="Saldo neto del período (Total Entradas - Total Salidas)"
+                help="Saldo neto del período (Total Entradas - Total Salidas) - Mismo cálculo que módulo Caja"
             )
         
         with col2:
@@ -438,30 +576,9 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col4:
-            # Obtener el número real de miembros del grupo
-            conn = obtener_conexion()
-            total_miembros_real = 0
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        SELECT COUNT(*) 
-                        FROM Grupomiembros 
-                        WHERE id_grupo = %s
-                    """, (id_grupo,))
-                    total_miembros_real = cursor.fetchone()[0]
-                    cursor.close()
-                except:
-                    total_miembros_real = stats.get('total_miembros', 0)
-                finally:
-                    if conn.is_connected():
-                        conn.close()
-            else:
-                total_miembros_real = stats.get('total_miembros', 0)
-            
             st.metric(
                 "👥 Miembros Activos", 
-                f"{total_miembros_real}",
+                f"{stats.get('total_miembros', 0)}",
                 help="Número total de miembros en el grupo"
             )
 
@@ -470,7 +587,7 @@ def mostrar_estadisticas(id_grupo):
         
         with col1:
             # Total Entradas
-            total_entradas = stats.get('total_entradas', 0)
+            total_entradas = stats.get('total_entrada', 0)
             st.metric(
                 "📈 Total Entradas", 
                 f"${total_entradas:,.2f}",
@@ -479,7 +596,7 @@ def mostrar_estadisticas(id_grupo):
         
         with col2:
             # Total Salidas
-            total_salidas = stats.get('total_salidas', 0)
+            total_salidas = stats.get('total_salida', 0)
             st.metric(
                 "📉 Total Salidas", 
                 f"${total_salidas:,.2f}",
@@ -683,15 +800,15 @@ def mostrar_estadisticas(id_grupo):
             st.markdown("#### 🟩 Entradas de Dinero")
             st.write(f"**Ahorros:** ${stats.get('total_ahorros', 0):,.2f}")
             st.write(f"**Actividades:** ${stats.get('total_actividades', 0):,.2f}")
-            st.write(f"**Multas Pagadas:** ${stats.get('multas_pagadas_monto', 0):,.2f}")
-            st.write(f"**Pagos de Préstamos:** ${stats.get('total_pagos_prestamos', 0):,.2f}")
-            st.write(f"**Total Entradas:** ${stats.get('total_entradas', 0):,.2f}")
+            st.write(f"**Multas Pagadas:** ${stats.get('total_multas', 0):,.2f}")
+            st.write(f"**Pagos de Préstamos:** ${stats.get('total_pago_prestamos', 0):,.2f}")
+            st.write(f"**Total Entradas:** ${stats.get('total_entrada', 0):,.2f}")
         
         with col2:
             st.markdown("#### 🟥 Salidas de Dinero")
             st.write(f"**Retiros:** ${stats.get('total_retiros', 0):,.2f}")
-            st.write(f"**Préstamos Desembolsados:** ${stats.get('prestamos_desembolsados', 0):,.2f}")
-            st.write(f"**Total Salidas:** ${stats.get('total_salidas', 0):,.2f}")
+            st.write(f"**Préstamos Desembolsados:** ${stats.get('total_desembolso', 0):,.2f}")
+            st.write(f"**Total Salidas:** ${stats.get('total_salida', 0):,.2f}")
         
         st.markdown("---")
         st.markdown(f"#### 📊 Resumen General")
@@ -701,8 +818,8 @@ def mostrar_estadisticas(id_grupo):
         
         # Fórmula detallada del saldo neto
         st.write(f"**Fórmula del Saldo Neto:**")
-        st.write(f"Entradas (${stats.get('total_entradas', 0):,.2f}) - " +
-                f"Salidas (${stats.get('total_salidas', 0):,.2f}) = " +
+        st.write(f"Entradas (${stats.get('total_entrada', 0):,.2f}) - " +
+                f"Salidas (${stats.get('total_salida', 0):,.2f}) = " +
                 f"**${stats.get('saldo_neto', 0):,.2f}**")
 
     # ===============================
@@ -723,4 +840,5 @@ def mostrar_estadisticas(id_grupo):
     
     **📝 Fórmula Saldo:**
     Total Entradas - Total Salidas
+    - Mismo cálculo que módulo Caja
     """)
