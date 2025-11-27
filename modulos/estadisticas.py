@@ -23,9 +23,13 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         params = [id_grupo]
         
         if fecha_inicio and fecha_fin:
-            # Solo usar fechas de tablas existentes
-            condiciones.append("(AF.fecha_registro BETWEEN %s AND %s OR MT.fecha BETWEEN %s AND %s OR P.fecha_desembolso BETWEEN %s AND %s)")
-            params.extend([fecha_inicio, fecha_fin] * 3)
+            condiciones.append("""
+                (AF.fecha_registro BETWEEN %s AND %s OR 
+                 MT.fecha BETWEEN %s AND %s OR 
+                 P.fecha_desembolso BETWEEN %s AND %s OR
+                 PP.fecha BETWEEN %s AND %s)
+            """)
+            params.extend([fecha_inicio, fecha_fin] * 4)
         
         if id_miembro:
             condiciones.append("M.id_miembro = %s")
@@ -33,7 +37,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         where_clause = " AND ".join(condiciones)
         
-        # Consulta principal para estadísticas
+        # Consulta principal para estadísticas - INCLUYENDO PAGOS DE PRÉSTAMOS
         query = f"""
             SELECT 
                 -- Estadísticas de ahorros
@@ -53,6 +57,10 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
                 COUNT(DISTINCT CASE WHEN P.estado = 'activo' THEN P.id_prestamo END) as num_prestamos_activos,
                 COUNT(DISTINCT CASE WHEN P.estado = 'pagado' THEN P.id_prestamo END) as num_prestamos_pagados,
                 
+                -- PAGOS DE PRÉSTAMOS REALIZADOS (capital + interés)
+                COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos,
+                COUNT(DISTINCT PP.id_pago) as num_pagos_prestamos,
+                
                 -- Estadísticas generales
                 COUNT(DISTINCT M.id_miembro) as total_miembros,
                 COUNT(DISTINCT AF.id_ahorro) as total_registros_ahorro
@@ -62,6 +70,7 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
             LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
             LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro
             LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro
+            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo  -- JOIN CON PAGOS DE PRÉSTAMOS
             WHERE {where_clause}
         """
         
@@ -70,12 +79,12 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         
         # Calcular métricas adicionales
         if estadisticas:
-            # CORRECCIÓN: Calcular saldo neto INCLUYENDO PRÉSTAMOS PAGADOS
+            # ***** CORRECCIÓN: SUMAR PAGOS DE PRÉSTAMOS REALIZADOS *****
             estadisticas['saldo_neto'] = (
                 estadisticas['total_ahorros'] + 
                 estadisticas['total_actividades'] - 
                 estadisticas['total_retiros'] +
-                estadisticas['prestamos_pagados']  # ¡AGREGAR PRÉSTAMOS PAGADOS!
+                estadisticas['total_pagos_prestamos']  # ¡PAGOS REALES DE PRÉSTAMOS!
             )
             
             # Calcular total egresos
@@ -299,7 +308,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "💰 Saldo Total", 
                 f"${stats.get('saldo_neto', 0):,.2f}",
-                help="Saldo neto del grupo (ahorros + actividades - retiros + préstamos pagados)"
+                help="Saldo neto del grupo (ahorros + actividades - retiros + pagos de préstamos realizados)"
             )
         
         with col2:
