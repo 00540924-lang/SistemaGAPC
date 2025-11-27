@@ -3,9 +3,10 @@ import pandas as pd
 from modulos.config.conexion import obtener_conexion
 import datetime
 import time
+from decimal import Decimal
 
 # =====================================================
-#   FUNCIÓN PARA OBTENER SALDO DISPONIBLE EN CAJA
+#   FUNCIÓN PARA OBTENER SALDO DISPONIBLE EN CAJA - CORREGIDA
 # =====================================================
 def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
     """
@@ -28,7 +29,8 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             AND MT.fecha <= %s
             AND MT.pagada = 1
         """, (id_grupo, fecha_consulta))
-        total_multas = cursor.fetchone()[0] or 0.0
+        total_multas_result = cursor.fetchone()[0]
+        total_multas = float(total_multas_result) if total_multas_result else 0.0
 
         cursor.execute("""
             SELECT 
@@ -39,9 +41,9 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             WHERE id_grupo = %s AND fecha_registro <= %s
         """, (id_grupo, fecha_consulta))
         ahorros_data = cursor.fetchone()
-        total_ahorros = ahorros_data[0] or 0.0
-        total_actividades = ahorros_data[1] or 0.0
-        total_retiros = ahorros_data[2] or 0.0
+        total_ahorros = float(ahorros_data[0]) if ahorros_data[0] else 0.0
+        total_actividades = float(ahorros_data[1]) if ahorros_data[1] else 0.0
+        total_retiros = float(ahorros_data[2]) if ahorros_data[2] else 0.0
 
         # CORREGIDO: Sumar capital + interés para los pagos de préstamos
         cursor.execute("""
@@ -54,7 +56,8 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             AND PP.fecha <= %s
             AND PP.estado = 'pagado'
         """, (id_grupo, fecha_consulta))
-        total_pago_prestamos = cursor.fetchone()[0] or 0.0
+        total_pago_prestamos_result = cursor.fetchone()[0]
+        total_pago_prestamos = float(total_pago_prestamos_result) if total_pago_prestamos_result else 0.0
 
         # Obtener DESEMBOLSOS de préstamos (dinero que SALE de la caja)
         cursor.execute("""
@@ -66,11 +69,12 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             AND P.fecha_desembolso <= %s
             AND P.estado IN ('activo', 'pendiente')
         """, (id_grupo, fecha_consulta))
-        total_desembolsos = cursor.fetchone()[0] or 0.0
+        total_desembolsos_result = cursor.fetchone()[0]
+        total_desembolsos = float(total_desembolsos_result) if total_desembolsos_result else 0.0
 
         con.close()
 
-        # Calcular saldo neto
+        # Calcular saldo neto - TODOS LOS VALORES SON FLOAT
         total_entradas = total_multas + total_ahorros + total_actividades + total_pago_prestamos
         total_salidas = total_retiros + total_desembolsos
         saldo_neto = total_entradas - total_salidas
@@ -207,10 +211,12 @@ def prestamos_modulo():
         st.info(f"💰 **Capital disponible en caja:** ${saldo_disponible:,.2f}")
         
         # MONTO CON LÍMITE BASADO EN EL CAPITAL DISPONIBLE
+        monto_maximo_permitido = float(saldo_disponible) if saldo_disponible > 0 else 0.01
+        
         monto = st.number_input(
             "Monto del préstamo", 
             min_value=0.01, 
-            max_value=float(saldo_disponible) if saldo_disponible > 0 else 0.01,
+            max_value=monto_maximo_permitido,
             step=0.01,
             help=f"Monto máximo según reglamento: {monto_maximo_texto} | Capital disponible: ${saldo_disponible:,.2f}"
         )
@@ -373,11 +379,13 @@ def mostrar_lista_prestamos(id_grupo):
             """, (id_prestamo,))
             
             info_pagos = cursor.fetchone()
-            total_pagado = info_pagos[0] if info_pagos else 0
+            total_pagado = float(info_pagos[0]) if info_pagos[0] else 0
             numero_pagos = info_pagos[1] if info_pagos else 0
             
             # Calcular saldo pendiente CORRECTAMENTE
-            monto_total = prestamo[3] + prestamo[7]  # monto + interes_total
+            monto_prestamo = float(prestamo[3]) if prestamo[3] else 0
+            interes_total_prestamo = float(prestamo[7]) if prestamo[7] else 0
+            monto_total = monto_prestamo + interes_total_prestamo
             saldo_pendiente = monto_total - total_pagado
             
             prestamos_con_info.append(prestamo + (total_pagado, numero_pagos, saldo_pendiente))
@@ -394,10 +402,10 @@ def mostrar_lista_prestamos(id_grupo):
         ])
 
         # Formatear columnas monetarias
-        df["Monto"] = df["Monto"].apply(lambda x: f"${x:,.2f}")
-        df["Interés Total"] = df["Interés Total"].apply(lambda x: f"${x:,.2f}")
-        df["Saldo Pendiente"] = df["Saldo Pendiente"].apply(lambda x: f"${x:,.2f}")
-        df["Total Pagado"] = df["Total Pagado"].apply(lambda x: f"${x:,.2f}")
+        df["Monto"] = df["Monto"].apply(lambda x: f"${float(x):,.2f}" if x else "$0.00")
+        df["Interés Total"] = df["Interés Total"].apply(lambda x: f"${float(x):,.2f}" if x else "$0.00")
+        df["Saldo Pendiente"] = df["Saldo Pendiente"].apply(lambda x: f"${float(x):,.2f}" if x else "$0.00")
+        df["Total Pagado"] = df["Total Pagado"].apply(lambda x: f"${float(x):,.2f}" if x else "$0.00")
 
         st.dataframe(df, use_container_width=True)
 
