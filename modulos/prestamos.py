@@ -11,6 +11,7 @@ from decimal import Decimal
 def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
     """
     Obtiene el saldo neto acumulado en caja hasta una fecha específica
+    Calcula: (Multas + Ahorros + Actividades + Pagos de préstamos) - (Retiros + Desembolsos de préstamos)
     """
     if fecha_consulta is None:
         fecha_consulta = datetime.date.today()
@@ -19,7 +20,9 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
         con = obtener_conexion()
         cursor = con.cursor()
         
-        # Obtener TODAS las entradas de dinero acumuladas hasta la fecha de consulta
+        # 1. OBTENER TOTAL DE INGRESOS (ENTRADAS DE DINERO)
+        
+        # Multas pagadas acumuladas hasta la fecha
         cursor.execute("""
             SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
             FROM Multas MT
@@ -29,26 +32,27 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             AND MT.fecha <= %s
             AND MT.pagada = 1
         """, (id_grupo, fecha_consulta))
-        total_multas_result = cursor.fetchone()[0]
-        total_multas = float(total_multas_result) if total_multas_result else 0.0
+        total_multas = float(cursor.fetchone()[0] or 0.0)
 
-        # Obtener TODOS los ahorros acumulados hasta la fecha
+        # Ahorros acumulados hasta la fecha
         cursor.execute("""
-            SELECT 
-                COALESCE(SUM(ahorros), 0) as total_ahorros,
-                COALESCE(SUM(actividades), 0) as total_actividades,
-                COALESCE(SUM(retiros), 0) as total_retiros
+            SELECT COALESCE(SUM(ahorros), 0) as total_ahorros
             FROM ahorro_final 
             WHERE id_grupo = %s AND fecha_registro <= %s
         """, (id_grupo, fecha_consulta))
-        ahorros_data = cursor.fetchone()
-        total_ahorros = float(ahorros_data[0]) if ahorros_data[0] else 0.0
-        total_actividades = float(ahorros_data[1]) if ahorros_data[1] else 0.0
-        total_retiros = float(ahorros_data[2]) if ahorros_data[2] else 0.0
+        total_ahorros = float(cursor.fetchone()[0] or 0.0)
 
-        # Obtener TODOS los pagos de préstamos acumulados hasta la fecha
+        # Actividades acumuladas hasta la fecha
         cursor.execute("""
-            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
+            SELECT COALESCE(SUM(actividades), 0) as total_actividades
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro <= %s
+        """, (id_grupo, fecha_consulta))
+        total_actividades = float(cursor.fetchone()[0] or 0.0)
+
+        # Pagos de préstamos acumulados hasta la fecha (capital + interés)
+        cursor.execute("""
+            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos
             FROM prestamo_pagos PP
             JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
             JOIN Miembros M ON P.id_miembro = M.id_miembro
@@ -57,10 +61,19 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             AND PP.fecha <= %s
             AND PP.estado = 'pagado'
         """, (id_grupo, fecha_consulta))
-        total_pago_prestamos_result = cursor.fetchone()[0]
-        total_pago_prestamos = float(total_pago_prestamos_result) if total_pago_prestamos_result else 0.0
+        total_pagos_prestamos = float(cursor.fetchone()[0] or 0.0)
 
-        # Obtener TODOS los desembolsos de préstamos acumulados hasta la fecha
+        # 2. OBTENER TOTAL DE EGRESOS (SALIDAS DE DINERO)
+
+        # Retiros de ahorro acumulados hasta la fecha
+        cursor.execute("""
+            SELECT COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro <= %s
+        """, (id_grupo, fecha_consulta))
+        total_retiros = float(cursor.fetchone()[0] or 0.0)
+
+        # Desembolsos de préstamos acumulados hasta la fecha
         cursor.execute("""
             SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
             FROM prestamos P
@@ -69,15 +82,28 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
             WHERE GM.id_grupo = %s 
             AND P.fecha_desembolso <= %s
         """, (id_grupo, fecha_consulta))
-        total_desembolsos_result = cursor.fetchone()[0]
-        total_desembolsos = float(total_desembolsos_result) if total_desembolsos_result else 0.0
+        total_desembolsos = float(cursor.fetchone()[0] or 0.0)
 
         con.close()
 
-        # Calcular saldo neto acumulado
-        total_entradas = total_multas + total_ahorros + total_actividades + total_pago_prestamos
-        total_salidas = total_retiros + total_desembolsos
-        saldo_neto = total_entradas - total_salidas
+        # 3. CALCULAR SALDO NETO
+        total_ingresos = total_multas + total_ahorros + total_actividades + total_pagos_prestamos
+        total_egresos = total_retiros + total_desembolsos
+        saldo_neto = total_ingresos - total_egresos
+
+        # Mostrar desglose para debugging (opcional)
+        st.debug(f"""
+        🔍 **Desglose del cálculo para {fecha_consulta}:**
+        - Multas: ${total_multas:,.2f}
+        - Ahorros: ${total_ahorros:,.2f}
+        - Actividades: ${total_actividades:,.2f}
+        - Pagos préstamos: ${total_pagos_prestamos:,.2f}
+        - Retiros: ${total_retiros:,.2f}
+        - Desembolsos: ${total_desembolsos:,.2f}
+        - **TOTAL INGRESOS: ${total_ingresos:,.2f}**
+        - **TOTAL EGRESOS: ${total_egresos:,.2f}**
+        - **SALDO NETO: ${saldo_neto:,.2f}**
+        """)
 
         return max(0.0, saldo_neto)  # No permitir saldos negativos
 
