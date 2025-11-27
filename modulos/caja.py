@@ -271,7 +271,7 @@ def obtener_datos_grafico(id_grupo, fecha_inicio=None, fecha_fin=None):
                     JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
                     WHERE GM.id_grupo = %s 
                     AND P.fecha_desembolso = dias.fecha
-                    AND P.estado IN ('activo', 'pendiente')
+                    -- REMOVER FILTRO DE ESTADO: AND P.estado IN ('activo', 'pendiente')
                 ), 0) as desembolso
                 
             FROM (
