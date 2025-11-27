@@ -789,40 +789,6 @@ def mostrar_estadisticas(id_grupo):
             st.info("👥 No hay datos de miembros para mostrar.")
 
     # ===============================
-    # 4. REPORTE DETALLADO
-    # ===============================
-    st.subheader("📋 Reporte Detallado")
-    
-    if stats:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 🟩 Entradas de Dinero")
-            st.write(f"**Ahorros:** ${stats.get('total_ahorros', 0):,.2f}")
-            st.write(f"**Actividades:** ${stats.get('total_actividades', 0):,.2f}")
-            st.write(f"**Multas Pagadas:** ${stats.get('total_multas', 0):,.2f}")
-            st.write(f"**Pagos de Préstamos:** ${stats.get('total_pago_prestamos', 0):,.2f}")
-            st.write(f"**Total Entradas:** ${stats.get('total_entrada', 0):,.2f}")
-        
-        with col2:
-            st.markdown("#### 🟥 Salidas de Dinero")
-            st.write(f"**Retiros:** ${stats.get('total_retiros', 0):,.2f}")
-            st.write(f"**Préstamos Desembolsados:** ${stats.get('total_desembolso', 0):,.2f}")
-            st.write(f"**Total Salidas:** ${stats.get('total_salida', 0):,.2f}")
-        
-        st.markdown("---")
-        st.markdown(f"#### 📊 Resumen General")
-        st.write(f"**Período analizado:** {fecha_inicio} al {fecha_fin}")
-        if id_miembro_filtro:
-            st.write(f"**Miembro filtrado:** {opciones_miembros.get(id_miembro_filtro, 'N/A')}")
-        
-        # Fórmula detallada del saldo neto
-        st.write(f"**Fórmula del Saldo Neto:**")
-        st.write(f"Entradas (${stats.get('total_entrada', 0):,.2f}) - " +
-                f"Salidas (${stats.get('total_salida', 0):,.2f}) = " +
-                f"**${stats.get('saldo_neto', 0):,.2f}**")
-
-    # ===============================
     # 5. BOTÓN REGRESAR
     # ===============================
     st.write("---")
