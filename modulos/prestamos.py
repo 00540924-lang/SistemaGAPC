@@ -5,6 +5,83 @@ import datetime
 import time
 
 # =====================================================
+#   FUNCIÓN PARA OBTENER SALDO DISPONIBLE EN CAJA
+# =====================================================
+def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
+    """
+    Obtiene el saldo neto disponible en caja hasta una fecha específica
+    """
+    if fecha_consulta is None:
+        fecha_consulta = datetime.date.today()
+    
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        
+        # Obtener todas las entradas de dinero (hasta la fecha de consulta)
+        cursor.execute("""
+            SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha <= %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha_consulta))
+        total_multas = cursor.fetchone()[0] or 0.0
+
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(ahorros), 0) as total_ahorros,
+                COALESCE(SUM(actividades), 0) as total_actividades,
+                COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro <= %s
+        """, (id_grupo, fecha_consulta))
+        ahorros_data = cursor.fetchone()
+        total_ahorros = ahorros_data[0] or 0.0
+        total_actividades = ahorros_data[1] or 0.0
+        total_retiros = ahorros_data[2] or 0.0
+
+        # CORREGIDO: Sumar capital + interés para los pagos de préstamos
+        cursor.execute("""
+            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos
+            FROM prestamo_pagos PP
+            JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND PP.fecha <= %s
+            AND PP.estado = 'pagado'
+        """, (id_grupo, fecha_consulta))
+        total_pago_prestamos = cursor.fetchone()[0] or 0.0
+
+        # Obtener DESEMBOLSOS de préstamos (dinero que SALE de la caja)
+        cursor.execute("""
+            SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND P.fecha_desembolso <= %s
+            AND P.estado IN ('activo', 'pendiente')
+        """, (id_grupo, fecha_consulta))
+        total_desembolsos = cursor.fetchone()[0] or 0.0
+
+        con.close()
+
+        # Calcular saldo neto
+        total_entradas = total_multas + total_ahorros + total_actividades + total_pago_prestamos
+        total_salidas = total_retiros + total_desembolsos
+        saldo_neto = total_entradas - total_salidas
+
+        return max(0.0, saldo_neto)  # No permitir saldos negativos
+
+    except Exception as e:
+        st.error(f"❌ Error al calcular saldo disponible: {str(e)}")
+        return 0.0
+
+# =====================================================
 #   MÓDULO PRINCIPAL DE PRÉSTAMOS - COMPLETO
 # =====================================================
 def prestamos_modulo():
@@ -113,7 +190,7 @@ def prestamos_modulo():
         return
 
     # =====================================================
-    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON CÁLCULO CORREGIDO
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON VALIDACIÓN DE CAJA
     # =====================================================
     with st.form("form_nuevo_prestamo"):
         st.subheader("📄 Nuevo Préstamo")
@@ -121,15 +198,23 @@ def prestamos_modulo():
         miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
         proposito = st.text_input("Propósito del préstamo")
         
-        # MONTO SIN LÍMITE AUTOMÁTICO (solo informativo)
+        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
+        
+        # OBTENER SALDO DISPONIBLE EN CAJA PARA LA FECHA DE DESEMBOLSO
+        saldo_disponible = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
+        
+        # Mostrar información del capital disponible
+        st.info(f"💰 **Capital disponible en caja:** ${saldo_disponible:,.2f}")
+        
+        # MONTO CON LÍMITE BASADO EN EL CAPITAL DISPONIBLE
         monto = st.number_input(
             "Monto del préstamo", 
             min_value=0.01, 
+            max_value=float(saldo_disponible) if saldo_disponible > 0 else 0.01,
             step=0.01,
-            help=f"Monto máximo según reglamento: {monto_maximo_texto}"
+            help=f"Monto máximo según reglamento: {monto_maximo_texto} | Capital disponible: ${saldo_disponible:,.2f}"
         )
         
-        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
         fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
 
         # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA
@@ -174,57 +259,76 @@ def prestamos_modulo():
     st.write("---")
 
     if enviar:
-        # VALIDACIONES MANUALES (opcional)
+        # VALIDACIONES MANUALES
+        validacion_ok = True
+        
+        # 1. Validar monto máximo del reglamento (si es numérico)
         try:
-            # Si el monto máximo es numérico, validar
             if monto_maximo_texto.replace('.', '').replace(',', '').isdigit():
                 monto_maximo_num = float(monto_maximo_texto)
                 if monto > monto_maximo_num:
-                    st.error(f"❌ El monto no puede exceder el límite máximo de {monto_maximo_texto}")
-                    return
+                    st.error(f"❌ El monto no puede exceder el límite máximo del reglamento: {monto_maximo_texto}")
+                    validacion_ok = False
         except:
             pass  # Si no es numérico, no validar
         
-        try:
-            con = obtener_conexion()
-            cursor = con.cursor()
+        # 2. Validar capital disponible en caja
+        if monto > saldo_disponible:
+            st.error(f"❌ Fondos insuficientes. El monto solicitado (${monto:,.2f}) excede el capital disponible en caja (${saldo_disponible:,.2f})")
+            validacion_ok = False
+        
+        # 3. Validar que haya capital disponible
+        if saldo_disponible <= 0:
+            st.error("❌ No hay capital disponible en caja para realizar préstamos")
+            validacion_ok = False
 
-            # INSERT del préstamo - automáticamente como "activo"
-            cursor.execute("""
-                INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, 
-                                     fecha_vencimiento, estado, interes_total)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                miembros_dict[miembro_seleccionado],
-                proposito,
-                monto,
-                fecha_desembolso,
-                fecha_vencimiento,
-                "activo",  # Estado fijo como "activo"
-                interes_total
-            ))
+        if validacion_ok:
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
 
-            con.commit()
-            st.success("✅ Préstamo registrado correctamente")
-            st.info(f"💰 Total a pagar: ${monto_total:,.2f} (Capital: ${monto:,.2f} + Interés: ${interes_total:,.2f})")
-            time.sleep(2)
-            st.rerun()
+                # INSERT del préstamo - automáticamente como "activo"
+                cursor.execute("""
+                    INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, 
+                                         fecha_vencimiento, estado, interes_total)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    miembros_dict[miembro_seleccionado],
+                    proposito,
+                    monto,
+                    fecha_desembolso,
+                    fecha_vencimiento,
+                    "activo",  # Estado fijo como "activo"
+                    interes_total
+                ))
 
-        except Exception as e:
-            st.error(f"❌ Error al registrar préstamo: {str(e)}")
-        finally:
-            if 'cursor' in locals():
-                cursor.close()
-            if 'con' in locals() and con.is_connected():
-                con.close()
+                con.commit()
+                st.success("✅ Préstamo registrado correctamente")
+                st.info(f"💰 Total a pagar: ${monto_total:,.2f} (Capital: ${monto:,.2f} + Interés: ${interes_total:,.2f})")
+                
+                # Mostrar nuevo saldo disponible después del préstamo
+                nuevo_saldo = saldo_disponible - monto
+                st.info(f"💰 **Nuevo capital disponible en caja:** ${nuevo_saldo:,.2f}")
+                
+                time.sleep(2)
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error al registrar préstamo: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'con' in locals() and con.is_connected():
+                    con.close()
 
     # Mostrar lista de préstamos y formulario de pagos
     mostrar_lista_prestamos(id_grupo)
 
+# =====================================================
+#   LAS FUNCIONES mostrar_lista_prestamos, mostrar_formulario_pagos 
+#   y mostrar_historial_pagos SE MANTIENEN IGUAL
+# =====================================================
 
-# =====================================================
-#   TABLA DE PRÉSTAMOS CON CONTROL DE PAGOS
-# =====================================================
 def mostrar_lista_prestamos(id_grupo):
     try:
         con = obtener_conexion()
@@ -321,10 +425,6 @@ def mostrar_lista_prestamos(id_grupo):
     except Exception as e:
         st.error(f"❌ Error al cargar la lista de préstamos: {str(e)}")
 
-
-# =====================================================
-#   FORMULARIO MEJORADO DE PAGOS - UNIFICADO (CORREGIDO)
-# =====================================================
 def mostrar_formulario_pagos(id_prestamo):
     try:
         # Obtener información actual del préstamo
@@ -492,10 +592,6 @@ def mostrar_formulario_pagos(id_prestamo):
     except Exception as e:
         st.error(f"❌ Error al cargar formulario de pagos: {str(e)}")
 
-
-# =====================================================
-#   HISTORIAL DE PAGOS - SIN COLUMNA DE INTERÉS
-# =====================================================
 def mostrar_historial_pagos(id_prestamo):
     try:
         con = obtener_conexion()
