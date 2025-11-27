@@ -91,19 +91,19 @@ def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
         total_egresos = total_retiros + total_desembolsos
         saldo_neto = total_ingresos - total_egresos
 
-        # Mostrar desglose para debugging (opcional)
-        st.debug(f"""
-        🔍 **Desglose del cálculo para {fecha_consulta}:**
-        - Multas: ${total_multas:,.2f}
-        - Ahorros: ${total_ahorros:,.2f}
-        - Actividades: ${total_actividades:,.2f}
-        - Pagos préstamos: ${total_pagos_prestamos:,.2f}
-        - Retiros: ${total_retiros:,.2f}
-        - Desembolsos: ${total_desembolsos:,.2f}
-        - **TOTAL INGRESOS: ${total_ingresos:,.2f}**
-        - **TOTAL EGRESOS: ${total_egresos:,.2f}**
-        - **SALDO NETO: ${saldo_neto:,.2f}**
-        """)
+        # Mostrar desglose para debugging (solo si hay datos)
+        if total_ingresos > 0 or total_egresos > 0:
+            with st.expander("🔍 Ver desglose del cálculo"):
+                st.write(f"**Desglose para {fecha_consulta}:**")
+                st.write(f"- Multas: ${total_multas:,.2f}")
+                st.write(f"- Ahorros: ${total_ahorros:,.2f}")
+                st.write(f"- Actividades: ${total_actividades:,.2f}")
+                st.write(f"- Pagos préstamos: ${total_pagos_prestamos:,.2f}")
+                st.write(f"- Retiros: ${total_retiros:,.2f}")
+                st.write(f"- Desembolsos: ${total_desembolsos:,.2f}")
+                st.write(f"**TOTAL INGRESOS: ${total_ingresos:,.2f}**")
+                st.write(f"**TOTAL EGRESOS: ${total_egresos:,.2f}**")
+                st.write(f"**SALDO NETO: ${saldo_neto:,.2f}**")
 
         return max(0.0, saldo_neto)  # No permitir saldos negativos
 
@@ -726,4 +726,3 @@ def mostrar_historial_pagos(id_prestamo):
             
     except Exception as e:
         st.error(f"❌ Error al cargar el historial de pagos: {str(e)}")
-
