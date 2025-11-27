@@ -133,12 +133,8 @@ def obtener_prestamos_rango(id_grupo, fecha_inicio, fecha_fin):
         if conn and conn.is_connected():
             conn.close()
 
-def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_miembro=None):
+def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None):
     """Obtiene estadísticas usando las MISMAS funciones que el módulo de caja"""
-    
-    # Si hay filtro de miembro, usar lógica diferente
-    if id_miembro:
-        return obtener_estadisticas_grupo_con_miembro(id_grupo, fecha_inicio, fecha_fin, id_miembro)
     
     # Obtener datos de cada módulo - EXACTAMENTE IGUAL QUE EN CAJA
     total_multas = obtener_multas_pagadas_rango(id_grupo, fecha_inicio, fecha_fin)
@@ -233,100 +229,6 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
         'num_prestamos_pagados': num_prestamos_pagados,
         'porcentaje_prestamos_pagados': porcentaje_prestamos_pagados
     }
-
-def obtener_estadisticas_grupo_con_miembro(id_grupo, fecha_inicio, fecha_fin, id_miembro):
-    """Obtiene estadísticas cuando hay filtro por miembro específico"""
-    conn = obtener_conexion()
-    if not conn:
-        return {}
-    
-    cursor = None
-    try:
-        cursor = conn.cursor(dictionary=True)
-        
-        # Consulta para un miembro específico
-        query = """
-            SELECT 
-                -- Multas pagadas del miembro
-                COALESCE(SUM(CASE WHEN MT.pagada = 1 THEN MT.monto_a_pagar ELSE 0 END), 0) as total_multas,
-                
-                -- Ahorros del miembro
-                COALESCE(SUM(AF.ahorros), 0) as total_ahorros,
-                COALESCE(SUM(AF.actividades), 0) as total_actividades,
-                COALESCE(SUM(AF.retiros), 0) as total_retiros,
-                
-                -- Pagos de préstamos del miembro
-                COALESCE(SUM(PP.capital + PP.interes), 0) as total_pago_prestamos,
-                
-                -- Desembolsos de préstamos al miembro
-                COALESCE(SUM(P.monto), 0) as total_desembolso,
-                
-                -- Conteos
-                COUNT(DISTINCT CASE WHEN MT.pagada = 1 THEN MT.id_multa END) as multas_pagadas,
-                COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
-                COUNT(DISTINCT CASE WHEN P.estado = 'activo' THEN P.id_prestamo END) as num_prestamos_activos,
-                COUNT(DISTINCT CASE WHEN P.estado = 'pagado' THEN P.id_prestamo END) as num_prestamos_pagados
-                
-            FROM Miembros M
-            JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
-            LEFT JOIN Multas MT ON M.id_miembro = MT.id_miembro AND MT.fecha BETWEEN %s AND %s
-            LEFT JOIN ahorro_final AF ON M.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo AND AF.fecha_registro BETWEEN %s AND %s
-            LEFT JOIN prestamos P ON M.id_miembro = P.id_miembro AND P.fecha_desembolso BETWEEN %s AND %s
-            LEFT JOIN prestamo_pagos PP ON P.id_prestamo = PP.id_prestamo AND PP.fecha BETWEEN %s AND %s AND PP.estado = 'pagado'
-            WHERE GM.id_grupo = %s AND M.id_miembro = %s
-        """
-        
-        params = [fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, id_grupo, id_miembro]
-        cursor.execute(query, tuple(params))
-        resultado = cursor.fetchone()
-        
-        if resultado:
-            # Calcular totales (MISMA LÓGICA QUE CAJA)
-            total_entrada = (
-                resultado['total_multas'] + 
-                resultado['total_ahorros'] + 
-                resultado['total_actividades'] + 
-                resultado['total_pago_prestamos']
-            )
-            total_salida = resultado['total_retiros'] + resultado['total_desembolso']
-            saldo_neto = total_entrada - total_salida
-            
-            # Porcentajes
-            total_multas_count = resultado['multas_pagadas'] + resultado['multas_pendientes']
-            porcentaje_multas_pagadas = (resultado['multas_pagadas'] / total_multas_count * 100) if total_multas_count > 0 else 0
-            
-            total_prestamos_count = resultado['num_prestamos_activos'] + resultado['num_prestamos_pagados']
-            porcentaje_prestamos_pagados = (resultado['num_prestamos_pagados'] / total_prestamos_count * 100) if total_prestamos_count > 0 else 0
-            
-            return {
-                'total_multas': resultado['total_multas'],
-                'total_ahorros': resultado['total_ahorros'],
-                'total_actividades': resultado['total_actividades'],
-                'total_pago_prestamos': resultado['total_pago_prestamos'],
-                'total_entrada': total_entrada,
-                'total_retiros': resultado['total_retiros'],
-                'total_desembolso': resultado['total_desembolso'],
-                'total_salida': total_salida,
-                'saldo_neto': saldo_neto,
-                'total_miembros': 1,  # Solo un miembro en el filtro
-                'multas_pagadas': resultado['multas_pagadas'],
-                'multas_pendientes': resultado['multas_pendientes'],
-                'porcentaje_multas_pagadas': porcentaje_multas_pagadas,
-                'num_prestamos_activos': resultado['num_prestamos_activos'],
-                'num_prestamos_pagados': resultado['num_prestamos_pagados'],
-                'porcentaje_prestamos_pagados': porcentaje_prestamos_pagados
-            }
-        
-        return {}
-        
-    except Exception as e:
-        st.error(f"Error al obtener estadísticas por miembro: {e}")
-        return {}
-    finally:
-        if cursor:
-            cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
 
 def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None):
     """Obtiene estadísticas detalladas por cada miembro del grupo"""
@@ -432,11 +334,11 @@ def mostrar_estadisticas(id_grupo):
     """, unsafe_allow_html=True)
 
     # ===============================
-    # 1. FILTROS PRINCIPALES
+    # 1. FILTROS SIMPLIFICADOS - SOLO FECHAS
     # ===============================
-    st.subheader("🎛️ Filtros de Análisis")
+    st.subheader("🎛️ Configurar Período")
     
-    col1, col2, col3 = st.columns([2, 2, 2])
+    col1, col2 = st.columns(2)
     
     with col1:
         fecha_inicio = st.date_input(
@@ -451,55 +353,17 @@ def mostrar_estadisticas(id_grupo):
             date.today(),
             key="fecha_fin_estadisticas"
         )
-    
-    with col3:
-        # Obtener miembros para el filtro
-        conn = obtener_conexion()
-        miembros = []
-        total_miembros = 0
-        if conn:
-            try:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute("""
-                    SELECT M.id_miembro, M.Nombre 
-                    FROM Miembros M 
-                    JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro 
-                    WHERE GM.id_grupo = %s
-                """, (id_grupo,))
-                miembros = cursor.fetchall()
-                total_miembros = len(miembros)
-                cursor.close()
-            except:
-                pass
-            finally:
-                if conn.is_connected():
-                    conn.close()
-        
-        opciones_miembros = {m['id_miembro']: m['Nombre'] for m in miembros}
-        
-        # Agregar "Todos" con el número de miembros entre paréntesis
-        opciones_formateadas = {"Todos": f"Todos ({total_miembros})"}
-        for id_miembro, nombre in opciones_miembros.items():
-            opciones_formateadas[id_miembro] = nombre
-        
-        miembro_filtro = st.selectbox(
-            "👤 Filtrar por miembro:",
-            options=["Todos"] + list(opciones_miembros.keys()),
-            format_func=lambda x: opciones_formateadas[x],
-            key="miembro_filtro"
-        )
 
     # ===============================
     # 2. KPI PRINCIPALES - SOLO LAS MÉTRICAS SOLICITADAS
     # ===============================
-    st.subheader("📈 Métricas Principales")
+    st.subheader("📈 Métricas Principales del Grupo")
     
-    # Obtener estadísticas
-    id_miembro_filtro = None if miembro_filtro == "Todos" else miembro_filtro
-    stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
+    # Obtener estadísticas del grupo completo
+    stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin)
     
     if stats:
-        # SOLO MOSTRAR LAS 4 MÉTRICAS SOLICITADAS
+        # SOLO MOSTRAR LAS 4 MÉTRICAS PRINCIPALES
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -513,7 +377,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "🏦 Ahorros Acumulados", 
                 f"${stats.get('total_ahorros', 0):,.2f}",
-                help="Total de ahorros realizados por los miembros en el período"
+                help="Total de ahorros realizados por el grupo en el período"
             )
         
         with col3:
@@ -527,7 +391,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "📉 Total Salidas", 
                 f"${stats.get('total_salida', 0):,.2f}",
-                help="Suma de todos los egresos en el período"
+                help="Suma de todos los egresos del grupo en el período"
             )
 
     else:
@@ -536,10 +400,10 @@ def mostrar_estadisticas(id_grupo):
     # ===============================
     # 3. GRÁFICOS Y VISUALIZACIONES - SOLO DISTRIBUCIÓN Y RANKING
     # ===============================
-    st.subheader("📊 Visualizaciones")
+    st.subheader("📊 Visualizaciones del Grupo")
     
     # SOLO DOS TABS: Distribución y Ranking Miembros
-    tab1, tab2 = st.tabs(["🥧 Distribución", "👥 Ranking Miembros"])
+    tab1, tab2 = st.tabs(["🥧 Distribución de Fondos", "👥 Ranking de Miembros"])
     
     with tab1:
         # Gráfico de distribución
@@ -565,14 +429,14 @@ def mostrar_estadisticas(id_grupo):
                     fig_pie_entradas = px.pie(
                         names=labels_filtered, 
                         values=values_filtered,
-                        title='Distribución de Entradas',
+                        title='Distribución de Entradas del Grupo',
                         color_discrete_sequence=px.colors.qualitative.Set2
                     )
                     
                     fig_pie_entradas.update_traces(textposition='inside', textinfo='percent+label')
                     st.plotly_chart(fig_pie_entradas, use_container_width=True)
                 else:
-                    st.info("💵 No hay datos de entradas para mostrar.")
+                    st.info("💵 No hay datos de entradas para mostrar en el período seleccionado.")
             
             with col2:
                 # Gráfico de SALIDAS
@@ -589,14 +453,14 @@ def mostrar_estadisticas(id_grupo):
                     fig_pie_salidas = px.pie(
                         names=labels_filtered, 
                         values=values_filtered,
-                        title='Distribución de Salidas',
+                        title='Distribución de Salidas del Grupo',
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
                     
                     fig_pie_salidas.update_traces(textposition='inside', textinfo='percent+label')
                     st.plotly_chart(fig_pie_salidas, use_container_width=True)
                 else:
-                    st.info("💸 No hay datos de salidas para mostrar.")
+                    st.info("💸 No hay datos de salidas para mostrar en el período seleccionado.")
         else:
             st.info("🥧 No hay datos de distribución para mostrar en el período seleccionado.")
     
@@ -650,23 +514,23 @@ def mostrar_estadisticas(id_grupo):
                 
                 st.dataframe(df_display, use_container_width=True)
         else:
-            st.info("👥 No hay datos de miembros para mostrar.")
+            st.info("👥 No hay datos de miembros para mostrar en el período seleccionado.")
 
     # ===============================
-    # 4. BOTÓN REGRESAR (REPORTE DETALLADO ELIMINADO)
+    # 4. BOTÓN REGRESAR
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
         st.session_state.page = "menu"
         st.rerun()
 
-    # Información del período
+    # Información del período en el sidebar
     st.sidebar.markdown("---")
     st.sidebar.info(f"""
     **📅 Período Actual:**
     - Inicio: {fecha_inicio}
     - Fin: {fecha_fin}
-    - Miembro: {'Todos' if not id_miembro_filtro else opciones_miembros.get(id_miembro_filtro, 'N/A')}
+    - Grupo: Completo
     
     **📝 Fórmula Saldo:**
     Total Entradas - Total Salidas
