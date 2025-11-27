@@ -1,4 +1,432 @@
+import streamlit as st
+import pandas as pd
+from modulos.config.conexion import obtener_conexion
+import datetime
+import time
+from decimal import Decimal
 
+# =====================================================
+#   FUNCIÓN CORREGIDA PARA OBTENER SALDO NETO DISPONIBLE
+# =====================================================
+def obtener_saldo_disponible_caja(id_grupo, fecha_consulta=None):
+    """
+    Obtiene el saldo neto acumulado en caja hasta una fecha específica
+    Calcula: (Multas + Ahorros + Actividades + Pagos de préstamos) - (Retiros + Desembolsos de préstamos)
+    """
+    if fecha_consulta is None:
+        fecha_consulta = datetime.date.today()
+    
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        
+        # 1. OBTENER TOTAL DE INGRESOS (ENTRADAS DE DINERO)
+        
+        # Multas pagadas acumuladas hasta la fecha
+        cursor.execute("""
+            SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
+            FROM Multas MT
+            JOIN Miembros M ON MT.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+            AND MT.fecha <= %s
+            AND MT.pagada = 1
+        """, (id_grupo, fecha_consulta))
+        total_multas = float(cursor.fetchone()[0] or 0.0)
+
+        # Ahorros acumulados hasta la fecha
+        cursor.execute("""
+            SELECT COALESCE(SUM(ahorros), 0) as total_ahorros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro <= %s
+        """, (id_grupo, fecha_consulta))
+        total_ahorros = float(cursor.fetchone()[0] or 0.0)
+
+        # Actividades acumuladas hasta la fecha
+        cursor.execute("""
+            SELECT COALESCE(SUM(actividades), 0) as total_actividades
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro <= %s
+        """, (id_grupo, fecha_consulta))
+        total_actividades = float(cursor.fetchone()[0] or 0.0)
+
+        # Pagos de préstamos acumulados hasta la fecha (capital + interés)
+        cursor.execute("""
+            SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos
+            FROM prestamo_pagos PP
+            JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND PP.fecha <= %s
+            AND PP.estado = 'pagado'
+        """, (id_grupo, fecha_consulta))
+        total_pagos_prestamos = float(cursor.fetchone()[0] or 0.0)
+
+        # 2. OBTENER TOTAL DE EGRESOS (SALIDAS DE DINERO)
+
+        # Retiros de ahorro acumulados hasta la fecha
+        cursor.execute("""
+            SELECT COALESCE(SUM(retiros), 0) as total_retiros
+            FROM ahorro_final 
+            WHERE id_grupo = %s AND fecha_registro <= %s
+        """, (id_grupo, fecha_consulta))
+        total_retiros = float(cursor.fetchone()[0] or 0.0)
+
+        # Desembolsos de préstamos acumulados hasta la fecha
+        cursor.execute("""
+            SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+            FROM prestamos P
+            JOIN Miembros M ON P.id_miembro = M.id_miembro
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s 
+            AND P.fecha_desembolso <= %s
+        """, (id_grupo, fecha_consulta))
+        total_desembolsos = float(cursor.fetchone()[0] or 0.0)
+
+        con.close()
+
+        # 3. CALCULAR SALDO NETO
+        total_ingresos = total_multas + total_ahorros + total_actividades + total_pagos_prestamos
+        total_egresos = total_retiros + total_desembolsos
+        saldo_neto = total_ingresos - total_egresos
+
+        return max(0.0, saldo_neto)  # No permitir saldos negativos
+
+    except Exception as e:
+        st.error(f"❌ Error al calcular saldo disponible: {str(e)}")
+        return 0.0
+
+# =====================================================
+#   MÓDULO PRINCIPAL DE PRÉSTAMOS - CON ACTUALIZACIÓN AUTOMÁTICA
+# =====================================================
+def prestamos_modulo():
+    # --------------------------------------
+    # Validar sesión y grupo
+    # --------------------------------------
+    if "id_grupo" not in st.session_state or st.session_state.get("id_grupo") is None:
+        st.error("⚠️ No tienes un grupo asignado. Contacta al administrador.")
+        
+        # Botón para regresar al menú
+        if st.button("⬅️ Regresar al Menú"):
+            st.session_state.page = "menu"
+            st.rerun()
+        return
+
+    id_grupo = st.session_state["id_grupo"]
+
+    # TÍTULO
+    st.markdown("<h1 style='text-align:center;'>💲 Gestión de Préstamos</h1>", unsafe_allow_html=True)
+
+    # --------------------------------------
+    # Obtener nombre del grupo
+    # --------------------------------------
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("SELECT Nombre_grupo FROM Grupos WHERE id_grupo = %s", (id_grupo,))
+        grupo = cursor.fetchone()
+        con.close()
+
+        nombre_grupo = grupo[0] if grupo else "Grupo desconocido"
+
+        # Mostrar nombre debajo del título
+        st.markdown(
+            f"<h3 style='text-align:center; color:#555;'>Grupo: {nombre_grupo}</h3>",
+            unsafe_allow_html=True
+        )
+    except Exception as e:
+        st.error(f"❌ Error al obtener información del grupo: {str(e)}")
+        return
+
+    # --------------------------------------
+    # Obtener valores del reglamento - CORREGIDO
+    # --------------------------------------
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT interes_por_10, max_prestamo, max_plazo
+            FROM Reglamento
+            WHERE id_grupo = %s
+            LIMIT 1
+        """, (id_grupo,))
+        reglamento = cursor.fetchone()
+        con.close()
+
+        if reglamento:
+            # Solo el interés se convierte a número para cálculos
+            interes_por_10 = float(reglamento[0]) if reglamento[0] is not None else 0.0
+            
+            # Monto y plazo se mantienen como texto (sin conversión)
+            monto_maximo_texto = str(reglamento[1]) if reglamento[1] is not None else "No definido"
+            plazo_maximo_texto = str(reglamento[2]) if reglamento[2] is not None else "No definido"
+            
+            st.info(f"📊 Reglamento cargado: Interés {interes_por_10}% sobre el monto total")
+        else:
+            st.warning("⚠️ No se encontró reglamento para este grupo. Se usarán valores por defecto.")
+            interes_por_10 = 0.0
+            monto_maximo_texto = "No definido"
+            plazo_maximo_texto = "No definido"
+            
+    except Exception as e:
+        st.error(f"❌ Error al obtener reglamento: {str(e)}")
+        interes_por_10 = 0.0
+        monto_maximo_texto = "No definido"
+        plazo_maximo_texto = "No definido"
+
+    # --------------------------------------
+    # Obtener miembros del grupo
+    # --------------------------------------
+    try:
+        con = obtener_conexion()
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT M.id_miembro, M.nombre, M.dui
+            FROM Miembros M
+            JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+            WHERE GM.id_grupo = %s
+        """, (id_grupo,))
+        miembros = cursor.fetchall()
+        con.close()
+
+        if not miembros:
+            st.warning("⚠ No hay miembros registrados en este grupo.")
+            
+            # Botón para regresar al menú
+            if st.button("⬅️ Regresar al Menú"):
+                st.session_state.page = "menu"
+                st.rerun()
+            return
+
+        miembros_dict = {m[1]: m[0] for m in miembros}
+        
+    except Exception as e:
+        st.error(f"❌ Error al obtener miembros: {str(e)}")
+        return
+
+    # =====================================================
+    #   FORMULARIO: REGISTRAR NUEVO PRÉSTAMO - CON ACTUALIZACIÓN AUTOMÁTICA
+    # =====================================================
+    with st.form("form_nuevo_prestamo"):
+        st.subheader("📄 Nuevo Préstamo")
+
+        miembro_seleccionado = st.selectbox("Selecciona un miembro", list(miembros_dict.keys()))
+        proposito = st.text_input("Propósito del préstamo")
+        
+        # FECHA DE DESEMBOLSO - CON ACTUALIZACIÓN AUTOMÁTICA
+        fecha_desembolso = st.date_input("Fecha de desembolso", datetime.date.today())
+        
+        # OBTENER SALDO NETO DISPONIBLE EN CAJA PARA LA FECHA DE DESEMBOLSO
+        # Usar session_state para forzar la actualización
+        saldo_key = f"saldo_{fecha_desembolso}"
+        if saldo_key not in st.session_state:
+            st.session_state[saldo_key] = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
+        
+        saldo_disponible = st.session_state[saldo_key]
+        
+        # Mostrar información del saldo neto disponible
+        st.info(f"💰 **Saldo neto disponible en caja:** ${saldo_disponible:,.2f}")
+        
+        # Botón para actualizar manualmente si es necesario
+        if st.button("🔄 Actualizar saldo"):
+            st.session_state[saldo_key] = obtener_saldo_disponible_caja(id_grupo, fecha_desembolso)
+            st.rerun()
+        
+        # Mostrar desglose del cálculo (siempre visible)
+        with st.expander("🔍 Ver desglose del cálculo del saldo"):
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+                
+                # Obtener todos los datos para el desglose
+                cursor.execute("""
+                    SELECT COALESCE(SUM(MT.monto_a_pagar), 0) as total_multas
+                    FROM Multas MT
+                    JOIN Miembros M ON MT.id_miembro = M.id_miembro
+                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                    WHERE GM.id_grupo = %s AND MT.fecha <= %s AND MT.pagada = 1
+                """, (id_grupo, fecha_desembolso))
+                total_multas = float(cursor.fetchone()[0] or 0.0)
+
+                cursor.execute("""
+                    SELECT 
+                        COALESCE(SUM(ahorros), 0) as total_ahorros,
+                        COALESCE(SUM(actividades), 0) as total_actividades,
+                        COALESCE(SUM(retiros), 0) as total_retiros
+                    FROM ahorro_final 
+                    WHERE id_grupo = %s AND fecha_registro <= %s
+                """, (id_grupo, fecha_desembolso))
+                ahorros_data = cursor.fetchone()
+                total_ahorros = float(ahorros_data[0] or 0.0)
+                total_actividades = float(ahorros_data[1] or 0.0)
+                total_retiros = float(ahorros_data[2] or 0.0)
+
+                cursor.execute("""
+                    SELECT COALESCE(SUM(PP.capital + PP.interes), 0) as total_pagos_prestamos
+                    FROM prestamo_pagos PP
+                    JOIN prestamos P ON PP.id_prestamo = P.id_prestamo
+                    JOIN Miembros M ON P.id_miembro = M.id_miembro
+                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                    WHERE GM.id_grupo = %s AND PP.fecha <= %s AND PP.estado = 'pagado'
+                """, (id_grupo, fecha_desembolso))
+                total_pagos_prestamos = float(cursor.fetchone()[0] or 0.0)
+
+                cursor.execute("""
+                    SELECT COALESCE(SUM(P.monto), 0) as total_desembolsos
+                    FROM prestamos P
+                    JOIN Miembros M ON P.id_miembro = M.id_miembro
+                    JOIN Grupomiembros GM ON GM.id_miembro = M.id_miembro
+                    WHERE GM.id_grupo = %s AND P.fecha_desembolso <= %s
+                """, (id_grupo, fecha_desembolso))
+                total_desembolsos = float(cursor.fetchone()[0] or 0.0)
+
+                con.close()
+
+                # Calcular totales
+                total_ingresos = total_multas + total_ahorros + total_actividades + total_pagos_prestamos
+                total_egresos = total_retiros + total_desembolsos
+                saldo_neto = total_ingresos - total_egresos
+
+                # Mostrar desglose
+                st.write(f"**Desglose para {fecha_desembolso}:**")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**INGRESOS:**")
+                    st.write(f"- Multas: ${total_multas:,.2f}")
+                    st.write(f"- Ahorros: ${total_ahorros:,.2f}")
+                    st.write(f"- Actividades: ${total_actividades:,.2f}")
+                    st.write(f"- Pagos préstamos: ${total_pagos_prestamos:,.2f}")
+                    st.write(f"**Total ingresos: ${total_ingresos:,.2f}**")
+                
+                with col2:
+                    st.write("**EGRESOS:**")
+                    st.write(f"- Retiros: ${total_retiros:,.2f}")
+                    st.write(f"- Desembolsos: ${total_desembolsos:,.2f}")
+                    st.write(f"**Total egresos: ${total_egresos:,.2f}**")
+                
+                st.write(f"**SALDO NETO: ${saldo_neto:,.2f}**")
+                
+            except Exception as e:
+                st.error(f"Error al obtener desglose: {str(e)}")
+        
+        # MONTO CON LÍMITE BASADO EN EL SALDO DISPONIBLE
+        monto_maximo_permitido = float(saldo_disponible) if saldo_disponible > 0 else 0.01
+        
+        monto = st.number_input(
+            "Monto del préstamo", 
+            min_value=0.01, 
+            max_value=monto_maximo_permitido,
+            step=0.01,
+            help=f"Monto máximo según reglamento: {monto_maximo_texto} | Saldo neto disponible: ${saldo_disponible:,.2f}"
+        )
+        
+        fecha_vencimiento = st.date_input("Fecha de vencimiento", min_value=fecha_desembolso)
+
+        # ⚠️ CAMPOS DE REGLAMENTO - SOLO LECTURA
+        st.markdown("**Configuración del Reglamento:**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.number_input(
+                "Interés sobre el monto total (%)",
+                value=interes_por_10,
+                step=0.01,
+                disabled=True,
+                key="interes_reglamento"
+            )
+        with col2:
+            # Mostrar monto máximo como texto
+            st.text_input(
+                "Monto máximo permitido",
+                value=monto_maximo_texto,
+                disabled=True,
+                key="monto_maximo_reglamento"
+            )
+        with col3:
+            # Mostrar plazo máximo como texto
+            st.text_input(
+                "Plazo máximo",
+                value=plazo_maximo_texto,
+                disabled=True,
+                key="plazo_maximo_reglamento"
+            )
+
+        # CALCULAR INTERÉS CORREGIDO - PORCENTAJE SOBRE EL MONTO TOTAL
+        interes_total = (monto * interes_por_10) / 100
+        monto_total = monto + interes_total
+
+        enviar = st.form_submit_button("💾 Guardar Préstamo")
+
+    # BOTÓN REGRESAR - FUERA DEL FORMULARIO
+    st.write("")
+    if st.button("⬅️ Regresar al Menú"):
+        st.session_state.page = "menu"
+        st.rerun()
+    st.write("---")
+
+    if enviar:
+        # VALIDACIONES MANUALES
+        validacion_ok = True
+        
+        # 1. Validar monto máximo del reglamento (si es numérico)
+        try:
+            if monto_maximo_texto.replace('.', '').replace(',', '').isdigit():
+                monto_maximo_num = float(monto_maximo_texto)
+                if monto > monto_maximo_num:
+                    st.error(f"❌ El monto no puede exceder el límite máximo del reglamento: {monto_maximo_texto}")
+                    validacion_ok = False
+        except:
+            pass  # Si no es numérico, no validar
+        
+        # 2. Validar saldo disponible en caja
+        if monto > saldo_disponible:
+            st.error(f"❌ Fondos insuficientes. El monto solicitado (${monto:,.2f}) excede el saldo neto disponible en caja (${saldo_disponible:,.2f})")
+            validacion_ok = False
+        
+        # 3. Validar que haya saldo disponible
+        if saldo_disponible <= 0:
+            st.error("❌ No hay saldo neto disponible en caja para realizar préstamos")
+            validacion_ok = False
+
+        if validacion_ok:
+            try:
+                con = obtener_conexion()
+                cursor = con.cursor()
+
+                # INSERT del préstamo - automáticamente como "activo"
+                cursor.execute("""
+                    INSERT INTO prestamos (id_miembro, proposito, monto, fecha_desembolso, 
+                                         fecha_vencimiento, estado, interes_total)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    miembros_dict[miembro_seleccionado],
+                    proposito,
+                    monto,
+                    fecha_desembolso,
+                    fecha_vencimiento,
+                    "activo",  # Estado fijo como "activo"
+                    interes_total
+                ))
+
+                con.commit()
+                st.success("✅ Préstamo registrado correctamente")
+                st.info(f"💰 Total a pagar: ${monto_total:,.2f} (Capital: ${monto:,.2f} + Interés: ${interes_total:,.2f})")
+                
+                # Mostrar nuevo saldo disponible después del préstamo
+                nuevo_saldo = saldo_disponible - monto
+                st.info(f"💰 **Nuevo saldo neto disponible en caja:** ${nuevo_saldo:,.2f}")
+                
+                time.sleep(2)
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error al registrar préstamo: {str(e)}")
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'con' in locals() and con.is_connected():
+                    con.close()
 
     # Mostrar lista de préstamos y formulario de pagos
     mostrar_lista_prestamos(id_grupo)
