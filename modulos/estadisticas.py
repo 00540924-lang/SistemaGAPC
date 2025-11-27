@@ -392,63 +392,6 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
         if conn and conn.is_connected():
             conn.close()
 
-# Las funciones obtener_evolucion_ahorros y obtener_distribucion_por_tipo se mantienen igual
-def obtener_evolucion_ahorros(id_grupo, fecha_inicio=None, fecha_fin=None, id_miembro=None):
-    """Obtiene la evolución de ahorros en el tiempo"""
-    conn = obtener_conexion()
-    if not conn:
-        return []
-    
-    cursor = None
-    try:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        
-        condiciones = ["AF.id_grupo = %s"]
-        params = [id_grupo]
-        
-        if fecha_inicio and fecha_fin:
-            condiciones.append("AF.fecha_registro BETWEEN %s AND %s")
-            params.extend([fecha_inicio, fecha_fin])
-        
-        if id_miembro:
-            condiciones.append("AF.id_miembro = %s")
-            params.append(id_miembro)
-        
-        where_clause = " AND ".join(condiciones)
-        
-        query = f"""
-            SELECT 
-                DATE(AF.fecha_registro) as fecha,
-                SUM(AF.ahorros) as ahorros,
-                SUM(AF.actividades) as actividades,
-                SUM(AF.retiros) as retiros,
-                SUM(AF.saldo_final) as saldo_dia
-            FROM ahorro_final AF
-            WHERE {where_clause}
-            GROUP BY DATE(AF.fecha_registro)
-            ORDER BY fecha ASC
-        """
-        
-        cursor.execute(query, tuple(params))
-        datos = cursor.fetchall()
-        
-        # Calcular saldo acumulado
-        saldo_acumulado = 0
-        for dato in datos:
-            saldo_acumulado += dato['ahorros'] + dato['actividades'] - dato['retiros']
-            dato['saldo_acumulado'] = saldo_acumulado
-        
-        return datos
-        
-    except Exception as e:
-        st.error(f"Error al obtener evolución de ahorros: {e}")
-        return []
-    finally:
-        if cursor:
-            cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
-
 def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
     """Obtiene la distribución de fondos por tipo"""
     # Usar las mismas funciones que el módulo de caja para consistencia
@@ -464,9 +407,6 @@ def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
         'retiros': total_retiros,
         'prestamos_desembolsados': total_desembolso
     }
-
-# La función mostrar_estadisticas se mantiene igual que en la versión anterior
-# Solo asegúrate de que use 'saldo_neto' para mostrar el Saldo Total
 
 def mostrar_estadisticas(id_grupo):
     """
@@ -516,6 +456,7 @@ def mostrar_estadisticas(id_grupo):
         # Obtener miembros para el filtro
         conn = obtener_conexion()
         miembros = []
+        total_miembros = 0
         if conn:
             try:
                 cursor = conn.cursor(dictionary=True)
@@ -526,6 +467,7 @@ def mostrar_estadisticas(id_grupo):
                     WHERE GM.id_grupo = %s
                 """, (id_grupo,))
                 miembros = cursor.fetchall()
+                total_miembros = len(miembros)
                 cursor.close()
             except:
                 pass
@@ -534,15 +476,21 @@ def mostrar_estadisticas(id_grupo):
                     conn.close()
         
         opciones_miembros = {m['id_miembro']: m['Nombre'] for m in miembros}
+        
+        # Agregar "Todos" con el número de miembros entre paréntesis
+        opciones_formateadas = {"Todos": f"Todos ({total_miembros})"}
+        for id_miembro, nombre in opciones_miembros.items():
+            opciones_formateadas[id_miembro] = nombre
+        
         miembro_filtro = st.selectbox(
             "👤 Filtrar por miembro:",
             options=["Todos"] + list(opciones_miembros.keys()),
-            format_func=lambda x: "Todos" if x == "Todos" else opciones_miembros[x],
+            format_func=lambda x: opciones_formateadas[x],
             key="miembro_filtro"
         )
 
     # ===============================
-    # 2. KPI PRINCIPALES - CORREGIDOS
+    # 2. KPI PRINCIPALES - SOLO LAS MÉTRICAS SOLICITADAS
     # ===============================
     st.subheader("📈 Métricas Principales")
     
@@ -551,7 +499,7 @@ def mostrar_estadisticas(id_grupo):
     stats = obtener_estadisticas_grupo(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
     
     if stats:
-        # PRIMERA FILA - 4 columnas
+        # SOLO MOSTRAR LAS 4 MÉTRICAS SOLICITADAS
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -577,107 +525,23 @@ def mostrar_estadisticas(id_grupo):
         
         with col4:
             st.metric(
-                "👥 Miembros Activos", 
-                f"{stats.get('total_miembros', 0)}",
-                help="Número total de miembros en el grupo"
-            )
-
-        # SEGUNDA FILA - 4 columnas
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            # Total Entradas
-            total_entradas = stats.get('total_entrada', 0)
-            st.metric(
-                "📈 Total Entradas", 
-                f"${total_entradas:,.2f}",
-                help="Suma de todos los ingresos en el período"
-            )
-        
-        with col2:
-            # Total Salidas
-            total_salidas = stats.get('total_salida', 0)
-            st.metric(
                 "📉 Total Salidas", 
-                f"${total_salidas:,.2f}",
+                f"${stats.get('total_salida', 0):,.2f}",
                 help="Suma de todos los egresos en el período"
-            )
-        
-        with col3:
-            porcentaje_multas = stats.get('porcentaje_multas_pagadas', 0)
-            total_multas = stats.get('multas_pagadas', 0) + stats.get('multas_pendientes', 0)
-            st.metric(
-                "🎯 Multas Pagadas", 
-                f"{porcentaje_multas:.1f}%",
-                help=f"{stats.get('multas_pagadas', 0)} de {total_multas} multas"
-            )
-        
-        with col4:
-            porcentaje_prestamos = stats.get('porcentaje_prestamos_pagados', 0)
-            num_prestamos_pagados = stats.get('num_prestamos_pagados', 0)
-            num_prestamos_activos = stats.get('num_prestamos_activos', 0)
-            total_prestamos = num_prestamos_pagados + num_prestamos_activos
-            
-            texto_ayuda = f"{num_prestamos_pagados} de {total_prestamos} préstamos"
-            if total_prestamos == 0:
-                texto_ayuda = "No hay préstamos registrados"
-            
-            st.metric(
-                "✅ Préstamos Pagados", 
-                f"{porcentaje_prestamos:.1f}%",
-                help=texto_ayuda
             )
 
     else:
         st.warning("No se pudieron cargar las estadísticas del grupo.")
 
     # ===============================
-    # 3. GRÁFICOS Y VISUALIZACIONES
+    # 3. GRÁFICOS Y VISUALIZACIONES - SOLO DISTRIBUCIÓN Y RANKING
     # ===============================
     st.subheader("📊 Visualizaciones")
     
-    tab1, tab2, tab3 = st.tabs(["📈 Evolución de Ahorros", "🥧 Distribución", "👥 Ranking Miembros"])
+    # SOLO DOS TABS: Distribución y Ranking Miembros
+    tab1, tab2 = st.tabs(["🥧 Distribución", "👥 Ranking Miembros"])
     
     with tab1:
-        # Gráfico de evolución de ahorros
-        datos_evolucion = obtener_evolucion_ahorros(id_grupo, fecha_inicio, fecha_fin, id_miembro_filtro)
-        
-        if datos_evolucion:
-            df_evolucion = pd.DataFrame(datos_evolucion)
-            df_evolucion['fecha'] = pd.to_datetime(df_evolucion['fecha'])
-            
-            fig = go.Figure()
-            
-            fig.add_trace(go.Scatter(
-                x=df_evolucion['fecha'], 
-                y=df_evolucion['saldo_acumulado'],
-                mode='lines+markers',
-                name='Saldo Acumulado',
-                line=dict(color='#4CAF50', width=3),
-                marker=dict(size=6)
-            ))
-            
-            fig.add_trace(go.Bar(
-                x=df_evolucion['fecha'], 
-                y=df_evolucion['ahorros'],
-                name='Ahorros Diarios',
-                marker_color='#2196F3',
-                opacity=0.6
-            ))
-            
-            fig.update_layout(
-                title='Evolución del Saldo de Ahorros',
-                xaxis_title='Fecha',
-                yaxis_title='Monto ($)',
-                hovermode='x unified',
-                height=400
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("📈 No hay datos de evolución para mostrar en el período seleccionado.")
-    
-    with tab2:
         # Gráfico de distribución
         distribucion = obtener_distribucion_por_tipo(id_grupo, fecha_inicio, fecha_fin)
         
@@ -736,7 +600,7 @@ def mostrar_estadisticas(id_grupo):
         else:
             st.info("🥧 No hay datos de distribución para mostrar en el período seleccionado.")
     
-    with tab3:
+    with tab2:
         # Ranking de miembros
         stats_miembros = obtener_estadisticas_por_miembro(id_grupo, fecha_inicio, fecha_fin)
         
@@ -789,7 +653,7 @@ def mostrar_estadisticas(id_grupo):
             st.info("👥 No hay datos de miembros para mostrar.")
 
     # ===============================
-    # 5. BOTÓN REGRESAR
+    # 4. BOTÓN REGRESAR (REPORTE DETALLADO ELIMINADO)
     # ===============================
     st.write("---")
     if st.button("⬅️ Regresar al Menú"):
