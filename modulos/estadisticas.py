@@ -74,16 +74,13 @@ def obtener_estadisticas_grupo(id_grupo, fecha_inicio=None, fecha_fin=None, id_m
             estadisticas['saldo_neto'] = (
                 estadisticas['total_ahorros'] + 
                 estadisticas['total_actividades'] + 
-                estadisticas['total_multas'] - 
-                estadisticas['total_retiros'] - 
-                estadisticas['prestamos_activos']
+                estadisticas['total_multas'] + 
+                estadisticas['prestamos_pagados'] -  # ✅ PRÉSTAMOS PAGADOS SE SUMAN
+                estadisticas['total_retiros']
             )
             
-            # Calcular total egresos
-            estadisticas['total_egresos'] = (
-                estadisticas['total_retiros'] + 
-                estadisticas['prestamos_activos']
-            )
+            # Calcular total egresos (solo retiros, los préstamos activos no son egresos del grupo)
+            estadisticas['total_egresos'] = estadisticas['total_retiros']
             
             # Porcentajes
             total_multas = estadisticas['multas_pagadas'] + estadisticas['multas_pendientes']
@@ -154,7 +151,7 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
                 COUNT(DISTINCT CASE WHEN MT.pagada = 0 THEN MT.id_multa END) as multas_pendientes,
                 
                 -- Préstamos del miembro (AGREGADO)
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_activos
+                COALESCE(SUM(CASE WHEN P.estado = 'pagado' THEN P.monto ELSE 0 END), 0) as prestamos_pagados
                 
             FROM Miembros M
             JOIN Grupomiembros GM ON M.id_miembro = GM.id_miembro
@@ -174,9 +171,9 @@ def obtener_estadisticas_por_miembro(id_grupo, fecha_inicio=None, fecha_fin=None
             miembro['saldo_ahorro'] = (
                 miembro['total_ahorros'] + 
                 miembro['total_actividades'] + 
-                miembro['total_multas'] - 
-                miembro['total_retiros'] - 
-                miembro['prestamos_activos']
+                miembro['total_multas'] + 
+                miembro['prestamos_pagados'] -  # ✅ PRÉSTAMOS PAGADOS SE SUMAN
+                miembro['total_retiros']
             )
         
         return resultados
@@ -275,8 +272,8 @@ def obtener_distribucion_por_tipo(id_grupo, fecha_inicio=None, fecha_fin=None):
                 -- Multas
                 COALESCE(SUM(MT.monto_a_pagar), 0) as multas,
                 
-                -- Préstamos activos
-                COALESCE(SUM(CASE WHEN P.estado = 'activo' THEN P.monto ELSE 0 END), 0) as prestamos_activos
+                -- Préstamos pagados
+                COALESCE(SUM(CASE WHEN P.estado = 'pagado' THEN P.monto ELSE 0 END), 0) as prestamos_pagados
                 
             FROM Grupomiembros GM
             LEFT JOIN ahorro_final AF ON GM.id_miembro = AF.id_miembro AND AF.id_grupo = GM.id_grupo
@@ -387,7 +384,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "💰 Saldo Total", 
                 f"${stats.get('saldo_neto', 0):,.2f}",
-                help="Saldo neto del grupo (ahorros + actividades + multas - retiros - préstamos activos)"
+                help="Saldo neto del grupo (ahorros + actividades + multas + préstamos pagados - retiros)"
             )
         
         with col2:
@@ -432,16 +429,16 @@ def mostrar_estadisticas(id_grupo):
                 help="Número total de miembros en el grupo"
             )
 
-        # SEGUNDA FILA - 4 columnas (CORREGIDA - SIN REGISTROS DE AHORRO)
+        # SEGUNDA FILA - 4 columnas (CORREGIDA)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            # NUEVA MÉTRICA: Total Egresos
+            # Total Egresos (solo retiros)
             total_egresos = stats.get('total_egresos', 0)
             st.metric(
                 "📉 Total Egresos", 
                 f"${total_egresos:,.2f}",
-                help="Total de retiros y préstamos activos"
+                help="Total de retiros realizados"
             )
         
         with col2:
@@ -472,12 +469,12 @@ def mostrar_estadisticas(id_grupo):
             )
         
         with col4:
-            # Mostrar total de multas como métrica adicional
-            total_multas_monto = stats.get('total_multas', 0)
+            # Mostrar total de préstamos pagados como métrica adicional
+            total_prestamos_pagados = stats.get('prestamos_pagados', 0)
             st.metric(
-                "⚖️ Total Multas", 
-                f"${total_multas_monto:,.2f}",
-                help="Total de multas registradas en el período"
+                "💵 Préstamos Pagados", 
+                f"${total_prestamos_pagados:,.2f}",
+                help="Total de préstamos que han sido pagados completamente"
             )
 
     else:
@@ -534,59 +531,31 @@ def mostrar_estadisticas(id_grupo):
         distribucion = obtener_distribucion_por_tipo(id_grupo, fecha_inicio, fecha_fin)
         
         if distribucion and any(distribucion.values()):
-            # Crear dos gráficos: uno para ingresos y otro para egresos
-            col1, col2 = st.columns(2)
+            # Crear gráfico de ingresos totales
+            labels_ingresos = ['Ahorros', 'Actividades', 'Multas', 'Préstamos Pagados']
+            values_ingresos = [
+                distribucion.get('ahorros', 0),
+                distribucion.get('actividades', 0),
+                distribucion.get('multas', 0),
+                distribucion.get('prestamos_pagados', 0)
+            ]
             
-            with col1:
-                # Gráfico de ingresos
-                labels_ingresos = ['Ahorros', 'Actividades', 'Multas']
-                values_ingresos = [
-                    distribucion.get('ahorros', 0),
-                    distribucion.get('actividades', 0),
-                    distribucion.get('multas', 0)
-                ]
+            # Filtrar categorías con valores > 0
+            filtered_ingresos = [(label, value) for label, value in zip(labels_ingresos, values_ingresos) if value > 0]
+            if filtered_ingresos:
+                labels_filtered, values_filtered = zip(*filtered_ingresos)
                 
-                # Filtrar categorías con valores > 0
-                filtered_ingresos = [(label, value) for label, value in zip(labels_ingresos, values_ingresos) if value > 0]
-                if filtered_ingresos:
-                    labels_filtered, values_filtered = zip(*filtered_ingresos)
-                    
-                    fig_pie_ingresos = px.pie(
-                        names=labels_filtered, 
-                        values=values_filtered,
-                        title='Distribución de Ingresos',
-                        color_discrete_sequence=px.colors.qualitative.Set2
-                    )
-                    
-                    fig_pie_ingresos.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_pie_ingresos, use_container_width=True)
-                else:
-                    st.info("💵 No hay datos de ingresos para mostrar.")
-            
-            with col2:
-                # Gráfico de egresos
-                labels_egresos = ['Retiros', 'Préstamos Activos']
-                values_egresos = [
-                    distribucion.get('retiros', 0),
-                    distribucion.get('prestamos_activos', 0)
-                ]
+                fig_pie_ingresos = px.pie(
+                    names=labels_filtered, 
+                    values=values_filtered,
+                    title='Distribución de Ingresos Totales',
+                    color_discrete_sequence=px.colors.qualitative.Set2
+                )
                 
-                # Filtrar categorías con valores > 0
-                filtered_egresos = [(label, value) for label, value in zip(labels_egresos, values_egresos) if value > 0]
-                if filtered_egresos:
-                    labels_filtered, values_filtered = zip(*filtered_egresos)
-                    
-                    fig_pie_egresos = px.pie(
-                        names=labels_filtered, 
-                        values=values_filtered,
-                        title='Distribución de Egresos',
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    
-                    fig_pie_egresos.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_pie_egresos, use_container_width=True)
-                else:
-                    st.info("💸 No hay datos de egresos para mostrar.")
+                fig_pie_ingresos.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig_pie_ingresos, use_container_width=True)
+            else:
+                st.info("💵 No hay datos de ingresos para mostrar.")
         else:
             st.info("🥧 No hay datos de distribución para mostrar en el período seleccionado.")
     
@@ -628,8 +597,8 @@ def mostrar_estadisticas(id_grupo):
             
             # Mostrar tabla completa
             with st.expander("📋 Ver tabla completa de miembros"):
-                columnas_mostrar = ['Nombre', 'total_ahorros', 'total_actividades', 'total_retiros', 'total_multas', 'prestamos_activos', 'saldo_ahorro']
-                nombres_columnas = ['Miembro', 'Ahorros', 'Actividades', 'Retiros', 'Multas', 'Préstamos Activos', 'Saldo Neto']
+                columnas_mostrar = ['Nombre', 'total_ahorros', 'total_actividades', 'total_retiros', 'total_multas', 'prestamos_pagados', 'saldo_ahorro']
+                nombres_columnas = ['Miembro', 'Ahorros', 'Actividades', 'Retiros', 'Multas', 'Préstamos Pagados', 'Saldo Neto']
                 
                 df_display = df_miembros[columnas_mostrar].copy()
                 df_display.columns = nombres_columnas
@@ -655,13 +624,16 @@ def mostrar_estadisticas(id_grupo):
             st.write(f"**Ahorros:** ${stats.get('total_ahorros', 0):,.2f}")
             st.write(f"**Actividades:** ${stats.get('total_actividades', 0):,.2f}")
             st.write(f"**Multas:** ${stats.get('total_multas', 0):,.2f}")
-            total_entradas = stats.get('total_ahorros', 0) + stats.get('total_actividades', 0) + stats.get('total_multas', 0)
+            st.write(f"**Préstamos Pagados:** ${stats.get('prestamos_pagados', 0):,.2f}")
+            total_entradas = (stats.get('total_ahorros', 0) + 
+                            stats.get('total_actividades', 0) + 
+                            stats.get('total_multas', 0) + 
+                            stats.get('prestamos_pagados', 0))
             st.write(f"**Total Entradas:** ${total_entradas:,.2f}")
         
         with col2:
             st.markdown("#### 🟥 Salidas de Dinero")
             st.write(f"**Retiros:** ${stats.get('total_retiros', 0):,.2f}")
-            st.write(f"**Préstamos Activos:** ${stats.get('prestamos_activos', 0):,.2f}")
             st.write(f"**Total Egresos:** ${stats.get('total_egresos', 0):,.2f}")
         
         st.markdown("---")
@@ -674,9 +646,9 @@ def mostrar_estadisticas(id_grupo):
         st.write(f"**Fórmula del Saldo Neto:**")
         st.write(f"Ahorros (${stats.get('total_ahorros', 0):,.2f}) + " +
                 f"Actividades (${stats.get('total_actividades', 0):,.2f}) + " +
-                f"Multas (${stats.get('total_multas', 0):,.2f}) - " +
-                f"Retiros (${stats.get('total_retiros', 0):,.2f}) - " +
-                f"Préstamos Activos (${stats.get('prestamos_activos', 0):,.2f}) = " +
+                f"Multas (${stats.get('total_multas', 0):,.2f}) + " +
+                f"Préstamos Pagados (${stats.get('prestamos_pagados', 0):,.2f}) - " +
+                f"Retiros (${stats.get('total_retiros', 0):,.2f}) = " +
                 f"**${stats.get('saldo_neto', 0):,.2f}**")
 
     # ===============================
@@ -696,5 +668,5 @@ def mostrar_estadisticas(id_grupo):
     - Miembro: {'Todos' if not id_miembro_filtro else opciones_miembros.get(id_miembro_filtro, 'N/A')}
     
     **📝 Fórmula Saldo:**
-    Ahorros + Actividades + Multas - Retiros - Préstamos Activos
+    Ahorros + Actividades + Multas + Préstamos Pagados - Retiros
     """)
