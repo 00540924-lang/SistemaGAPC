@@ -426,7 +426,7 @@ def mostrar_estadisticas(id_grupo):
     # Título principal
     st.markdown("""
     <div style='text-align: center;'>
-        <h1>📊 Dashboard de Estadísticas</h1>
+        <h1>📊 Estadísticas</h1>
         <h3 style='color: #4C3A60; margin-top: -10px;'>Resumen completo del grupo</h3>
     </div>
     """, unsafe_allow_html=True)
@@ -506,7 +506,7 @@ def mostrar_estadisticas(id_grupo):
             st.metric(
                 "💰 Saldo Total", 
                 f"${stats.get('saldo_neto', 0):,.2f}",
-                help="Saldo neto del período (Total Entradas - Total Salidas) - Mismo cálculo que módulo Caja"
+                help="Saldo neto del período (Total Entradas - Total Salidas)"
             )
         
         with col2:
